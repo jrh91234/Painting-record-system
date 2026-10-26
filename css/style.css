@@ -2207,7 +2207,8 @@ button, input, textarea, select {
   position: fixed;
   bottom: 5rem;
   right: 1.5rem;
-  z-index: 2000;
+  /* Above .modal-overlay so errors from a modal form stay visible. */
+  z-index: 10050;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
