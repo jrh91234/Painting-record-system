@@ -1317,7 +1317,7 @@ function doPost(e) {
       for (let i = 1; i < values.length; i++) {
         const rowEmpId = String(values[i][0] || "").trim();
         const rowHash = String(values[i][3] || "").trim();
-        if (rowEmpId === empId) {
+        if (sameEmpId_(rowEmpId, empId)) {
           if (rowHash !== passHash) {
             return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "รหัสผ่านไม่ถูกต้อง" })).setMimeType(ContentService.MimeType.JSON);
           }
@@ -1391,7 +1391,7 @@ function doPost(e) {
 
       const values = uSheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
-        if (String(values[i][0]).trim() === empId) {
+        if (sameEmpId_(values[i][0], empId)) {
           if (newStatus) uSheet.getRange(i + 1, 6).setValue(newStatus);
           if (newRole) uSheet.getRange(i + 1, 5).setValue(newRole);
           if (newPermissions) uSheet.getRange(i + 1, 9).setValue(permissionsJson(newPermissions, newRole || values[i][4]));
@@ -1725,6 +1725,12 @@ function doPost(e) {
   }
 }
 
+// Employee IDs are matched without regard to letter case, so an ID such
+// as "Jian" can be typed as "jian" (phones often start lowercase).
+function sameEmpId_(a, b) {
+  return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+}
+
 function getOrCreateUsersSheet(ss) {
   let uSheet = ss.getSheetByName("Users");
   if (!uSheet) {
@@ -1756,7 +1762,7 @@ function registerUserRecord_(ss, payload, defaultDepartment) {
 
     const values = uSheet.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][0] || "").trim() === empId) {
+      if (sameEmpId_(values[i][0], empId)) {
         return { status: "error", message: "รหัสพนักงานนี้ลงทะเบียนไว้แล้ว" };
       }
     }
@@ -1799,7 +1805,7 @@ function upsertUserRecord_(ss, payload) {
 
     const values = uSheet.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
-      if (String(values[i][0] || "").trim() === empId) {
+      if (sameEmpId_(values[i][0], empId)) {
         // Existing employee: keep the password unless the admin asked for a
         // reset, refresh the rest. Never demote or disable the Super Admin.
         if (name) uSheet.getRange(i + 1, 2).setValue(name);
@@ -2200,7 +2206,7 @@ function doGetJson_(e) {
       for (let i = 1; i < values.length; i++) {
         const rowEmpId = String(values[i][0] || "").trim();
         const rowHash = String(values[i][3] || "").trim();
-        if (rowEmpId === empId) {
+        if (sameEmpId_(rowEmpId, empId)) {
           if (rowHash !== passHash) {
             return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "รหัสผ่านไม่ถูกต้อง" })).setMimeType(ContentService.MimeType.JSON);
           }
@@ -2273,7 +2279,7 @@ function doGetJson_(e) {
 
       const values = uSheet.getDataRange().getValues();
       for (let i = 1; i < values.length; i++) {
-        if (String(values[i][0]).trim() === empId) {
+        if (sameEmpId_(values[i][0], empId)) {
           if (newStatus) uSheet.getRange(i + 1, 6).setValue(newStatus);
           if (newRole) uSheet.getRange(i + 1, 5).setValue(newRole);
           if (newPermissions) uSheet.getRange(i + 1, 9).setValue(permissionsJson(newPermissions, newRole || values[i][4]));

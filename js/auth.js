@@ -76,7 +76,7 @@ const PaintingAuth = {
         try {
             const liveUsers = await getUsersAPI();
             const liveUser = Array.isArray(liveUsers)
-                ? liveUsers.find(user => String(user.employeeId || '').trim() === String(this.currentUser.employeeId || '').trim())
+                ? liveUsers.find(user => String(user.employeeId || '').trim().toLowerCase() === String(this.currentUser.employeeId || '').trim().toLowerCase())
                 : null;
             if (!liveUser) return;
 
