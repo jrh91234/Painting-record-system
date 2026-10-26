@@ -1,6 +1,7 @@
 // Canonical production catalog used by the daily production form.
 // Each selection is intentionally hierarchical: product group -> part category -> model/code -> color.
-const PAINTING_PRODUCT_GROUP_ORDER = ["LC600 Classic", "LC600 Visi-smart", "PDB", "CU (resi thai)", "NLC", "NMS"];
+// Replaced by the PartModelCatalog sheet order once the catalog loads.
+let PAINTING_PRODUCT_GROUP_ORDER = ["LC600 Classic", "LC600 Visi-smart", "PDB", "CU (resi thai)", "NLC", "NMS"];
 const PAINTING_PRODUCT_GROUPS_DEFAULT = {
     "LC600 Classic": {
         colors: [{ value: "GREY BUTTER", label: "GREY BUTTER (1025216PX20)", code: "1025216PX20" }],
@@ -137,7 +138,8 @@ function escapeDailyReportHtml(value) {
 function normalizeProductCatalog(source) {
     if (!source || typeof source !== "object") return JSON.parse(JSON.stringify(PAINTING_PRODUCT_GROUPS_DEFAULT));
     const candidate = {};
-    for (const groupName of PAINTING_PRODUCT_GROUP_ORDER) {
+    const groupNames = PAINTING_PRODUCT_GROUP_ORDER.concat(Object.keys(source).filter(name => !PAINTING_PRODUCT_GROUP_ORDER.includes(name)));
+    for (const groupName of groupNames) {
         const raw = source[groupName];
         if (!raw || typeof raw !== "object" || !raw.categories) continue;
         const categories = {};
@@ -254,10 +256,53 @@ function handlePartCategorySelect(select) {
     }
     categories[name] = [];
     localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
+    saveCatalogEntryToSheet({ group: productGroup, category: name });
     renderPartGroupDropdownUI(productGroup);
     select.value = name;
     renderModelDropdownOptions(productGroup, name);
     showToast('เพิ่มประเภทชิ้นงานใหม่แล้ว', 'success');
+}
+
+// New categories/models are added to the PartModelCatalog sheet so every
+// device gets them; the local copy above keeps the form usable meanwhile.
+function saveCatalogEntryToSheet(entry) {
+    if (typeof addCatalogEntryToAPI !== 'function') return;
+    addCatalogEntryToAPI(entry).then(ok => {
+        if (!ok && typeof showToast === 'function') showToast('บันทึกรายการใหม่ลง Google Sheet ไม่สำเร็จ (ใช้ได้เฉพาะเครื่องนี้)', 'error');
+    });
+}
+
+// Models added with "➕" before the catalog moved to the sheet exist only in
+// this browser. Send them to the sheet once so they are not lost.
+const PAINTING_CATALOG_UPLOADED_FLAG = 'PAINTING_CATALOG_LOCAL_UPLOADED_V1';
+function uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog) {
+    // Once per browser, so rows deleted from the sheet later are not re-added
+    // from an old local copy. Built-in defaults are never uploaded either.
+    try {
+        if (localStorage.getItem(PAINTING_CATALOG_UPLOADED_FLAG)) return [];
+        localStorage.setItem(PAINTING_CATALOG_UPLOADED_FLAG, new Date().toISOString());
+    } catch (_) {
+        return [];
+    }
+    const isDefault = (group, category, value) => (PAINTING_PRODUCT_GROUPS_DEFAULT[group]?.categories?.[category] || [])
+        .some(item => String(item.value) === String(value));
+    const missing = [];
+    Object.entries(localCatalog || {}).forEach(([group, data]) => {
+        Object.entries(data?.categories || {}).forEach(([category, models]) => {
+            const sheetModels = sheetCatalog?.[group]?.categories?.[category];
+            const isDefaultCategory = !!PAINTING_PRODUCT_GROUPS_DEFAULT[group]?.categories?.[category];
+            if (!sheetModels && !(models || []).length && !isDefaultCategory) missing.push({ group, category });
+            (models || []).forEach(model => {
+                if (isDefault(group, category, model.value)) return;
+                if (sheetModels && sheetModels.some(item => String(item.value) === String(model.value))) return;
+                const suffix = ` (${model.value})`;
+                const name = String(model.label || '').endsWith(suffix) ? String(model.label).slice(0, -suffix.length) : String(model.label || '');
+                missing.push({ group, category, code: String(model.value), name: name === String(model.value) ? '' : name });
+            });
+        });
+    });
+    missing.forEach(entry => saveCatalogEntryToSheet(entry));
+    return missing;
 }
 
 function renderModelDropdownOptions(productGroup = selectedProductGroup(), category = document.getElementById('drPartGroup')?.value || "") {
@@ -304,6 +349,7 @@ function handleModelSelect(select) {
     const entry = { value, label: code ? `${name} (${code})` : name };
     models.push(entry);
     localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
+    saveCatalogEntryToSheet({ group: productGroup, category, code, name });
     renderModelDropdownOptions(productGroup, category);
     select.value = value;
     showToast('เพิ่มรายการรุ่นงานแล้ว', 'success');
@@ -354,7 +400,18 @@ async function loadPartModelsList() {
     filterProductGroupDropdown();
     if (typeof fetchPartModelsFromAPI === 'function') {
         const cloudGroups = await fetchPartModelsFromAPI();
-        if (cloudGroups && typeof cloudGroups === 'object') {
+        const meta = window.PAINTING_PART_CATALOG_META || {};
+        if (cloudGroups && typeof cloudGroups === 'object' && meta.source === 'sheet') {
+            // The PartModelCatalog sheet is the source of truth: show exactly
+            // its groups, categories, models and colors, in sheet order.
+            if (Array.isArray(meta.order) && meta.order.length) PAINTING_PRODUCT_GROUP_ORDER = meta.order.slice();
+            const sheetCatalog = normalizeProductCatalog(cloudGroups);
+            const localOnly = uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog);
+            PAINTING_MODEL_GROUPS = removeMistypedCatalogEntries(localOnly.length ? mergeProductCatalog(sheetCatalog, localCatalog) : sheetCatalog);
+            localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
+            renderProductGroupDropdownUI();
+            filterProductGroupDropdown();
+        } else if (cloudGroups && typeof cloudGroups === 'object') {
             // Keep locally defined groups (including newly introduced NMS)
             // even when the deployed Apps Script catalog has not caught up.
             const normalized = mergeProductCatalog(PAINTING_PRODUCT_GROUPS_DEFAULT, cloudGroups);
