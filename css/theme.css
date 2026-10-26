@@ -1,6 +1,6 @@
 /* Theme switcher and light theme overrides.
-   This file is loaded after the existing styles so the original dark theme
-   remains unchanged unless the user selects the light theme. */
+   This file is loaded after the existing styles. Light is the default theme;
+   the original dark theme applies when the user selects it. */
 
 :root {
   color-scheme: dark;
@@ -8,34 +8,37 @@
 
 [data-theme="light"] {
   color-scheme: light;
-  --theme-bg: #f3f7fb;
-  --theme-bg-deep: #e8f0f8;
-  --theme-surface: #ffffff;
-  --theme-surface-soft: #f7fbff;
-  --theme-surface-muted: #edf4fa;
-  --theme-text: #172033;
-  --theme-text-soft: #334155;
-  --theme-muted: #64748b;
-  --theme-border: #d5e2ee;
-  --theme-border-strong: #bfd3e4;
-  --theme-shadow: 0 12px 30px rgba(15, 35, 60, 0.1);
+  /* Soft light palette: muted gray-blue page, off-white surfaces, no pure white glare. */
+  --theme-bg-top: #eaeef3;
+  --theme-bg: #e4e9ef;
+  --theme-bg-deep: #dbe2ea;
+  --theme-surface: #f5f7fa;
+  --theme-surface-soft: #eff3f7;
+  --theme-surface-muted: #e7edf3;
+  --theme-input: #fafbfc;
+  --theme-text: #1e293b;
+  --theme-text-soft: #3b4a5e;
+  --theme-muted: #66768a;
+  --theme-border: #cfd8e2;
+  --theme-border-strong: #b9c5d2;
+  --theme-shadow: 0 6px 18px rgba(15, 35, 60, 0.07);
 }
 
 /* Global surfaces */
 [data-theme="light"],
 [data-theme="light"] body {
-  background: linear-gradient(135deg, #f8fbff 0%, var(--theme-bg) 55%, var(--theme-bg-deep) 100%) !important;
+  background: linear-gradient(160deg, var(--theme-bg-top) 0%, var(--theme-bg) 55%, var(--theme-bg-deep) 100%) !important;
   color: var(--theme-text) !important;
 }
 
 [data-theme="light"] .app-container,
 [data-theme="light"] .main-wrapper {
-  background: linear-gradient(135deg, #f8fbff 0%, var(--theme-bg) 55%, var(--theme-bg-deep) 100%) !important;
+  background: linear-gradient(160deg, var(--theme-bg-top) 0%, var(--theme-bg) 55%, var(--theme-bg-deep) 100%) !important;
   color: var(--theme-text) !important;
 }
 
 [data-theme="light"] .app-sidebar {
-  background: rgba(255, 255, 255, 0.94) !important;
+  background: rgba(245, 247, 250, 0.95) !important;
   color: var(--theme-text) !important;
   border-right-color: var(--theme-border) !important;
   box-shadow: 4px 0 25px rgba(15, 35, 60, 0.08) !important;
@@ -92,13 +95,13 @@
 }
 
 [data-theme="light"] .app-header {
-  background: rgba(255, 255, 255, 0.82) !important;
+  background: rgba(240, 243, 247, 0.9) !important;
   border-bottom-color: var(--theme-border) !important;
   box-shadow: 0 4px 18px rgba(15, 35, 60, 0.05);
 }
 
 [data-theme="light"] .header-search input {
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border-strong) !important;
   box-shadow: 0 4px 15px rgba(15, 35, 60, 0.08) !important;
@@ -109,7 +112,7 @@
 }
 
 [data-theme="light"] .header-search input:focus {
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
 }
 
 [data-theme="light"] .user-chip {
@@ -193,11 +196,11 @@
 
 /* Authentication screen */
 [data-theme="light"] .auth-shell {
-  background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f3f7fb 70%, #e8f0f8 100%) !important;
+  background: radial-gradient(circle at 50% 30%, var(--theme-bg-top) 0%, var(--theme-bg) 70%, var(--theme-bg-deep) 100%) !important;
 }
 
 [data-theme="light"] .auth-card {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: rgba(245, 247, 250, 0.94) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 25px 60px rgba(15, 35, 60, 0.14), 0 0 40px rgba(14, 165, 233, 0.08) !important;
@@ -222,7 +225,7 @@
 
 [data-theme="light"] .auth-form input,
 [data-theme="light"] .auth-form select {
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -236,7 +239,7 @@
 [data-theme="light"] .equipment-check-card,
 [data-theme="light"] .qc7-card,
 [data-theme="light"] .spare-parts-card {
-  background: linear-gradient(145deg, #ffffff, #f7fbff) !important;
+  background: linear-gradient(145deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border) !important;
   box-shadow: var(--theme-shadow) !important;
@@ -244,7 +247,7 @@
 
 [data-theme="light"] .kpi-card,
 [data-theme="light"] .spare-kpi-card {
-  background: linear-gradient(135deg, #ffffff, #f2f8fd) !important;
+  background: linear-gradient(135deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 10px 25px rgba(15, 35, 60, 0.08) !important;
@@ -271,7 +274,7 @@
 /* QC 7 summary cards have their own component class and therefore do not
    inherit the light surface override used by .qc7-card. */
 [data-theme="light"] .qc7-summary-card {
-  background: linear-gradient(145deg, var(--qc7-tint), #ffffff 72%) !important;
+  background: linear-gradient(145deg, var(--qc7-tint), var(--theme-surface) 72%) !important;
   border-color: var(--qc7-border) !important;
   box-shadow: 0 8px 24px rgba(15, 35, 60, 0.1) !important;
 }
@@ -315,27 +318,27 @@
 /* Tables */
 [data-theme="light"] .custom-table,
 [data-theme="light"] .data-table {
-  background: #ffffff !important;
+  background: var(--theme-surface) !important;
   border-color: var(--theme-border) !important;
 }
 
 [data-theme="light"] .custom-table th,
 [data-theme="light"] .data-table th {
-  background: #eaf4fb !important;
+  background: var(--theme-surface-muted) !important;
   color: #0e3a60 !important;
-  border-bottom-color: #c7dfef !important;
+  border-bottom-color: #c3cfdc !important;
 }
 
 [data-theme="light"] .custom-table td,
 [data-theme="light"] .data-table td,
 [data-theme="light"] .spare-parts-table td {
   color: var(--theme-text-soft) !important;
-  border-bottom-color: #e5edf4 !important;
+  border-bottom-color: #dfe6ee !important;
 }
 
 [data-theme="light"] .custom-table tbody tr:hover,
 [data-theme="light"] .data-table tbody tr:hover {
-  background-color: #f0f8fd !important;
+  background-color: #e9eff5 !important;
 }
 
 [data-theme="light"] .event-detail-cell,
@@ -352,7 +355,7 @@
 
 [data-theme="light"] .spare-parts-icon-btn,
 [data-theme="light"] .spare-row-action {
-  background: #f3f8fc !important;
+  background: var(--theme-surface-soft) !important;
   color: #0e7490 !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -365,7 +368,7 @@
 [data-theme="light"] input[type="date"],
 [data-theme="light"] input[type="time"],
 [data-theme="light"] input[type="datetime-local"] {
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border-strong) !important;
   color-scheme: light !important;
@@ -374,24 +377,24 @@
 [data-theme="light"] .form-control:focus,
 [data-theme="light"] .form-control-custom:focus,
 [data-theme="light"] .qc7-toolbar select:focus {
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
   border-color: #0ea5e9 !important;
 }
 
 [data-theme="light"] .qc7-toolbar select option {
   color: var(--theme-text) !important;
-  background: #ffffff !important;
+  background: var(--theme-input) !important;
 }
 
 [data-theme="light"] .parameter-choice-btn,
 [data-theme="light"] .chart-legend-dropdown > summary {
-  background: #f5f9fc !important;
+  background: var(--theme-surface-soft) !important;
   color: var(--theme-text-soft) !important;
   border-color: var(--theme-border-strong) !important;
 }
 
 [data-theme="light"] .chart-legend-dropdown-content {
-  background: rgba(255, 255, 255, 0.98) !important;
+  background: rgba(245, 247, 250, 0.98) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 14px 28px rgba(15, 35, 60, 0.14) !important;
 }
@@ -411,7 +414,7 @@
 /* QC 7 and mobile navigation */
 [data-theme="light"] .qc7-toolbar input,
 [data-theme="light"] .qc7-toolbar select {
-  background-color: #ffffff !important;
+  background-color: var(--theme-input) !important;
 }
 
 [data-theme="light"] .qc7-fishbone-spine {
@@ -419,11 +422,11 @@
 }
 
 [data-theme="light"] .qc7-fishbone-spine span {
-  background: #eaf4fb !important;
+  background: var(--theme-surface-muted) !important;
 }
 
 [data-theme="light"] .mobile-bottom-nav {
-  background: rgba(255, 255, 255, 0.96) !important;
+  background: rgba(240, 243, 247, 0.97) !important;
   border-top-color: var(--theme-border) !important;
   box-shadow: 0 -4px 20px rgba(15, 35, 60, 0.1) !important;
 }
@@ -438,13 +441,13 @@
 }
 
 [data-theme="light"] .mobile-checklist-menu {
-  background: rgba(255, 255, 255, 0.98) !important;
+  background: rgba(245, 247, 250, 0.98) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 12px 30px rgba(15, 35, 60, 0.14) !important;
 }
 
 [data-theme="light"] .mobile-checklist-option {
-  background: #f5f9fc !important;
+  background: var(--theme-surface-soft) !important;
   color: var(--theme-text-soft) !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -461,14 +464,14 @@
 }
 
 [data-theme="light"] .modal-box {
-  background: linear-gradient(145deg, #ffffff, #f7fbff) !important;
+  background: linear-gradient(145deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   color: var(--theme-text) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 25px 60px rgba(15, 35, 60, 0.2), 0 0 40px rgba(14, 165, 233, 0.1) !important;
 }
 
 [data-theme="light"] .modal-header {
-  background: linear-gradient(135deg, #eaf4fb, #f8fbff) !important;
+  background: linear-gradient(135deg, var(--theme-surface-muted), var(--theme-surface)) !important;
   color: #0e7490 !important;
   border-bottom-color: var(--theme-border) !important;
 }
@@ -484,13 +487,13 @@
 }
 
 [data-theme="light"] #staffListContainer {
-  background: #ffffff !important;
+  background: var(--theme-surface) !important;
   border-color: var(--theme-border) !important;
 }
 
 /* Remaining page-specific surfaces used by generated menu content. */
 [data-theme="light"] .user-summary-grid > div {
-  background: linear-gradient(145deg, #ffffff, #f7fbff) !important;
+  background: linear-gradient(145deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   border-color: var(--theme-border) !important;
   box-shadow: var(--theme-shadow) !important;
   color: var(--theme-text) !important;
@@ -508,14 +511,14 @@
 }
 
 [data-theme="light"] .total-preview-box {
-  background: linear-gradient(135deg, #ffffff, #f2f8fd) !important;
+  background: linear-gradient(135deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   color: var(--theme-text-soft) !important;
   border-color: #9bd2ed !important;
   box-shadow: 0 8px 24px rgba(15, 35, 60, 0.08) !important;
 }
 
 [data-theme="light"] .dr-radio-pills {
-  background: #edf4fa !important;
+  background: var(--theme-surface-muted) !important;
   border-color: var(--theme-border) !important;
 }
 
@@ -525,7 +528,7 @@
 }
 
 [data-theme="light"] .rework-form-card .btn-secondary {
-  background: #edf4fa !important;
+  background: var(--theme-surface-muted) !important;
   color: #0e3a60 !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -539,7 +542,7 @@
 [data-theme="light"] .btn-secondary-custom,
 [data-theme="light"] .btn-modal-cancel,
 [data-theme="light"] .spare-parts-btn.secondary {
-  background: #edf4fa !important;
+  background: var(--theme-surface-muted) !important;
   color: #0e3a60 !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -553,7 +556,7 @@
 }
 
 [data-theme="light"] .qc-daily-group-heading {
-  background: #edf4fa !important;
+  background: var(--theme-surface-muted) !important;
   border-bottom-color: var(--theme-border) !important;
 }
 
@@ -564,13 +567,13 @@
 
 /* QC review creates these detail panels dynamically. */
 [data-theme="light"] .mobile-qc-review-submenu {
-  background: rgba(255, 255, 255, 0.98) !important;
+  background: rgba(245, 247, 250, 0.98) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 12px 30px rgba(15, 35, 60, 0.14) !important;
 }
 
 [data-theme="light"] .mobile-qc-review-submenu button {
-  background: #f5f9fc !important;
+  background: var(--theme-surface-soft) !important;
   color: var(--theme-text-soft) !important;
   border-color: var(--theme-border-strong) !important;
 }
@@ -579,7 +582,7 @@
 [data-theme="light"] .qc-review-detail-panel,
 [data-theme="light"] .qc-rework-detail-wrap .qc-daily-detail-section,
 [data-theme="light"] .qc-rework-detail-wrap .qc-daily-detail-field {
-  background: #ffffff !important;
+  background: var(--theme-surface) !important;
   border-color: var(--theme-border) !important;
 }
 
@@ -604,26 +607,26 @@
 }
 
 [data-theme="light"] .rtv-kpi {
-  background: linear-gradient(145deg, #ffffff, #f7fbff) !important;
+  background: linear-gradient(145deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   border-color: var(--theme-border) !important;
   color: var(--theme-text) !important;
 }
 
 [data-theme="light"] #maintenanceAlertBox > div {
-  background: #fffdf5 !important;
+  background: #f7f5ee !important;
   color: var(--theme-text) !important;
   box-shadow: 0 8px 22px rgba(15, 35, 60, 0.08) !important;
 }
 
 [data-theme="light"] .spare-image-picker {
-  background: linear-gradient(135deg, #eaf7fc, #f7fbff) !important;
+  background: linear-gradient(135deg, var(--theme-surface-muted), var(--theme-surface-soft)) !important;
   color: #0e7490 !important;
   border-color: #9bd2ed !important;
   box-shadow: 0 6px 16px rgba(15, 35, 60, 0.08) !important;
 }
 
 [data-theme="light"] #parameter-checklist-tab #parameterChecklistItemsBody tr {
-  background: linear-gradient(145deg, #ffffff, #f7fbff) !important;
+  background: linear-gradient(145deg, var(--theme-surface), var(--theme-surface-soft)) !important;
   border-color: var(--theme-border) !important;
   box-shadow: 0 8px 20px rgba(15, 35, 60, 0.08) !important;
   color: var(--theme-text) !important;
@@ -649,11 +652,11 @@
 }
 
 [data-theme="light"] [style*="#0b1329"] {
-  background: #ffffff !important;
+  background: var(--theme-surface) !important;
 }
 
 [data-theme="light"] [style*="#070d1e"] {
-  background: #eaf4fb !important;
+  background: var(--theme-surface-muted) !important;
 }
 
 /* Keep calendar icons visible on white controls. */
