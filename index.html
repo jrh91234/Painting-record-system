@@ -692,7 +692,7 @@
     <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
-    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-allparts-20261026">
+    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-output-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1243,6 +1243,8 @@
                     <p id="lineEffStatus" class="line-eff-status" role="status"></p>
 
                     <div class="kpi-grid line-eff-kpis">
+                        <div class="kpi-card blue"><div class="kpi-label">ยอดผลิตทั้งหมด</div><div class="kpi-value" id="lineEffTotal">-</div><div class="kpi-subtext" id="lineEffTotalSub"></div></div>
+                        <div class="kpi-card teal"><div class="kpi-label">เฉลี่ยต่อวัน</div><div class="kpi-value" id="lineEffPerDay">-</div><div class="kpi-subtext" id="lineEffPerDaySub"></div></div>
                         <div class="kpi-card teal"><div class="kpi-label">%Eff เฉลี่ย</div><div class="kpi-value" id="lineEffAvg">-</div><div class="kpi-subtext" id="lineEffAvgSub"></div></div>
                         <div class="kpi-card blue"><div class="kpi-label">%Eff งานดี</div><div class="kpi-value" id="lineEffGood">-</div><div class="kpi-subtext" id="lineEffGoodSub"></div></div>
                         <div class="kpi-card cyan"><div class="kpi-label">เวลาที่ทำได้</div><div class="kpi-value" id="lineEffEarned">-</div><div class="kpi-subtext" id="lineEffEarnedSub"></div></div>
@@ -2400,7 +2402,7 @@
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
-    <script src="js/line-efficiency.js?v=eff-allparts-20261026"></script>
+    <script src="js/line-efficiency.js?v=eff-output-20261026"></script>
     <script src="js/page-tabs.js?v=eff-20261026"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>

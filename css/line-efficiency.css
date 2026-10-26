@@ -90,6 +90,13 @@
 
 .line-eff-kpis {
   margin-top: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.line-eff-kpis .kpi-value small {
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--kz-muted);
 }
 
 .line-eff-kpis .kpi-card {
@@ -330,6 +337,10 @@
 }
 
 @media (max-width: 768px) {
+  .line-eff-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
   .line-eff-filters {
     width: 100%;
   }
