@@ -92,7 +92,7 @@
 
         const type = dataset.type || chartType;
         if (type === 'bar') {
-            dataset.borderWidth = 0;
+            if (!dataset.kzKeepBorder) dataset.borderWidth = 0;
             if (dataset.borderRadius === undefined) dataset.borderRadius = 5;
         } else if (type === 'line') {
             dataset.pointBorderColor = theme.surface;

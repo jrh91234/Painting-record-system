@@ -160,9 +160,63 @@
   font-weight: 500;
 }
 
-.line-eff-chart-wrap {
+.line-eff-pane {
   position: relative;
-  height: 300px;
+}
+
+.line-eff-pane-top {
+  height: 320px;
+}
+
+/* Thin divider between the two panes, like a price/volume chart. */
+.line-eff-pane-bottom {
+  height: 210px;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--kz-line);
+}
+
+.line-eff-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin: 0 0 0.6rem;
+  color: var(--kz-text-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.line-eff-legend-item,
+.line-eff-legend-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.line-eff-legend-item i,
+.line-eff-legend-key i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.line-eff-legend-key i.is-fg { background: var(--kz-blue, #4d7cfe); }
+.line-eff-legend-key i.is-ng {
+  background: repeating-linear-gradient(-45deg, #e5484d 0 2px, color-mix(in srgb, var(--kz-blue, #4d7cfe) 35%, transparent) 2px 5px);
+  outline: 1px solid #e5484d;
+}
+.line-eff-legend-key i.is-rate {
+  height: 3px;
+  border-radius: 2px;
+  background: #e5484d;
+}
+
+.line-eff-legend-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--kz-line);
 }
 
 .line-eff-table {
@@ -277,7 +331,11 @@
     width: 100%;
   }
 
-  .line-eff-chart-wrap {
-    height: 240px;
+  .line-eff-pane-top {
+    height: 260px;
+  }
+
+  .line-eff-pane-bottom {
+    height: 180px;
   }
 }

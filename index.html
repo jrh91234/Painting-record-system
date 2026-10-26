@@ -692,7 +692,7 @@
     <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
-    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-range-20261026">
+    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-2pane-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1252,8 +1252,10 @@
                     <div id="lineEffUnmatched" class="line-eff-unmatched" hidden></div>
 
                     <div class="chart-card line-eff-chart-card">
-                        <h3 class="line-eff-card-title">%Eff รายวัน <small><span class="line-eff-key is-good">●</span> ถึงเป้า ≥80% <span class="line-eff-key is-warn">●</span> 60–80% <span class="line-eff-key is-bad">●</span> ต่ำกว่า 60% · เส้นประ = เป้าหมาย</small></h3>
-                        <div class="line-eff-chart-wrap"><canvas id="lineEffChart" aria-label="กราฟ %Eff รายวัน"></canvas></div>
+                        <h3 class="line-eff-card-title">ยอดผลิต &amp; %Eff รายวัน <small>%Eff: <span class="line-eff-key is-good">●</span> ถึงเป้า ≥80% <span class="line-eff-key is-warn">●</span> 60–80% <span class="line-eff-key is-bad">●</span> ต่ำกว่า 60% · เส้นประ = เป้าหมาย</small></h3>
+                        <div class="line-eff-legend" id="lineEffLegend"></div>
+                        <div class="line-eff-pane line-eff-pane-top"><canvas id="lineEffProdChart" aria-label="กราฟยอดผลิตรายวัน แยกงานดีและ NG ตามชิ้นงาน พร้อม NG rate"></canvas></div>
+                        <div class="line-eff-pane line-eff-pane-bottom"><canvas id="lineEffChart" aria-label="กราฟ %Eff รายวัน"></canvas></div>
                     </div>
 
                     <div class="table-card line-eff-table-card">
@@ -2386,7 +2388,7 @@
     <script src="js/api.js?v=permissions-20260902"></script>
     <script src="js/rtv.js?v=1.0.2"></script>
     <script src="js/theme.js?v=soft-light-20261026"></script>
-    <script src="js/chart-style.js?v=contrast-20261026"></script>
+    <script src="js/chart-style.js?v=eff-2pane-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
     <script src="js/auth.js?v=permissions-20260902"></script>
     <script src="js/app.js?v=permissions-20260902"></script>
@@ -2398,7 +2400,7 @@
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
-    <script src="js/line-efficiency.js?v=eff-range-20261026"></script>
+    <script src="js/line-efficiency.js?v=eff-2pane-20261026"></script>
     <script src="js/page-tabs.js?v=eff-20261026"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>
