@@ -462,6 +462,7 @@ const PaintingAuth = {
                             </div>
                         </div>
                         <div class="user-card-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                            ${!isSuper ? `<button class="btn-secondary-custom" style="padding: 0.5rem 0.8rem; font-size: 0.8rem;" onclick="PaintingAuth.openEditUserModal('${u.employeeId}')">✏️ แก้ไข</button>` : ''}
                             ${!isSuper && !isAdmin ? `<button class="btn-secondary-custom" style="padding: 0.5rem 0.8rem; font-size: 0.8rem;" onclick="PaintingAuth.openPermissionsModal('${u.employeeId}')">กำหนดสิทธิ์</button>` : ''}
                             ${isPending ? `
                                 <button class="btn-primary-custom" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" onclick="PaintingAuth.approveUser('${u.employeeId}')">✅ อนุมัติ</button>
@@ -564,7 +565,49 @@ const PaintingAuth = {
         }
     },
 
+    // The add-user modal doubles as the edit form: in edit mode the employee
+    // ID is locked and a "reset password" option appears.
+    setUserModalMode(mode) {
+        this.userModalMode = mode;
+        const isEdit = mode === "edit";
+        const title = document.getElementById("addUserModalTitle");
+        const idInput = document.getElementById("adminAddEmpId");
+        const resetRow = document.getElementById("adminResetPwRow");
+        const resetBox = document.getElementById("adminResetPw");
+        if (title) title.textContent = isEdit ? "✏️ แก้ไขข้อมูลผู้ใช้งาน" : "👤 เพิ่มผู้ใช้งาน / อนุมัติสิทธิ์พนักงาน";
+        if (idInput) idInput.readOnly = isEdit;
+        if (resetRow) resetRow.hidden = !isEdit;
+        if (resetBox) resetBox.checked = false;
+    },
+
     openAddUserModal() {
+        const form = document.getElementById("addUserForm");
+        if (form) form.reset();
+        this.setUserModalMode("add");
+        const modal = document.getElementById("addUserModal");
+        if (modal) modal.classList.add("active");
+    },
+
+    openEditUserModal(employeeId) {
+        const user = (this.users || []).find(item => String(item.employeeId).trim() === String(employeeId).trim());
+        if (!user) return;
+        this.setUserModalMode("edit");
+        const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value;
+        };
+        setValue("adminAddEmpId", user.employeeId);
+        setValue("adminAddName", user.displayName || "");
+        // Sheet rows may hold a department that is not one of the preset
+        // options; add it so the current value is kept.
+        const deptSelect = document.getElementById("adminAddDept");
+        const dept = String(user.department || "").trim();
+        if (deptSelect && dept && !Array.from(deptSelect.options).some(option => option.value === dept)) {
+            deptSelect.add(new Option(dept, dept));
+        }
+        if (deptSelect && dept) deptSelect.value = dept;
+        setValue("adminAddRole", user.role === "Admin" ? "Admin" : "Inspector");
+        setValue("adminAddStatus", ["Active", "Pending", "Disabled"].includes(user.status) ? user.status : "Active");
         const modal = document.getElementById("addUserModal");
         if (modal) modal.classList.add("active");
     },
@@ -587,13 +630,17 @@ const PaintingAuth = {
             return;
         }
 
+        const isEdit = this.userModalMode === "edit";
+        const resetPassword = isEdit && !!document.getElementById("adminResetPw")?.checked;
         const userData = {
             employeeId: empId,
             displayName: name,
             department: dept,
             role: role,
             status: status,
-            passwordHash: await this.hashPassword("123456")
+            // New users start with 123456; an edit keeps the password unless reset.
+            passwordHash: (!isEdit || resetPassword) ? await this.hashPassword("123456") : "",
+            resetPassword: resetPassword
         };
 
         // Saving can take a few seconds; show it so the button never looks dead.
@@ -606,7 +653,9 @@ const PaintingAuth = {
         } finally {
             if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = submitLabel; }
         }
-        this.reportUserWrite(result, `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`);
+        this.reportUserWrite(result, isEdit
+            ? `บันทึกการแก้ไขรหัสพนักงาน ${empId} (${name}) แล้ว${resetPassword ? " · รหัสผ่านใหม่ 123456" : ""}`
+            : `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`);
         if (!result || result.status !== "success") return;
 
         this.closeAddUserModal();

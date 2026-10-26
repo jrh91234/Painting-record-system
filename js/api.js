@@ -1409,7 +1409,8 @@ async function upsertUserAPI(userData) {
             department: userData.department || '',
             userStatus: userData.status || 'Active',
             userRole: userData.role || 'Inspector',
-            passwordHash: userData.passwordHash || ''
+            passwordHash: userData.passwordHash || '',
+            resetPassword: userData.resetPassword ? '1' : ''
         }, 'Add user');
         if (!result || result.status !== "success") return result || { status: "error", message: "บันทึกลง Google Sheet ไม่สำเร็จ" };
         updateCachedUser(userData.employeeId, {

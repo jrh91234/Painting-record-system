@@ -1800,12 +1800,13 @@ function upsertUserRecord_(ss, payload) {
     const values = uSheet.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
       if (String(values[i][0] || "").trim() === empId) {
-        // Existing employee: keep the password, refresh the rest. Never
-        // demote the Super Admin through this form.
+        // Existing employee: keep the password unless the admin asked for a
+        // reset, refresh the rest. Never demote or disable the Super Admin.
         if (name) uSheet.getRange(i + 1, 2).setValue(name);
         if (dept) uSheet.getRange(i + 1, 3).setValue(dept);
-        uSheet.getRange(i + 1, 6).setValue(status);
+        if (String(data.resetPassword || "") === "1" && passHash) uSheet.getRange(i + 1, 4).setValue(passHash);
         if (String(values[i][4] || "").trim() !== "Super Admin") {
+          uSheet.getRange(i + 1, 6).setValue(status);
           uSheet.getRange(i + 1, 5).setValue(role);
           uSheet.getRange(i + 1, 9).setValue(JSON.stringify(getDefaultPermissions(role)));
         }
