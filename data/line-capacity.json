@@ -242,7 +242,9 @@
    "pitch": 0.75,
    "lineSpeed": 3,
    "stdSec": 7.5,
-   "appCodes": []
+   "appCodes": [
+    "NVE96526"
+   ]
   },
   {
    "partCode": "NVE96530",
@@ -252,7 +254,9 @@
    "pitch": 0.75,
    "lineSpeed": 3,
    "stdSec": 7.5,
-   "appCodes": []
+   "appCodes": [
+    "NVE96528"
+   ]
   },
   {
    "partCode": "NVE96537",
@@ -262,7 +266,9 @@
    "pitch": 0.75,
    "lineSpeed": 3,
    "stdSec": 7.5,
-   "appCodes": []
+   "appCodes": [
+    "NVE96533"
+   ]
   },
   {
    "partCode": "NVE96538",
@@ -272,7 +278,9 @@
    "pitch": 0.75,
    "lineSpeed": 3,
    "stdSec": 7.5,
-   "appCodes": []
+   "appCodes": [
+    "NVE96535"
+   ]
   },
   {
    "partCode": "NVE96544",
@@ -282,61 +290,13 @@
    "pitch": 0.75,
    "lineSpeed": 3,
    "stdSec": 7.5,
-   "appCodes": []
+   "appCodes": [
+    "NVE96542"
+   ]
   },
   {
    "partCode": "NVE96545",
    "partName": "METAL BOX SUB ASSEMBLY (S9HCL118)",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5,
-   "appCodes": []
-  },
-  {
-   "partCode": "NVE96526",
-   "partName": "S9HCL (ไม่ทราบชื่อ)",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5,
-   "appCodes": []
-  },
-  {
-   "partCode": "NVE96528",
-   "partName": "S9HCL (ไม่ทราบชื่อ)",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5,
-   "appCodes": []
-  },
-  {
-   "partCode": "NVE96533",
-   "partName": "S9HCL (ไม่ทราบชื่อ)",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5,
-   "appCodes": []
-  },
-  {
-   "partCode": "NVE96535",
-   "partName": "S9HCL (ไม่ทราบชื่อ)",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5,
-   "appCodes": []
-  },
-  {
-   "partCode": "NVE96542",
-   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
