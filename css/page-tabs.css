@@ -1,0 +1,130 @@
+/* Browser-style page tabs (js/page-tabs.js), styled to match kurzgesagt.css. */
+.page-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 0.45rem 1.5rem 0.55rem;
+  background: color-mix(in srgb, var(--kz-bg-top, #15173a) 90%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.page-tabs-list {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.15rem 0.1rem 0.35rem;
+}
+
+.page-tabs-list::-webkit-scrollbar {
+  display: none;
+}
+
+.page-tab {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  max-width: 220px;
+  border-radius: 999px;
+  background: var(--kz-surface-muted, #1d2150);
+  color: var(--kz-text-soft, #c9c8f0);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-tab:hover {
+  background: var(--kz-surface-soft, #2a2f6b);
+  color: var(--kz-text, #f4f2ff);
+}
+
+.page-tab.is-active {
+  background: var(--kz-surface, #23275c);
+  color: var(--kz-text, #f4f2ff);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--tab-dot) 70%, #000), 0 8px 18px color-mix(in srgb, var(--tab-dot) 25%, transparent);
+  transform: translateY(-1px);
+}
+
+.page-tab-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.page-tab:not(:has(.page-tab-close)) .page-tab-main {
+  padding-right: 0.95rem;
+}
+
+.page-tab-main:focus-visible,
+.page-tab-close:focus-visible {
+  outline: 2px solid var(--kz-purple, #8e6cff);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.page-tab-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tab-dot);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tab-dot) 22%, transparent);
+}
+
+.page-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-right: 0.4rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.page-tab-close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--kz-pink, #ff5d8f) 22%, transparent);
+  color: var(--kz-pink, #ff5d8f);
+}
+
+@media (max-width: 768px) {
+  .page-tabs {
+    padding: 0.35rem 0.75rem 0.45rem;
+  }
+
+  .page-tab {
+    max-width: 170px;
+  }
+
+  .page-tab-main {
+    min-height: 34px;
+    font-size: 0.8rem;
+  }
+
+  /* Touch screens have no hover, so keep the close button fully visible. */
+  .page-tab-close {
+    opacity: 0.8;
+    width: 28px;
+    height: 28px;
+  }
+}
