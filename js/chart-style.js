@@ -86,7 +86,8 @@
     const COLOR_KEYS = ['backgroundColor', 'borderColor', 'pointBackgroundColor', 'hoverBackgroundColor', 'hoverBorderColor', 'pointHoverBackgroundColor'];
 
     function styleDataset(dataset, chartType, theme) {
-        COLOR_KEYS.forEach(key => {
+        // Datasets whose colors must match an HTML legend opt out of the remap.
+        if (!dataset.kzKeepColors) COLOR_KEYS.forEach(key => {
             if (dataset[key] !== undefined) dataset[key] = remapColor(dataset[key], theme);
         });
 

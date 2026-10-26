@@ -325,7 +325,7 @@
         const datasets = [];
         series.forEach((item, i) => datasets.push({
             type: 'bar', stack: 'output', order: 2, label: `FG · ${label(item)}`, data: good[i],
-            backgroundColor: item.color, kzGroup: 'FG', partName: item.name
+            backgroundColor: item.color, kzGroup: 'FG', partName: item.name, kzKeepColors: true
         }));
         // NG is pushed after every FG dataset so it always sits on top of the stack.
         series.forEach((item, i) => {
