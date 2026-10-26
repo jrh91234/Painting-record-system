@@ -2018,6 +2018,60 @@ function recordSparePartTransaction_(ss, payload) {
 // JSONP callback. Apps Script /exec uses a short-lived redirect; a browser
 // script request can follow that redirect reliably when fetch() receives a
 // stale googleusercontent.com 404.
+// PartModelCatalog is the source of truth for the production form's
+// Product Group -> Part Category -> Model -> Color dropdowns. Columns:
+// ProductGroup | PartCategory | ModelCode | ModelName | ColorName | ColorCode.
+// A row may leave ModelCode empty to add only a category, or leave both
+// PartCategory and ModelCode empty to add only a color or an empty group.
+function ensurePartModelCatalogSheet_(ss) {
+  let catalogSheet = ss.getSheetByName("PartModelCatalog");
+  if (!catalogSheet) catalogSheet = ss.insertSheet("PartModelCatalog");
+  if (catalogSheet.getLastRow() <= 1) {
+    const catalogRows = [["ProductGroup", "PartCategory", "ModelCode", "ModelName", "ColorName", "ColorCode"]];
+    Object.keys(PART_MODEL_CATALOG).forEach(groupName => {
+      const group = PART_MODEL_CATALOG[groupName];
+      const firstColor = (group.colors || [])[0] || {};
+      Object.keys(group.categories || {}).forEach(category => {
+        (group.categories[category] || []).forEach(model => {
+          catalogRows.push([groupName, category, model.value, model.label, firstColor.value || "", firstColor.code || ""]);
+        });
+      });
+      (group.colors || []).slice(1).forEach(color => catalogRows.push([groupName, "", "", "", color.value || "", color.code || ""]));
+    });
+    catalogSheet.getRange(1, 1, catalogRows.length, catalogRows[0].length).setValues(catalogRows);
+    catalogSheet.setFrozenRows(1);
+    SpreadsheetApp.flush();
+  }
+  return catalogSheet;
+}
+
+function readPartModelCatalog_(catalogSheet) {
+  const groups = {};
+  const order = [];
+  const lastRow = catalogSheet.getLastRow();
+  if (lastRow < 2) return { groups, order };
+  const values = catalogSheet.getRange(2, 1, lastRow - 1, 6).getDisplayValues();
+  values.forEach(row => {
+    const [groupName, category, code, name, colorName, colorCode] = row.map(v => String(v || "").trim());
+    if (!groupName) return;
+    if (!groups[groupName]) {
+      groups[groupName] = { categories: {}, colors: [] };
+      order.push(groupName);
+    }
+    const group = groups[groupName];
+    if (category) {
+      if (!group.categories[category]) group.categories[category] = [];
+      if (code && !group.categories[category].some(m => m.value === code)) {
+        group.categories[category].push({ value: code, label: name || code });
+      }
+    }
+    if (colorName && !group.colors.some(c => c.value === colorName)) {
+      group.colors.push({ value: colorName, label: colorCode ? colorName + " (" + colorCode + ")" : colorName, code: colorCode });
+    }
+  });
+  return { groups, order };
+}
+
 function doGet(e) {
   const result = doGetJson_(e);
   const callback = String(e && e.parameter && (e.parameter.prefix || e.parameter.callback) || "").trim();
@@ -2540,24 +2594,40 @@ function doGetJson_(e) {
     }
 
     if (action === "getPartModels") {
-      let catalogSheet = ss.getSheetByName("PartModelCatalog");
-      if (!catalogSheet) catalogSheet = ss.insertSheet("PartModelCatalog");
-      if (catalogSheet.getLastRow() <= 1) {
-        const catalogRows = [["ProductGroup", "PartCategory", "ModelCode", "ModelName", "ColorName", "ColorCode"]];
-        Object.keys(PART_MODEL_CATALOG).forEach(groupName => {
-          const group = PART_MODEL_CATALOG[groupName];
-          const firstColor = (group.colors || [])[0] || {};
-          Object.keys(group.categories || {}).forEach(category => {
-            (group.categories[category] || []).forEach(model => {
-              catalogRows.push([groupName, category, model.value, model.label, firstColor.value || "", firstColor.code || ""]);
-            });
-          });
-        });
-        catalogSheet.getRange(1, 1, catalogRows.length, catalogRows[0].length).setValues(catalogRows);
-        catalogSheet.setFrozenRows(1);
-        SpreadsheetApp.flush();
+      const catalogSheet = ensurePartModelCatalogSheet_(ss);
+      const catalog = readPartModelCatalog_(catalogSheet);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "sheet", groups: catalog.groups, order: catalog.order })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // "➕ เพิ่มรายการ" in the production form: store the new category/model in
+    // PartModelCatalog so every device sees it, not just the browser that added it.
+    if (action === "addCatalogEntry") {
+      const p = (e && e.parameter) || {};
+      const group = String(p.group || "").trim();
+      const category = String(p.category || "").trim();
+      const code = String(p.code || "").trim();
+      const name = String(p.name || "").trim();
+      if (!group || !category) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "ต้องระบุกลุ่มผลิตภัณฑ์และประเภทชิ้นงาน" })).setMimeType(ContentService.MimeType.JSON);
       }
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", groups: PART_MODEL_CATALOG })).setMimeType(ContentService.MimeType.JSON);
+      const catalogSheet = ensurePartModelCatalogSheet_(ss);
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        const catalog = readPartModelCatalog_(catalogSheet);
+        const models = ((catalog.groups[group] || {}).categories || {})[category];
+        const value = code || name;
+        if (models && (!value ? true : models.some(m => String(m.value).toLowerCase() === value.toLowerCase()))) {
+          return ContentService.createTextOutput(JSON.stringify({ status: "success", duplicate: true })).setMimeType(ContentService.MimeType.JSON);
+        }
+        const color = ((catalog.groups[group] || {}).colors || [])[0] || {};
+        const label = value ? (code && name ? name + " (" + code + ")" : value) : "";
+        catalogSheet.appendRow([group, category, value, label, color.value || "", color.code || ""]);
+        SpreadsheetApp.flush();
+      } finally {
+        lock.releaseLock();
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle getRecorders action (Cloud Sync)

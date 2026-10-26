@@ -853,6 +853,21 @@ function generateSampleOutputDiaryData() {
     return [];
 }
 
+// Append a new category or model to the PartModelCatalog sheet.
+async function addCatalogEntryToAPI(entry) {
+    const baseUrl = getApiUrl();
+    if (!baseUrl) return false;
+    const params = new URLSearchParams({ action: 'addCatalogEntry' });
+    ['group', 'category', 'code', 'name'].forEach(key => { if (entry && entry[key]) params.set(key, entry[key]); });
+    try {
+        const json = await fetchAppsScriptJsonWithRetry(baseUrl + (baseUrl.includes('?') ? '&' : '?') + params.toString(), 'Add catalog entry', { attempts: 2, timeoutMs: 15000 });
+        return !!(json && json.status === 'success');
+    } catch (e) {
+        console.warn('Failed to save catalog entry:', e);
+        return false;
+    }
+}
+
 // Fetch PartModel mapping from Cloud Google Sheet (PartModel sheet tab)
 async function fetchPartModelsFromAPI() {
     const baseUrl = getApiUrl();
@@ -861,6 +876,8 @@ async function fetchPartModelsFromAPI() {
         try {
             const json = await fetchAppsScriptJsonWithRetry(url, "Get part models", { attempts: 2, timeoutMs: 15000 });
             if (json && json.groups && typeof json.groups === 'object' && Object.keys(json.groups).length > 0) {
+                // source/order tell the form the catalog came from the sheet.
+                window.PAINTING_PART_CATALOG_META = { source: json.source || '', order: json.order || [] };
                 localStorage.setItem("PAINTING_PART_MODELS_CACHE", JSON.stringify(json.groups));
                 return json.groups;
             }
