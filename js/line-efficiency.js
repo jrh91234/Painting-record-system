@@ -228,9 +228,6 @@
         set('lineEffLostSub', rework > 0 ? `ใช้ไปกับ REWORK ${fmtMin(rework)}` : 'ไลน์หยุด / ราวว่าง / แขวนไม่เต็ม');
     }
 
-    const PART_COLORS = ['#4d7cfe', '#2ec4b6', '#ffcc4d', '#8e6cff', '#ff8c42', '#36c5f0', '#3ddc97', '#ff5d8f', '#b07cff', '#f6a04d'];
-    const OTHER_COLOR = '#94a3b8';
-    const MAX_PARTS = 10;
     const LEFT_AXIS = 72;
     const RIGHT_AXIS = 56;
 
@@ -255,7 +252,15 @@
         return tile.getContext('2d').createPattern(tile, 'repeat');
     }
 
-    // Top parts by output get their own color; the rest share "อื่นๆ".
+    // Every part gets its own color. Hues step by the golden angle and the
+    // lightness alternates, so parts next to each other in the ranking (and so
+    // usually in the same bar) never look alike.
+    function partColor(i) {
+        const hue = Math.round((i * 137.508 + 220) % 360);
+        const lightness = [52, 40, 64][i % 3];
+        return `hsl(${hue}, 72%, ${lightness}%)`;
+    }
+
     function partSeries(days) {
         const totals = new Map();
         days.forEach(day => day.parts.forEach(part => {
@@ -263,12 +268,10 @@
             item.qty += part.qty;
             totals.set(part.code, item);
         }));
-        const ranked = Array.from(totals.values()).sort((a, b) => b.qty - a.qty);
-        const top = ranked.slice(0, MAX_PARTS).map((part, i) => ({ ...part, key: part.code, color: PART_COLORS[i % PART_COLORS.length] }));
-        const series = top.slice();
-        if (ranked.length > MAX_PARTS) series.push({ key: '__other', code: 'อื่นๆ', name: `อีก ${ranked.length - MAX_PARTS} ชิ้นงาน`, color: OTHER_COLOR });
-        const keyOf = code => top.some(part => part.code === code) ? code : '__other';
-        return { series, keyOf };
+        const series = Array.from(totals.values())
+            .sort((a, b) => b.qty - a.qty)
+            .map((part, i) => ({ ...part, key: part.code, color: partColor(i) }));
+        return { series, keyOf: code => code };
     }
 
     // Shared hover position so both panes show the same day, like a stock chart.
@@ -320,7 +323,7 @@
             ng[i][d] += part.defects;
         }));
         const ngRate = days.map(day => day.qty ? Number((day.defects / day.qty * 100).toFixed(2)) : 0);
-        const label = item => item.key === '__other' ? 'อื่นๆ' : item.code;
+        const label = item => item.code;
 
         const datasets = [];
         series.forEach((item, i) => datasets.push({
@@ -333,7 +336,7 @@
             datasets.push({
                 type: 'bar', stack: 'output', order: 2, label: `NG · ${label(item)}`, data: ng[i],
                 backgroundColor: ngPattern(item.color), kzGroup: 'NG', partName: item.name,
-                kzKeepBorder: true, borderColor: '#e5484d', borderWidth: 1
+                kzKeepBorder: true, kzKeepColors: true, borderColor: '#e5484d', borderWidth: 1
             });
         });
         datasets.push({
@@ -379,11 +382,12 @@
     function renderLegend(series, hasNg) {
         const box = document.getElementById('lineEffLegend');
         if (!box) return;
-        const parts = series.map(item => `<span class="line-eff-legend-item" title="${escapeHtml(item.name || '')}"><i style="background:${item.color}"></i>${escapeHtml(item.key === '__other' ? 'อื่นๆ' : item.code)}</span>`).join('');
-        box.innerHTML = `<span class="line-eff-legend-key"><i class="is-fg"></i>FG งานดี (ทึบ)</span>`
+        const parts = series.map(item => `<span class="line-eff-legend-item" title="${escapeHtml(item.name || '')} · ${item.qty.toLocaleString()} ชิ้น"><i style="background:${item.color}"></i>${escapeHtml(item.code)}</span>`).join('');
+        box.innerHTML = `<div class="line-eff-legend-keys"><span class="line-eff-legend-key"><i class="is-fg"></i>FG งานดี (ทึบ)</span>`
             + (hasNg ? `<span class="line-eff-legend-key"><i class="is-ng"></i>NG (ลายเฉียงแดง ด้านบน)</span>` : '')
             + `<span class="line-eff-legend-key"><i class="is-rate"></i>NG rate (%)</span>`
-            + `<span class="line-eff-legend-sep"></span>${parts}`;
+            + `<span class="line-eff-legend-count">${series.length} พาร์ท · เรียงตามยอดผลิต</span></div>`
+            + `<div class="line-eff-legend-parts">${parts}</div>`;
     }
 
     function renderChart(days) {
