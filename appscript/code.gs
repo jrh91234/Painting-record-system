@@ -1771,6 +1771,47 @@ function registerUserRecord_(ss, payload, defaultDepartment) {
   }
 }
 
+function upsertUserRecord_(ss, payload) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+
+    const data = payload || {};
+    const uSheet = getOrCreateUsersSheet(ss);
+    const empId = String(data.employeeId || "").trim();
+    const name = String(data.displayName || "").trim();
+    const dept = String(data.department || "").trim();
+    const status = String(data.userStatus || "Active").trim();
+    const passHash = String(data.passwordHash || "").trim();
+
+    if (!empId) {
+      return { status: "error", message: "กรุณาระบุรหัสพนักงาน" };
+    }
+
+    const values = uSheet.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      if (String(values[i][0] || "").trim() === empId) {
+        // Existing employee: keep the password and role, refresh the rest.
+        if (name) uSheet.getRange(i + 1, 2).setValue(name);
+        if (dept) uSheet.getRange(i + 1, 3).setValue(dept);
+        uSheet.getRange(i + 1, 6).setValue(status);
+        SpreadsheetApp.flush();
+        return { status: "success", created: false };
+      }
+    }
+
+    const role = "Inspector";
+    const nowStr = formatDateStr(new Date(), true);
+    uSheet.appendRow([empId, name, dept, passHash, role, status, nowStr, "", JSON.stringify(getDefaultPermissions(role))]);
+    SpreadsheetApp.flush();
+    return { status: "success", created: true };
+  } catch (error) {
+    return { status: "error", message: error && error.message ? error.message : "ไม่สามารถบันทึกผู้ใช้งานได้" };
+  } finally {
+    try { lock.releaseLock(); } catch (releaseError) {}
+  }
+}
+
 // =========================================================
 // Spare parts inventory
 // =========================================================
@@ -2227,6 +2268,13 @@ function doGetJson_(e) {
         }
       }
       return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "User not found" })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Admin "add / approve user": create the row in the Users sheet, or update
+    // name/department/status when the employee already exists.
+    if (action === "upsertUser") {
+      const result = upsertUserRecord_(ss, e && e.parameter ? e.parameter : {});
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle REWORK submission via GET (fallback used by the static web app).
