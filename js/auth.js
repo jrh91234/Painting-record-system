@@ -472,7 +472,7 @@ const PaintingAuth = {
                                 ` : `
                                     <button class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 0.82rem; background: #ef4444; color: #fff; border: none; border-radius: 8px; cursor: pointer;" onclick="PaintingAuth.toggleUserStatus('${u.employeeId}', 'Disabled')">🔴 ปิดใช้งาน</button>
                                 `}
-                            ` : `<span style="font-size: 0.85rem; color: #38bdf8; font-weight: 800; background: rgba(56, 189, 248, 0.15); padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid rgba(56, 189, 248, 0.3);">👑 เจ้าของระบบ</span>`)}
+                            ` : `<span class="owner-badge">👑 เจ้าของระบบ</span>`)}
                         </div>
                     </div>
                 `;

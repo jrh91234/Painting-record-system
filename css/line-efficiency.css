@@ -211,13 +211,13 @@
 
 .line-eff-legend-key i.is-fg { background: var(--kz-blue, #4d7cfe); }
 .line-eff-legend-key i.is-ng {
-  background: repeating-linear-gradient(-45deg, #e5484d 0 2px, color-mix(in srgb, var(--kz-blue, #4d7cfe) 35%, transparent) 2px 5px);
-  outline: 1px solid #e5484d;
+  background: repeating-linear-gradient(-45deg, #a4505a 0 2px, color-mix(in srgb, var(--kz-blue, #4d7cfe) 35%, transparent) 2px 5px);
+  outline: 1px solid #a4505a;
 }
 .line-eff-legend-key i.is-rate {
   height: 3px;
   border-radius: 2px;
-  background: #e5484d;
+  background: #a4505a;
 }
 
 .line-eff-legend-keys {

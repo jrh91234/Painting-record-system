@@ -1,29 +1,26 @@
-/* Kurzgesagt-style chart colors.
+/* Chart colors for the graphite theme (originally Kurzgesagt-style).
    Every chart in the app picks its own hex/rgba colors, so instead of editing
    each one this global Chart.js plugin remaps them by hue onto one flat,
-   saturated palette right before each update. Gray colors become the theme's
+   muted palette right before each update. Gray colors become the theme's
    muted ink, bars get rounded corners and line points get a "cut-out" ring. */
 (function () {
     if (typeof Chart === 'undefined') return;
 
-    // Each palette color's own hue falls inside its bucket, so remapping an
-    // already-remapped color is a no-op.
     const HUE_BUCKETS = [
-        { max: 15, rgb: [242, 92, 84] },    // red      #f25c54
-        { max: 35, rgb: [255, 140, 66] },   // orange   #ff8c42
-        { max: 65, rgb: [255, 204, 77] },   // yellow   #ffcc4d
-        { max: 165, rgb: [61, 220, 151] },  // mint     #3ddc97
-        { max: 185, rgb: [46, 196, 182] },  // teal     #2ec4b6
-        { max: 205, rgb: [54, 197, 240] },  // sky      #36c5f0
-        { max: 245, rgb: [77, 124, 254] },  // blue     #4d7cfe
-        { max: 290, rgb: [142, 108, 255] }, // purple   #8e6cff
-        { max: 345, rgb: [255, 93, 143] },  // pink     #ff5d8f
-        { max: 361, rgb: [242, 92, 84] }    // red again
+        { max: 15, rgb: [164, 80, 90] },    // muted red    #a4505a
+        { max: 35, rgb: [163, 129, 94] },   // bronze       #a3815e
+        { max: 65, rgb: [179, 154, 100] },  // brass        #b39a64
+        { max: 165, rgb: [95, 128, 106] },  // sage         #5f806a
+        { max: 185, rgb: [95, 128, 122] },  // gray teal    #5f807a
+        { max: 205, rgb: [100, 130, 148] }, // steel        #648294
+        { max: 245, rgb: [92, 108, 132] },  // slate blue   #5c6c84
+        { max: 290, rgb: [111, 107, 128] }, // gray violet  #6f6b80
+        { max: 345, rgb: [156, 107, 124] }, // dusty rose   #9c6b7c
+        { max: 361, rgb: [164, 80, 90] }    // muted red again
     ];
-
     const THEMES = {
-        light: { text: '#5d5f86', title: '#45477a', axis: '#1a1a1a', grid: 'rgba(38, 42, 99, 0.08)', ink: [93, 95, 134], surface: '#f7f6fe', tooltip: '#24264f', tooltipText: '#f7f6fe' },
-        dark: { text: '#a3a1d6', title: '#c9c8f0', grid: 'rgba(149, 147, 201, 0.14)', ink: [149, 147, 201], surface: '#23275c', tooltip: '#0e1030', tooltipText: '#f4f2ff' }
+        light: { text: '#6a6d74', title: '#3d3f44', axis: '#1a1a1a', grid: 'rgba(20, 22, 26, 0.07)', ink: [128, 131, 138], surface: '#fbfbfb', tooltip: '#2a2c30', tooltipText: '#f7f7f8' },
+        dark: { text: '#96989f', title: '#c5c6ca', grid: 'rgba(255, 255, 255, 0.07)', ink: [150, 152, 159], surface: '#212226', tooltip: '#0f1012', tooltipText: '#ececee' }
     };
 
     function currentTheme() {
@@ -69,6 +66,10 @@
         if (Array.isArray(value)) return value.map(item => remapColor(item, theme));
         const parsed = parseColor(value);
         if (!parsed) return value;
+        // Already a palette color: keep it. The muted palette is low in
+        // saturation, so without this a second update would gray it out.
+        const isPalette = rgb => rgb[0] === parsed.r && rgb[1] === parsed.g && rgb[2] === parsed.b;
+        if (isPalette(theme.ink) || HUE_BUCKETS.some(entry => isPalette(entry.rgb))) return value;
         const { hue, saturation } = hueAndSaturation(parsed);
         if (saturation < 0.25) return toRgba(theme.ink, parsed.a);
         const bucket = HUE_BUCKETS.find(entry => hue < entry.max);
@@ -94,11 +95,11 @@
         const type = dataset.type || chartType;
         if (type === 'bar') {
             if (!dataset.kzKeepBorder) dataset.borderWidth = 0;
-            if (dataset.borderRadius === undefined) dataset.borderRadius = 5;
+            if (dataset.borderRadius === undefined) dataset.borderRadius = 3;
         } else if (type === 'line') {
             dataset.pointBorderColor = theme.surface;
             if (dataset.pointBorderWidth === undefined) dataset.pointBorderWidth = 2;
-            if (dataset.borderWidth === undefined || dataset.borderWidth < 3) dataset.borderWidth = 3;
+            if (dataset.borderWidth === undefined || dataset.borderWidth < 2) dataset.borderWidth = 2;
         } else if (type === 'doughnut' || type === 'pie') {
             // Flat slices separated by the card color, like cut paper.
             dataset.borderColor = theme.surface;
@@ -145,12 +146,12 @@
                 plugins.tooltip.titleColor = theme.tooltipText;
                 plugins.tooltip.bodyColor = theme.tooltipText;
                 plugins.tooltip.borderWidth = 0;
-                plugins.tooltip.cornerRadius = 12;
+                plugins.tooltip.cornerRadius = 8;
                 plugins.tooltip.padding = 10;
             }
         }
     };
 
     Chart.register(kurzgesagtChartPlugin);
-    Chart.defaults.font.family = "'Sarabun', 'Plus Jakarta Sans', sans-serif";
+    Chart.defaults.font.family = "'IBM Plex Sans Thai', 'Sarabun', 'Plus Jakarta Sans', sans-serif";
 }());

@@ -262,7 +262,7 @@
         ctx.globalAlpha = 0.35;
         ctx.fillRect(0, 0, size, size);
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#e5484d';
+        ctx.strokeStyle = '#a4505a';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(-1, size + 1); ctx.lineTo(size + 1, -1);
@@ -277,8 +277,8 @@
     // usually in the same bar) never look alike.
     function partColor(i) {
         const hue = Math.round((i * 137.508 + 220) % 360);
-        const lightness = [52, 40, 64][i % 3];
-        return `hsl(${hue}, 72%, ${lightness}%)`;
+        const lightness = [50, 36, 64][i % 3];
+        return `hsl(${hue}, 24%, ${lightness}%)`;
     }
 
     function partSeries(days) {
@@ -356,12 +356,12 @@
             datasets.push({
                 type: 'bar', stack: 'output', order: 2, label: `NG · ${label(item)}`, data: ng[i],
                 backgroundColor: ngPattern(item.color), kzGroup: 'NG', partName: item.name,
-                kzKeepBorder: true, kzKeepColors: true, borderColor: '#e5484d', borderWidth: 1
+                kzKeepBorder: true, kzKeepColors: true, borderColor: '#a4505a', borderWidth: 1
             });
         });
         datasets.push({
             type: 'line', order: 1, label: 'NG rate (%)', data: ngRate, yAxisID: 'y1',
-            borderColor: '#e5484d', backgroundColor: '#e5484d', borderWidth: 2, pointRadius: 3, tension: 0
+            borderColor: '#a4505a', backgroundColor: '#a4505a', borderWidth: 2, pointRadius: 3, tension: 0
         });
 
         if (state.prodChart) state.prodChart.destroy();
@@ -391,7 +391,7 @@
                 scales: {
                     x: { stacked: true, ticks: { display: false }, grid: { display: false } },
                     y: { stacked: true, beginAtZero: true, afterFit: fixedAxisWidth(LEFT_AXIS), ticks: { color: '#94a3b8', callback: v => Number(v).toLocaleString() }, title: { display: true, text: 'ชิ้น', color: '#94a3b8' } },
-                    y1: { position: 'right', beginAtZero: true, afterFit: fixedAxisWidth(RIGHT_AXIS), grid: { display: false }, ticks: { color: '#e5484d', callback: v => v + '%' }, title: { display: true, text: 'NG %', color: '#e5484d' } }
+                    y1: { position: 'right', beginAtZero: true, afterFit: fixedAxisWidth(RIGHT_AXIS), grid: { display: false }, ticks: { color: '#a4505a', callback: v => v + '%' }, title: { display: true, text: 'NG %', color: '#a4505a' } }
                 }
             }
         });
