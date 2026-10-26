@@ -431,6 +431,7 @@ const PaintingAuth = {
             if (pendingCountEl) pendingCountEl.innerText = pending;
             if (activeCountEl) activeCountEl.innerText = active;
             if (disabledCountEl) disabledCountEl.innerText = disabled;
+            this.showUsersSource();
 
             container.innerHTML = users.map(u => {
                 const isPending = u.status === "Pending";
@@ -474,6 +475,28 @@ const PaintingAuth = {
                 `;
             }).join("");
         }
+    },
+
+    // Tell the admin whether the list is the live Users sheet or this
+    // browser's cached copy (Apps Script unreachable).
+    showUsersSource() {
+        const box = document.getElementById("userManagementMessage");
+        if (!box) return;
+        const source = window.PAINTING_USERS_SOURCE;
+        if (source === "cloud") {
+            box.textContent = "☁️ ข้อมูลจาก Google Sheet (Users) — ทุกเครื่องเห็นชุดเดียวกัน";
+            box.className = "auth-message success";
+        } else {
+            box.textContent = "⚠️ เชื่อมต่อ Google Sheet ไม่ได้ — กำลังแสดงข้อมูลที่จำไว้ในเครื่องนี้ การแก้ไขจะยังไม่ถูกบันทึก";
+            box.className = "auth-message error";
+        }
+        box.hidden = false;
+    },
+
+    reportUserWrite(result, successText) {
+        if (typeof showToast !== "function") return;
+        if (result && result.status === "success") showToast(successText, "success");
+        else showToast((result && result.message) || "บันทึกลง Google Sheet ไม่สำเร็จ", "error");
     },
 
     openPermissionsModal(employeeId) {
@@ -522,8 +545,8 @@ const PaintingAuth = {
     async approveUser(employeeId) {
         if (!confirm(`คุณต้องการอนุมัติการใช้งานให้รหัสพนักงาน ${employeeId} ใช่หรือไม่?`)) return;
         if (typeof updateUserStatusAPI === "function") {
-            await updateUserStatusAPI(employeeId, "Active");
-            if (typeof showToast === "function") showToast(`อนุมัติรหัสพนักงาน ${employeeId} สำเร็จ`, "success");
+            const result = await updateUserStatusAPI(employeeId, "Active");
+            this.reportUserWrite(result, `อนุมัติรหัสพนักงาน ${employeeId} สำเร็จ`);
             this.loadUsers();
         }
     },
@@ -532,8 +555,8 @@ const PaintingAuth = {
         const actionName = newStatus === "Active" ? "เปิดใช้งาน" : "ระงับการใช้งาน";
         if (!confirm(`คุณต้องการ${actionName}รหัสพนักงาน ${employeeId} ใช่หรือไม่?`)) return;
         if (typeof updateUserStatusAPI === "function") {
-            await updateUserStatusAPI(employeeId, newStatus);
-            if (typeof showToast === "function") showToast(`เปลี่ยนสถานะรหัสพนักงาน ${employeeId} เป็น ${newStatus} สำเร็จ`, "info");
+            const result = await updateUserStatusAPI(employeeId, newStatus);
+            this.reportUserWrite(result, `เปลี่ยนสถานะรหัสพนักงาน ${employeeId} เป็น ${newStatus} สำเร็จ`);
             this.loadUsers();
         }
     },
@@ -569,17 +592,9 @@ const PaintingAuth = {
             passwordHash: await this.hashPassword("123456")
         };
 
-        if (typeof saveUserLocallyFallback === "function") {
-            saveUserLocallyFallback(userData);
-        }
-
-        if (typeof updateUserStatusAPI === "function") {
-            await updateUserStatusAPI(empId, status, userData.role);
-        }
-
-        if (typeof showToast === "function") {
-            showToast(`เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`, "success");
-        }
+        const result = await upsertUserAPI(userData);
+        this.reportUserWrite(result, `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`);
+        if (!result || result.status !== "success") return;
 
         this.closeAddUserModal();
         this.loadUsers();

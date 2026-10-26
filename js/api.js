@@ -1320,12 +1320,15 @@ async function getUsersAPI() {
                     permissions: normalizeUserPermissions(user.permissions, user.role, user.employeeId)
                 })));
                 localStorage.setItem("PAINTING_LOCAL_USERS", JSON.stringify(users));
+                window.PAINTING_USERS_SOURCE = "cloud";
                 return users;
             }
         } catch (e) {
             console.warn("getUsersAPI cloud fetch failed:", e);
         }
     }
+    // Anything below is this browser's cached copy, not the Users sheet.
+    window.PAINTING_USERS_SOURCE = baseUrl ? "cache" : "local";
 
     try {
         const cached = localStorage.getItem("PAINTING_LOCAL_USERS");
@@ -1339,45 +1342,80 @@ async function getUsersAPI() {
     }
 }
 
-async function updateUserStatusAPI(employeeId, newStatus, newRole, permissions) {
-    // 1. Update local storage
+function updateCachedUser(employeeId, changes) {
     try {
         const cached = localStorage.getItem("PAINTING_LOCAL_USERS");
-        if (cached) {
-            let users = JSON.parse(cached);
-            users = users.map(u => {
-                if (String(u.employeeId).trim() === String(employeeId).trim()) {
-                    return {
-                        ...u,
-                        status: newStatus || u.status,
-                        role: newRole || u.role,
-                        permissions: permissions ? normalizeUserPermissions(permissions, newRole || u.role, u.employeeId) : u.permissions
-                    };
-                }
-                return u;
-            });
-            localStorage.setItem("PAINTING_LOCAL_USERS", JSON.stringify(users));
-        }
+        let users = cached ? JSON.parse(cached) : [];
+        if (!Array.isArray(users)) users = [];
+        const id = String(employeeId).trim();
+        const index = users.findIndex(u => String(u.employeeId).trim() === id);
+        const current = index >= 0 ? users[index] : { employeeId: id, role: "Inspector" };
+        const next = { ...current };
+        Object.keys(changes).forEach(key => {
+            if (changes[key]) next[key] = changes[key];
+        });
+        next.permissions = normalizeUserPermissions(changes.permissions || current.permissions, next.role, next.employeeId);
+        if (index >= 0) users[index] = next; else users.push(next);
+        localStorage.setItem("PAINTING_LOCAL_USERS", JSON.stringify(users));
     } catch (e) {}
-
-    // 2. Update Cloud Google Apps Script DB
-    const baseUrl = getApiUrl();
-    if (baseUrl) {
-        try {
-            const queryParams = new URLSearchParams({
-                action: 'updateUserStatus',
-                employeeId: employeeId || '',
-                userStatus: newStatus || '',
-                userRole: newRole || '',
-                permissions: permissions ? JSON.stringify(permissions) : ''
-            }).toString();
-            const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
-            const response = await fetch(url, { method: "GET", cache: "no-cache" });
-            return await requireJsonResponse(response, 'Update user permissions');
-        } catch (e) {
-            console.warn("Cloud updateUserStatus dispatch failed:", e);
-            return { status: "error", message: e.message || "Unable to update user" };
-        }
-    }
-    return { status: "success" };
 }
+
+// Users live in the "Users" sheet. Write there first and only mirror the
+// change into this browser's cache once Apps Script confirms it, so the admin
+// never sees a change that other devices will not get.
+async function updateUserStatusAPI(employeeId, newStatus, newRole, permissions) {
+    const baseUrl = getApiUrl();
+    if (!baseUrl) {
+        updateCachedUser(employeeId, { status: newStatus, role: newRole, permissions });
+        return { status: "success", local: true };
+    }
+    try {
+        const queryParams = new URLSearchParams({
+            action: 'updateUserStatus',
+            employeeId: employeeId || '',
+            userStatus: newStatus || '',
+            userRole: newRole || '',
+            permissions: permissions ? JSON.stringify(permissions) : ''
+        }).toString();
+        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
+        const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
+        const result = await requireJsonResponse(response, 'Update user');
+        updateCachedUser(employeeId, { status: newStatus, role: newRole, permissions });
+        return result;
+    } catch (e) {
+        console.warn("Cloud updateUserStatus failed:", e);
+        return { status: "error", message: "บันทึกลง Google Sheet ไม่สำเร็จ: " + (e.message || e) };
+    }
+}
+
+async function upsertUserAPI(userData) {
+    const baseUrl = getApiUrl();
+    if (!baseUrl) {
+        saveUserLocallyFallback(userData);
+        updateCachedUser(userData.employeeId, { status: userData.status });
+        return { status: "success", local: true };
+    }
+    try {
+        const queryParams = new URLSearchParams({
+            action: 'upsertUser',
+            employeeId: userData.employeeId || '',
+            displayName: userData.displayName || '',
+            department: userData.department || '',
+            userStatus: userData.status || 'Active',
+            passwordHash: userData.passwordHash || ''
+        }).toString();
+        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
+        const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
+        const result = await requireJsonResponse(response, 'Add user');
+        updateCachedUser(userData.employeeId, {
+            displayName: userData.displayName,
+            department: userData.department,
+            status: userData.status
+        });
+        return result;
+    } catch (e) {
+        console.warn("Cloud upsertUser failed:", e);
+        return { status: "error", message: "บันทึกลง Google Sheet ไม่สำเร็จ: " + (e.message || e) };
+    }
+}
+
