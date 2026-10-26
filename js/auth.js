@@ -596,7 +596,16 @@ const PaintingAuth = {
             passwordHash: await this.hashPassword("123456")
         };
 
-        const result = await upsertUserAPI(userData);
+        // Saving can take a few seconds; show it so the button never looks dead.
+        const submitBtn = document.querySelector("#addUserForm button[type=submit]");
+        const submitLabel = submitBtn ? submitBtn.innerHTML : "";
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "⏳ กำลังบันทึกลง Google Sheet..."; }
+        let result;
+        try {
+            result = await upsertUserAPI(userData);
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = submitLabel; }
+        }
         this.reportUserWrite(result, `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`);
         if (!result || result.status !== "success") return;
 

@@ -86,7 +86,9 @@ function fetchAppsScriptJsonp(url, operation, timeoutMs = 15000) {
         window[callbackName] = payload => {
             cleanup();
             if (payload && payload.status === "error") {
-                reject(new Error(payload.message || `${operation}: backend rejected the request`));
+                const error = new Error(payload.message || `${operation}: backend rejected the request`);
+                error.backend = true;
+                reject(error);
                 return;
             }
             resolve(payload);
@@ -1144,6 +1146,26 @@ async function checkBootstrapAPI() {
     return { isBootstrap: false };
 }
 
+// One request to the Users endpoints. JSONP first, because a plain fetch to
+// /exec can stall on the redirect or come back as an HTML page. A backend
+// "status: error" answer is returned as-is (wrong password, duplicate ID...);
+// only a transport failure falls back to fetch, and throws if that fails too.
+async function callUsersApi(baseUrl, params, operation) {
+    const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + new URLSearchParams(params).toString();
+    try {
+        return await fetchAppsScriptJsonp(url, operation, 20000);
+    } catch (error) {
+        if (error && error.backend) return { status: "error", message: error.message };
+    }
+    const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
+    if (!response.ok) throw new Error(`${operation}: HTTP ${response.status}`);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('application/json')) {
+        throw new Error(`${operation}: Apps Script deployment did not return JSON`);
+    }
+    return response.json();
+}
+
 async function loginUserAPI(employeeId, passwordHash) {
     const cleanEmpId = String(employeeId || "").trim();
 
@@ -1155,20 +1177,15 @@ async function loginUserAPI(employeeId, passwordHash) {
     // 1. Try Cloud Google Apps Script API
     if (baseUrl) {
         try {
-            const queryParams = new URLSearchParams({
+            const json = await callUsersApi(baseUrl, {
                 action: 'login',
                 employeeId: cleanEmpId,
                 passwordHash: passwordHash
-            }).toString();
-            const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
-            const res = await fetch(url);
-            if (res.ok) {
-                const json = await res.json();
-                if (json && json.status === "success" && json.user) {
-                    return json;
-                } else if (json && json.status === "error" && json.message && json.message !== "Unauthorized") {
-                    return json;
-                }
+            }, 'Login');
+            if (json && json.status === "success" && json.user) {
+                return json;
+            } else if (json && json.status === "error" && json.message && json.message !== "Unauthorized") {
+                return json;
             }
         } catch (e) {
             console.warn("Cloud login failed, checking fallback...", e);
@@ -1230,23 +1247,13 @@ async function registerUserAPI(userData) {
     // GET and POST, so Apps Script appended the same registration twice.
     if (baseUrl) {
         try {
-            const queryParams = new URLSearchParams({
+            const result = await callUsersApi(baseUrl, {
                 action: 'register',
                 employeeId: userData.employeeId || '',
                 displayName: userData.displayName || '',
                 department: userData.department || '',
                 passwordHash: userData.passwordHash || ''
-            }).toString();
-            const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
-
-            const response = await fetch(withApiRequestNonce(url), {
-                method: "GET",
-                cache: "no-store",
-                headers: { "Accept": "application/json" }
-            });
-
-            if (!response.ok) throw new Error(`Register user: HTTP ${response.status}`);
-            const result = await response.json();
+            }, 'Register user');
             // Preserve backend duplicate/error responses. Do not turn a
             // rejected cloud registration into a misleading local success.
             return result && typeof result === "object" ? result : { status: "error", message: "ไม่สามารถยืนยันการสมัครได้" };
@@ -1371,16 +1378,14 @@ async function updateUserStatusAPI(employeeId, newStatus, newRole, permissions) 
         return { status: "success", local: true };
     }
     try {
-        const queryParams = new URLSearchParams({
+        const result = await callUsersApi(baseUrl, {
             action: 'updateUserStatus',
             employeeId: employeeId || '',
             userStatus: newStatus || '',
             userRole: newRole || '',
             permissions: permissions ? JSON.stringify(permissions) : ''
-        }).toString();
-        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
-        const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
-        const result = await requireJsonResponse(response, 'Update user');
+        }, 'Update user');
+        if (!result || result.status !== "success") return result || { status: "error", message: "บันทึกลง Google Sheet ไม่สำเร็จ" };
         updateCachedUser(employeeId, { status: newStatus, role: newRole, permissions });
         return result;
     } catch (e) {
@@ -1397,7 +1402,7 @@ async function upsertUserAPI(userData) {
         return { status: "success", local: true };
     }
     try {
-        const queryParams = new URLSearchParams({
+        const result = await callUsersApi(baseUrl, {
             action: 'upsertUser',
             employeeId: userData.employeeId || '',
             displayName: userData.displayName || '',
@@ -1405,10 +1410,8 @@ async function upsertUserAPI(userData) {
             userStatus: userData.status || 'Active',
             userRole: userData.role || 'Inspector',
             passwordHash: userData.passwordHash || ''
-        }).toString();
-        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
-        const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
-        const result = await requireJsonResponse(response, 'Add user');
+        }, 'Add user');
+        if (!result || result.status !== "success") return result || { status: "error", message: "บันทึกลง Google Sheet ไม่สำเร็จ" };
         updateCachedUser(userData.employeeId, {
             role: userData.role,
             displayName: userData.displayName,
