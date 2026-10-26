@@ -118,7 +118,14 @@
     }
 
     function compute() {
-        const capacity = new Map(state.config.capacity.map(item => [normalizeCode(item.partCode), item]));
+        // Match on the file's part number and on any code the app records for it.
+        const capacity = new Map();
+        state.config.capacity.forEach(item => {
+            [item.partCode].concat(item.appCodes || []).forEach(code => {
+                const key = normalizeCode(code);
+                if (key && !capacity.has(key)) capacity.set(key, item);
+            });
+        });
         const slots = buildSlots(state.config.slots);
         const days = new Map();
         const unmatched = new Map();

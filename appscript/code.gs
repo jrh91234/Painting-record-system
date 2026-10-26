@@ -2526,7 +2526,10 @@ function doGetJson_(e) {
         qtyPerJig: Number(r.QtyPerJig) || 0,
         pitch: Number(r.Pitch_m) || 0,
         lineSpeed: Number(r.LineSpeed_m_min) || 0,
-        stdSec: Number(r.StdSecPerPcs) || 0
+        stdSec: Number(r.StdSecPerPcs) || 0,
+        // Codes the web app records for this part when they differ from the
+        // part number in the capacity file (comma separated).
+        appCodes: String(r.AppCodes || "").split(",").map(c => c.trim()).filter(Boolean)
       }));
       const slots = readRows(slotSheet).map(r => ({
         timeSlot: String(r.TimeSlot).trim(),

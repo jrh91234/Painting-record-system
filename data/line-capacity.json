@@ -3,102 +3,106 @@
  "capacity": [
   {
    "partCode": "7517016200",
-   "partName": "Flat Door LC600",
-   "productGroup": "LC600 Classic",
+   "partName": "Flat Door 600",
+   "productGroup": "LC600",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "7517015200",
+   "partName": "Cover 600",
+   "productGroup": "LC600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "75170152",
+    "75170152/3/4/500"
+   ]
+  },
+  {
+   "partCode": "7517015300",
+   "partName": "Cover 600",
+   "productGroup": "LC600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "75170153"
+   ]
+  },
+  {
+   "partCode": "7517015400",
+   "partName": "Cover 600",
+   "productGroup": "LC600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "75170154"
+   ]
+  },
+  {
+   "partCode": "7517015500",
+   "partName": "Cover 600",
+   "productGroup": "LC600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "75170155"
+   ]
   },
   {
    "partCode": "7517014800",
-   "partName": "Gland Plate LC600",
-   "productGroup": "LC600 Classic",
+   "partName": "Grand plate 600",
+   "productGroup": "LC600",
    "qtyPerJig": 4,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 3.75
+   "stdSec": 3.75,
+   "appCodes": [
+    "7517014000"
+   ]
   },
   {
-   "partCode": "75170152",
-   "partName": "Cover LC600 (75170152)",
-   "productGroup": "LC600 Classic",
+   "partCode": "7517014502",
+   "partName": "Box 600",
+   "productGroup": "LC600",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "75170153",
-   "partName": "Cover LC600 (75170153)",
-   "productGroup": "LC600 Classic",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "75170154",
-   "partName": "Cover LC600 (75170154)",
-   "productGroup": "LC600 Classic",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "75170155",
-   "partName": "Cover LC600 (75170155)",
-   "productGroup": "LC600 Classic",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "75170152/3/4/500",
-   "partName": "Cover LC600 (75170152/3/4/500)",
-   "productGroup": "LC600 Classic",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "7517014500",
-   "partName": "Box LC600",
-   "productGroup": "LC600 Classic",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": [
+    "7517014500"
+   ]
   },
   {
    "partCode": "7517016600",
-   "partName": "Curve Door LC600 Visi-smart",
+   "partName": "Curve Door (LC600 Visi-smart)",
    "productGroup": "LC600 Visi-smart",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "7517014000",
-   "partName": "Gland Plate LC600 Visi-smart",
-   "productGroup": "LC600 Visi-smart",
-   "qtyPerJig": 4,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 3.75
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
    "partCode": "827111-S",
-   "partName": "DBS30",
+   "partName": "BS30-8-U (DBS30)",
    "productGroup": "PDB",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
    "partCode": "827198-S",
@@ -107,7 +111,8 @@
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
    "partCode": "827285-S",
@@ -116,520 +121,664 @@
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU30887",
-   "partName": "METAL BOX 4/6 WAY",
-   "productGroup": "CU (resi thai)",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5
-  },
-  {
-   "partCode": "BRU30888",
-   "partName": "METAL BOX 8/10 WAY",
-   "productGroup": "CU (resi thai)",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5
-  },
-  {
-   "partCode": "BRU30889",
-   "partName": "METAL BOX 14 WAY",
-   "productGroup": "CU (resi thai)",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
    "partCode": "BRU30890",
    "partName": "METAL COVER 4 WAY",
-   "productGroup": "CU (resi thai)",
+   "productGroup": "CU (EZ9EPL)",
    "qtyPerJig": 4,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 3.75
+   "stdSec": 3.75,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU30887",
+   "partName": "METAL BOX 4/6 WAY",
+   "productGroup": "CU (EZ9EPL)",
+   "qtyPerJig": 2,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "BRU30891",
    "partName": "METAL COVER 6 WAY",
-   "productGroup": "CU (resi thai)",
+   "productGroup": "CU (EZ9EPL)",
    "qtyPerJig": 4,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 3.75
+   "stdSec": 3.75,
+   "appCodes": []
   },
   {
    "partCode": "BRU30892",
    "partName": "METAL COVER 8 WAY",
-   "productGroup": "CU (resi thai)",
+   "productGroup": "CU (EZ9EPL)",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU30888",
+   "partName": "METAL BOX 8/10 WAY",
+   "productGroup": "CU (EZ9EPL)",
+   "qtyPerJig": 2,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "BRU30893",
    "partName": "METAL COVER 10 WAY",
-   "productGroup": "CU (resi thai)",
+   "productGroup": "CU (EZ9EPL)",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "BRU30894",
    "partName": "METAL COVER 14 WAY",
-   "productGroup": "CU (resi thai)",
+   "productGroup": "CU (EZ9EPL)",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU30889",
+   "partName": "METAL BOX 14 WAY",
+   "productGroup": "CU (EZ9EPL)",
+   "qtyPerJig": 2,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "QGH11470",
-   "partName": "S9HCL FRONT COVER 2+4",
+   "partName": "FRONT COVER SUB ASSEMBLY 2 + 4, 4 WAY (S9HCL14)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
-  },
-  {
-   "partCode": "NVE96521",
-   "partName": "S9HCL16 FRONT COVER 2+4",
-   "productGroup": "S9HCL",
-   "qtyPerJig": 2,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96523",
-   "partName": "S9HCL METAL BOX 2+6",
+   "partName": "METAL BOX SUB ASSEMBLY 2 + 6, 6 WAY (S9HCL14/16)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
+  },
+  {
+   "partCode": "NVE96521",
+   "partName": "FRONT COVER SUB ASSEMBLY 2 + 4, 4 WAY (S9HCL16)",
+   "productGroup": "S9HCL",
+   "qtyPerJig": 2,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96529",
-   "partName": "S9HCL110 FRONT COVER 2+10",
+   "partName": "FRONT COVER SUB ASSEMBLY 2 + 10, 10 WAY (S9HCL110)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96530",
-   "partName": "S9HCL110 METAL BOX 2+10",
+   "partName": "METAL BOX SUB ASSEMBLY 2 + 10, 10 WAY (S9HCL110)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96537",
-   "partName": "S9HCL114 FRONT COVER 2+14",
+   "partName": "FRONT COVER SUB ASSEMBLY 2 + 14, 14 WAY (S9HCL114)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96538",
-   "partName": "S9HCL114 METAL BOX 2+14",
+   "partName": "METAL BOX SUB ASSEMBLY 2 + 14, 14 WAY (S9HCL114)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96544",
-   "partName": "S9HCL118 FRONT COVER 2+18",
+   "partName": "CU FRONT COVER 2+18, 18 WAY (S9HCL118)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96545",
-   "partName": "S9HCL118 METAL BOX",
+   "partName": "METAL BOX SUB ASSEMBLY (S9HCL118)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96526",
-   "partName": "S9HCL (NVE96526)",
+   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96528",
-   "partName": "S9HCL (NVE96528)",
+   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96533",
-   "partName": "S9HCL (NVE96533)",
+   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96535",
-   "partName": "S9HCL (NVE96535)",
+   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
    "partCode": "NVE96542",
-   "partName": "S9HCL (NVE96542)",
+   "partName": "S9HCL (ไม่ทราบชื่อ)",
    "productGroup": "S9HCL",
    "qtyPerJig": 2,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 7.5
+   "stdSec": 7.5,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53714",
-   "partName": "U BOX 450mm",
-   "productGroup": "NLC",
+   "partCode": "BRU93578",
+   "partName": "Door ASM 450mm Diffuse",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53743"
+   ]
   },
   {
-   "partCode": "BRU53715",
-   "partName": "U BOX 600mm",
-   "productGroup": "NLC",
+   "partCode": "NAT20562",
+   "partName": "Cover EZ100 450mm 12w Project",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53716",
-   "partName": "U BOX 750mm",
-   "productGroup": "NLC",
+   "partCode": "BRU53738",
+   "partName": "Cover LUG250 450mm 12w",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53771",
-   "partName": "U BOX 900mm",
-   "productGroup": "NLC",
+   "partCode": "BRU53725",
+   "partName": "Cover LUG100 450mm 18w",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53743",
-   "partName": "Door 450mm",
-   "productGroup": "NLC",
+   "partCode": "BRU53724",
+   "partName": "Cover LUG100 450mm 12w",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53744",
-   "partName": "Door 600mm",
-   "productGroup": "NLC",
+   "partCode": "BRU53718",
+   "partName": "Cover EZ100 450mm 12w",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": []
   },
   {
-   "partCode": "BRU53747",
-   "partName": "Door 750mm",
-   "productGroup": "NLC",
+   "partCode": "BRU93569",
+   "partName": "BOX Painted 450 Diffuse",
+   "productGroup": "NLC 450",
    "qtyPerJig": 1,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 15.0
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53714"
+   ]
   },
   {
-   "partCode": "BRU53749",
-   "partName": "Door 900mm",
-   "productGroup": "NLC",
+   "partCode": "BRU93579",
+   "partName": "Door ASM 600mm Diffuse",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53744"
+   ]
+  },
+  {
+   "partCode": "NAT20568",
+   "partName": "Cover EZ250 600mm 12w Project",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "NAT20565",
+   "partName": "Cover EZ100 600mm 30w Project",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "NAT20564",
+   "partName": "Cover EZ100 600mm 24w Project",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "NAT20563",
+   "partName": "Cover EZ100 600mm 18w Project",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53741",
+   "partName": "Cover LUG250 600mm 30w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53740",
+   "partName": "Cover LUG250 600mm 24w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53739",
+   "partName": "Cover LUG250 600mm 18w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53728",
+   "partName": "Cover LUG100 600mm 36w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53727",
+   "partName": "Cover LUG100 600mm 30w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53726",
+   "partName": "Cover LUG100 600mm 24w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53731",
+   "partName": "Cover EZ250 600mm 18w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53730",
+   "partName": "Cover EZ250 600mm 12w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53721",
+   "partName": "Cover EZ100 600mm 30w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53720",
+   "partName": "Cover EZ100 600mm 24w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53719",
+   "partName": "Cover EZ100 600mm 18w",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU93570",
+   "partName": "BOX Painted 600 Diffuse",
+   "productGroup": "NLC 600",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53715"
+   ]
+  },
+  {
+   "partCode": "BRU93580",
+   "partName": "Door ASM 750mm Diffuse",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53747"
+   ]
+  },
+  {
+   "partCode": "NAT20567",
+   "partName": "Cover EZ100 750mm 42w Project",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "NAT20566",
+   "partName": "Cover EZ100 750mm 36w Project",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53745",
+   "partName": "Cover LUG250 750mm 42w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53742",
+   "partName": "Cover LUG250 750mm 36w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53729",
+   "partName": "Cover LUG100 750mm 42w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53734",
+   "partName": "Cover EZ250 750mm 30w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53732",
+   "partName": "Cover EZ250 750mm 24w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53723",
+   "partName": "Cover EZ100 750mm 42w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53722",
+   "partName": "Cover EZ100 750mm 36w",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU93571",
+   "partName": "BOX Painted 750 Diffuse",
+   "productGroup": "NLC 750",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53716"
+   ]
+  },
+  {
+   "partCode": "BRU93581",
+   "partName": "Door ASM 900mm Diffuse",
+   "productGroup": "NLC 900",
    "qtyPerJig": 1,
    "pitch": 0.9,
    "lineSpeed": 3,
-   "stdSec": 18.0
+   "stdSec": 18.0,
+   "appCodes": [
+    "BRU53749"
+   ]
+  },
+  {
+   "partCode": "BRU53746",
+   "partName": "Cover LUG250 900mm 48w",
+   "productGroup": "NLC 900",
+   "qtyPerJig": 1,
+   "pitch": 0.9,
+   "lineSpeed": 3,
+   "stdSec": 18.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53737",
+   "partName": "Cover EZ250 900mm 48w",
+   "productGroup": "NLC 900",
+   "qtyPerJig": 1,
+   "pitch": 0.9,
+   "lineSpeed": 3,
+   "stdSec": 18.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53736",
+   "partName": "Cover EZ250 900mm 42w",
+   "productGroup": "NLC 900",
+   "qtyPerJig": 1,
+   "pitch": 0.9,
+   "lineSpeed": 3,
+   "stdSec": 18.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU53735",
+   "partName": "Cover EZ250 900mm 36w",
+   "productGroup": "NLC 900",
+   "qtyPerJig": 1,
+   "pitch": 0.9,
+   "lineSpeed": 3,
+   "stdSec": 18.0,
+   "appCodes": []
+  },
+  {
+   "partCode": "BRU93572",
+   "partName": "BOX Painted 900 Diffuse",
+   "productGroup": "NLC 900",
+   "qtyPerJig": 1,
+   "pitch": 0.75,
+   "lineSpeed": 3,
+   "stdSec": 15.0,
+   "appCodes": [
+    "BRU53771"
+   ]
   },
   {
    "partCode": "BRU53717",
-   "partName": "Gland Plate NLC",
+   "partName": "Gland plate painted (White)",
    "productGroup": "NLC",
    "qtyPerJig": 4,
    "pitch": 0.75,
    "lineSpeed": 3,
-   "stdSec": 3.75
-  },
-  {
-   "partCode": "BRU53718",
-   "partName": "Cover EZ100 450mm 12 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53719",
-   "partName": "Cover EZ100 600mm 18 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53720",
-   "partName": "Cover EZ100 600mm 24 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53721",
-   "partName": "Cover EZ100 600mm 30 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53722",
-   "partName": "Cover EZ100 750mm 36 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53723",
-   "partName": "Cover EZ100 750mm 42 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53724",
-   "partName": "Cover LUG100 450mm 12 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53725",
-   "partName": "Cover LUG100 450mm 18 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53726",
-   "partName": "Cover LUG100 600mm 24 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53727",
-   "partName": "Cover LUG100 600mm 30 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53728",
-   "partName": "Cover LUG100 600mm 36 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53729",
-   "partName": "Cover LUG100 750mm 42 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53730",
-   "partName": "Cover EZ250 600mm 12 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53731",
-   "partName": "Cover EZ250 600mm 18 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53732",
-   "partName": "Cover EZ250 750mm 24 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53734",
-   "partName": "Cover EZ250 750mm 30 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53735",
-   "partName": "Cover EZ250 900mm 36 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.9,
-   "lineSpeed": 3,
-   "stdSec": 18.0
-  },
-  {
-   "partCode": "BRU53736",
-   "partName": "Cover EZ250 900mm 42 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.9,
-   "lineSpeed": 3,
-   "stdSec": 18.0
-  },
-  {
-   "partCode": "BRU53737",
-   "partName": "Cover EZ250 900mm 48 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.9,
-   "lineSpeed": 3,
-   "stdSec": 18.0
-  },
-  {
-   "partCode": "BRU53738",
-   "partName": "Cover LUG250 450mm 12 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53739",
-   "partName": "Cover LUG250 600mm 18 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53740",
-   "partName": "Cover LUG250 600mm 24 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53741",
-   "partName": "Cover LUG250 600mm 30 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53742",
-   "partName": "Cover LUG250 750mm 36 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53745",
-   "partName": "Cover LUG250 750mm 42 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.75,
-   "lineSpeed": 3,
-   "stdSec": 15.0
-  },
-  {
-   "partCode": "BRU53746",
-   "partName": "Cover LUG250 900mm 48 way",
-   "productGroup": "NLC",
-   "qtyPerJig": 1,
-   "pitch": 0.9,
-   "lineSpeed": 3,
-   "stdSec": 18.0
+   "stdSec": 3.75,
+   "appCodes": []
   }
  ],
  "slots": [
