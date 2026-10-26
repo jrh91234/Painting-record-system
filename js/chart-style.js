@@ -22,8 +22,8 @@
     ];
 
     const THEMES = {
-        light: { text: '#77799f', title: '#45477a', grid: 'rgba(38, 42, 99, 0.08)', ink: [119, 121, 159], surface: '#f7f6fe', tooltip: '#24264f', tooltipText: '#f7f6fe' },
-        dark: { text: '#9593c9', title: '#c9c8f0', grid: 'rgba(149, 147, 201, 0.14)', ink: [149, 147, 201], surface: '#23275c', tooltip: '#0e1030', tooltipText: '#f4f2ff' }
+        light: { text: '#5d5f86', title: '#45477a', grid: 'rgba(38, 42, 99, 0.08)', ink: [93, 95, 134], surface: '#f7f6fe', tooltip: '#24264f', tooltipText: '#f7f6fe' },
+        dark: { text: '#a3a1d6', title: '#c9c8f0', grid: 'rgba(149, 147, 201, 0.14)', ink: [149, 147, 201], surface: '#23275c', tooltip: '#0e1030', tooltipText: '#f4f2ff' }
     };
 
     function currentTheme() {

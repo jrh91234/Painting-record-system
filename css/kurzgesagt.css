@@ -33,7 +33,7 @@
   --kz-input: #181b45;
   --kz-text: #f4f2ff;
   --kz-text-soft: #c9c8f0;
-  --kz-muted: #9593c9;
+  --kz-muted: #a3a1d6;
   --kz-line: rgba(255, 255, 255, 0.07);
   --kz-shadow: 0 10px 0 rgba(8, 9, 32, 0.35), 0 18px 40px rgba(8, 9, 32, 0.45);
   --kz-stars: radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.7), transparent 60%),
@@ -58,7 +58,7 @@
   --kz-input: #fdfcff;
   --kz-text: #24264f;
   --kz-text-soft: #45477a;
-  --kz-muted: #77799f;
+  --kz-muted: #5d5f86;
   --kz-line: rgba(38, 42, 99, 0.09);
   --kz-shadow: 0 6px 0 rgba(38, 42, 99, 0.06), 0 14px 32px rgba(38, 42, 99, 0.1);
   --kz-stars: none;
