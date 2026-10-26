@@ -1196,7 +1196,7 @@ async function loginUserAPI(employeeId, passwordHash) {
     try {
         const cached = localStorage.getItem("PAINTING_LOCAL_USERS");
         const users = cached ? JSON.parse(cached) : [];
-        const match = users.find(u => String(u.employeeId).trim() === cleanEmpId);
+        const match = users.find(u => String(u.employeeId).trim().toLowerCase() === cleanEmpId.toLowerCase());
         if (match) {
             if (match.passwordHash && passwordHash && match.passwordHash !== passwordHash) {
                 return { status: "error", message: "รหัสผ่านไม่ถูกต้อง" };
@@ -1276,7 +1276,7 @@ function saveUserLocallyFallback(userData) {
 
         const isSuper69112 = String(userData.employeeId).trim() === "69112";
 
-        let existingUser = users.find(u => String(u.employeeId).trim() === String(userData.employeeId).trim());
+        let existingUser = users.find(u => String(u.employeeId).trim().toLowerCase() === String(userData.employeeId).trim().toLowerCase());
         if (existingUser) {
             existingUser.displayName = userData.displayName || existingUser.displayName;
             existingUser.department = userData.department || existingUser.department;
@@ -1356,7 +1356,7 @@ function updateCachedUser(employeeId, changes) {
         let users = cached ? JSON.parse(cached) : [];
         if (!Array.isArray(users)) users = [];
         const id = String(employeeId).trim();
-        const index = users.findIndex(u => String(u.employeeId).trim() === id);
+        const index = users.findIndex(u => String(u.employeeId).trim().toLowerCase() === id.toLowerCase());
         const current = index >= 0 ? users[index] : { employeeId: id, role: "Inspector" };
         const next = { ...current };
         Object.keys(changes).forEach(key => {
