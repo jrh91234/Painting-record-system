@@ -6,7 +6,12 @@ on:
       - main
     paths:
       - 'appscript/**'
-      - '.clasp.json'
+      - '.github/workflows/deploy-appscript.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-appscript
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -18,40 +23,47 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install Clasp
-        run: npm install -g @google/clasp
+        # Pinned so the ~/.clasprc.json format matches `npx @google/clasp@2.4.2 login`.
+        run: npm install -g @google/clasp@2.4.2
+
+      - name: Check required secrets
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
+          APPS_SCRIPT_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
+        run: |
+          missing=0
+          for name in CLASPRC_JSON APPS_SCRIPT_ID APPS_SCRIPT_DEPLOYMENT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          exit $missing
 
       - name: Create clasprc.json Credentials
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
         run: |
-          test -n "$CLASPRC_JSON" || (echo "Missing GitHub secret: CLASPRC_JSON" && exit 1)
-          mkdir -p ~/.config/clasp
           printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
-          test -s ~/.clasprc.json
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.clasprc.json','utf8'))" \
+            || (echo "::error::CLASPRC_JSON is not valid JSON" && exit 1)
 
       - name: Configure Apps Script project
         env:
           APPS_SCRIPT_ID: ${{ secrets.APPS_SCRIPT_ID }}
         run: |
-          SCRIPT_ID="$APPS_SCRIPT_ID"
-          if [ -z "$SCRIPT_ID" ] && [ -f .clasp.json ]; then
-            SCRIPT_ID=$(node -e "const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('.clasp.json','utf8')); process.stdout.write(String(cfg.scriptId || '')); ")
-          fi
-          test -n "$SCRIPT_ID"
-          printf '{"scriptId":"%s","rootDir":"./appscript"}\n' "$SCRIPT_ID" > .clasp.json
+          # Always deploy to the script set in secrets, never the scriptId committed in .clasp.json.
+          printf '{"scriptId":"%s","rootDir":"./appscript"}\n' "$APPS_SCRIPT_ID" > .clasp.json
 
       - name: Push and Deploy to Apps Script
         env:
           APPS_SCRIPT_DEPLOYMENT_ID: ${{ secrets.APPS_SCRIPT_DEPLOYMENT_ID }}
         run: |
-          # Keep the existing web-app deployment when the repository secret is
-          # unavailable. The public web-app URL in js/api.js uses this deployment.
-          DEPLOYMENT_ID="$APPS_SCRIPT_DEPLOYMENT_ID"
-          if [ -z "$DEPLOYMENT_ID" ]; then
-            DEPLOYMENT_ID="AKfycbyB4iDFgE6vqd1RSLCg1qJioegOK048AuFGycIdfv7MW12SIAagpGnLlkAVKUBC5J7n"
-          fi
+          # Updating the existing deployment keeps the /exec URL used by js/api.js unchanged.
           clasp push --force
-          clasp deploy --deploymentId "$DEPLOYMENT_ID" --description "Auto-deployed via GitHub Actions"
+          clasp deploy --deploymentId "$APPS_SCRIPT_DEPLOYMENT_ID" \
+            --description "GitHub Actions ${GITHUB_SHA::7}"
