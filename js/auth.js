@@ -58,9 +58,11 @@ const PaintingAuth = {
             if (firstAllowedPage) switchTab(firstAllowedPage.id);
         }
 
-        // Restore a permitted tab requested by a shared URL after permissions
-        // are refreshed. This also prevents the refresh from falling back to
-        // Dashboard after a direct menu link has been opened.
+        // Restore a permitted tab requested by a shared URL, once, on the first
+        // permission pass after load. Doing it on every 30 s refresh pulled
+        // the user back to that page from whatever tab they had moved to.
+        if (this.hashTabRestored) return;
+        this.hashTabRestored = true;
         const requestedTab = window.location.hash.replace(/^#/, '');
         const requestedPage = pages.find(page => page.id === requestedTab);
         if (requestedPage && this.hasPermission(requestedPage.dataset.permission)

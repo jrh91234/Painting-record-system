@@ -372,6 +372,12 @@ function switchTab(tabId, element) {
     if (targetTab) {
         targetTab.classList.add("active");
         targetTab.style.display = "block";
+        // Keep the URL hash on the page actually shown. A stale hash (e.g.
+        // #inspection-tab from the menu link) made the periodic permission
+        // refresh switch back to that page.
+        if (window.location.hash !== "#" + tabId && window.history && history.replaceState) {
+            history.replaceState(null, "", "#" + tabId);
+        }
     }
 
     // Highlight all matching navigation items (both desktop & mobile)
