@@ -472,3 +472,26 @@ html[data-theme] .mobile-nav-item.active {
     display: none;
   }
 }
+
+/* ---------- Powder spray gun cursor (enabled by js/spray-cursor.js) ---------- */
+html.spray-cursor,
+html.spray-cursor * {
+  cursor: url('../assets/spray-gun-cursor.svg') 1 7, auto !important;
+}
+
+html.spray-cursor input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]),
+html.spray-cursor textarea,
+html.spray-cursor [contenteditable="true"] {
+  cursor: text !important;
+}
+
+html.spray-cursor :disabled {
+  cursor: not-allowed !important;
+}
+
+.spray-cursor-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+}
