@@ -21,7 +21,8 @@ const PaintingAuth = {
 
     hasPermission(permission) {
         if (!this.currentUser) return false;
-        if (String(this.currentUser.role || "") === "Super Admin" || String(this.currentUser.employeeId || "") === "69112") return true;
+        const role = String(this.currentUser.role || "");
+        if (role === "Super Admin" || role === "Admin" || String(this.currentUser.employeeId || "") === "69112") return true;
         return Array.isArray(this.currentUser.permissions) && this.currentUser.permissions.includes(permission);
     },
 
@@ -345,15 +346,16 @@ const PaintingAuth = {
 
         if (this.currentUser) {
             if (chipName) chipName.innerText = this.currentUser.displayName || this.currentUser.employeeId;
-            if (chipRole) chipRole.innerText = this.currentUser.role === "Super Admin" ? "Super Admin" : (this.currentUser.department || "พนักงาน");
+            const isAdminRole = this.currentUser.role === "Super Admin" || this.currentUser.role === "Admin";
+            if (chipRole) chipRole.innerText = isAdminRole ? this.currentUser.role : (this.currentUser.department || "พนักงาน");
             if (chipAvatar) {
                 const firstChar = String(this.currentUser.displayName || this.currentUser.employeeId).charAt(0).toUpperCase();
                 chipAvatar.innerText = firstChar || "U";
             }
 
-            // Show Settings (User Management) tab for Super Admin only
+            // Show Settings (User Management) tab to whoever may manage users
             if (settingsTabBtn) {
-                if (this.currentUser.role === "Super Admin") {
+                if (this.hasPermission("users.manage")) {
                     settingsTabBtn.style.display = "flex";
                 } else {
                     settingsTabBtn.style.display = "none";
@@ -438,7 +440,8 @@ const PaintingAuth = {
                 const isDisabled = u.status === "Disabled";
                 const isSuper = String(u.employeeId).trim() === "69112";
 
-                const roleBadgeClass = isSuper ? "badge-role-super" : "badge-role-inspector";
+                const isAdmin = !isSuper && u.role === "Admin";
+                const roleBadgeClass = isSuper ? "badge-role-super" : (isAdmin ? "badge-role-admin" : "badge-role-inspector");
                 const statusBadgeClass = isPending ? "badge-status-pending" : (isDisabled ? "badge-status-disabled" : "badge-status-active");
                 const statusText = isPending ? "⏳ รออนุมัติ" : (isDisabled ? "🔴 ระงับใช้งาน" : "🟢 ใช้งานได้");
 
@@ -459,7 +462,7 @@ const PaintingAuth = {
                             </div>
                         </div>
                         <div class="user-card-actions" style="display: flex; gap: 0.5rem; align-items: center;">
-                            ${!isSuper ? `<button class="btn-secondary-custom" style="padding: 0.5rem 0.8rem; font-size: 0.8rem;" onclick="PaintingAuth.openPermissionsModal('${u.employeeId}')">กำหนดสิทธิ์</button>` : ''}
+                            ${!isSuper && !isAdmin ? `<button class="btn-secondary-custom" style="padding: 0.5rem 0.8rem; font-size: 0.8rem;" onclick="PaintingAuth.openPermissionsModal('${u.employeeId}')">กำหนดสิทธิ์</button>` : ''}
                             ${isPending ? `
                                 <button class="btn-primary-custom" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);" onclick="PaintingAuth.approveUser('${u.employeeId}')">✅ อนุมัติ</button>
                                 <button class="btn-secondary-custom" style="padding: 0.6rem 1.25rem; font-size: 0.88rem; font-weight: 800; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);" onclick="PaintingAuth.toggleUserStatus('${u.employeeId}', 'Disabled')">❌ ปฏิเสธ</button>
@@ -577,6 +580,7 @@ const PaintingAuth = {
         const name = document.getElementById("adminAddName")?.value.trim();
         const dept = document.getElementById("adminAddDept")?.value.trim();
         const status = document.getElementById("adminAddStatus")?.value || "Active";
+        const role = document.getElementById("adminAddRole")?.value === "Admin" ? "Admin" : "Inspector";
 
         if (!empId || !name) {
             alert("กรุณากรอกรหัสพนักงานและชื่อ-นามสกุลให้ครบถ้วน");
@@ -587,7 +591,7 @@ const PaintingAuth = {
             employeeId: empId,
             displayName: name,
             department: dept,
-            role: "Inspector",
+            role: role,
             status: status,
             passwordHash: await this.hashPassword("123456")
         };
