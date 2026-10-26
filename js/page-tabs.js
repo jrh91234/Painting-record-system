@@ -14,6 +14,7 @@
 
     const LABELS = {
         'dashboard-tab': 'Dashboard',
+        'line-eff-tab': '%Eff ไลน์',
         'qc7-tools-tab': 'QC 7 TOOL',
         'qc-history-tab:pending': 'QC รอตรวจ',
         'qc-history-tab:reviewed': 'QC ตรวจแล้ว',
@@ -104,6 +105,8 @@
             window.openRTVTab(null, null);
         } else if (tabId === 'maintenance-plan-tab' && typeof window.openMaintenancePlan === 'function') {
             window.openMaintenancePlan(null, null);
+        } else if (tabId === 'line-eff-tab' && typeof window.openLineEfficiency === 'function') {
+            window.openLineEfficiency(null, null);
         } else if (tabId === 'qc7-tools-tab' && typeof window.openQC7Tools === 'function') {
             window.openQC7Tools(null, null);
         } else {

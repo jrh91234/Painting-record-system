@@ -692,6 +692,7 @@
     <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
+    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -793,6 +794,10 @@
                 <a href="#" class="nav-link active" data-permission="dashboard.read" onclick="switchTab('dashboard-tab', this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     Dashboard
+                </a>
+                <a href="#" class="nav-link" data-permission="dashboard.read" onclick="openLineEfficiency(event, this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5"></path><path d="M9 2h6"></path></svg>
+                    %Eff ไลน์
                 </a>
                 <a href="#" class="nav-link" data-permission="qc7.read" onclick="openQC7Tools(event, this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-4"></path><path d="M12 16V8"></path><path d="M16 16v-7"></path></svg>
@@ -1215,6 +1220,56 @@
                 </section>
 
                 <!-- TAB: QC HISTORY (รวมประวัติจากเช็กลิสก่อนเริ่มงาน) -->
+                <!-- TAB: LINE %EFF (earned line time vs available shift time) -->
+                <section id="line-eff-tab" class="tab-page" data-permission="dashboard.read" style="display: none;">
+                    <div class="section-title-bar line-eff-head">
+                        <div>
+                            <h1 class="page-title">⏱ %Eff ไลน์พ่นสี</h1>
+                            <p class="line-eff-sub">แปลงทุกชิ้นที่พ่นเป็น "เวลามาตรฐาน" แล้วเทียบกับเวลาที่มีในกะ · <span id="lineEffSource"></span></p>
+                        </div>
+                        <div class="line-eff-filters">
+                            <label>ตั้งแต่ <input type="date" id="lineEffFrom" class="form-control"></label>
+                            <label>ถึง <input type="date" id="lineEffTo" class="form-control"></label>
+                            <button type="button" id="lineEffRefresh" class="btn-secondary-custom">↻ รีเฟรช</button>
+                        </div>
+                    </div>
+                    <p id="lineEffStatus" class="line-eff-status" role="status"></p>
+
+                    <div class="kpi-grid line-eff-kpis">
+                        <div class="kpi-card teal"><div class="kpi-label">%Eff เฉลี่ย</div><div class="kpi-value" id="lineEffAvg">-</div><div class="kpi-subtext" id="lineEffAvgSub"></div></div>
+                        <div class="kpi-card blue"><div class="kpi-label">%Eff งานดี</div><div class="kpi-value" id="lineEffGood">-</div><div class="kpi-subtext" id="lineEffGoodSub"></div></div>
+                        <div class="kpi-card cyan"><div class="kpi-label">เวลาที่ทำได้</div><div class="kpi-value" id="lineEffEarned">-</div><div class="kpi-subtext" id="lineEffEarnedSub"></div></div>
+                        <div class="kpi-card amber"><div class="kpi-label">เวลาที่หายไป</div><div class="kpi-value" id="lineEffLost">-</div><div class="kpi-subtext" id="lineEffLostSub"></div></div>
+                    </div>
+
+                    <div id="lineEffUnmatched" class="line-eff-unmatched" hidden></div>
+
+                    <div class="chart-card line-eff-chart-card">
+                        <h3 class="line-eff-card-title">%Eff รายวัน <small><span class="line-eff-key is-good">●</span> ถึงเป้า ≥80% <span class="line-eff-key is-warn">●</span> 60–80% <span class="line-eff-key is-bad">●</span> ต่ำกว่า 60% · เส้นประ = เป้าหมาย</small></h3>
+                        <div class="line-eff-chart-wrap"><canvas id="lineEffChart" aria-label="กราฟ %Eff รายวัน"></canvas></div>
+                    </div>
+
+                    <div class="table-card line-eff-table-card">
+                        <h3 class="line-eff-card-title">รายละเอียดรายวัน <small>กดที่แถวเพื่อดูชิ้นงาน</small></h3>
+                        <div class="table-responsive">
+                            <table class="data-table line-eff-table">
+                                <thead><tr><th>วันที่</th><th>เวลาที่มี</th><th>เวลาที่ทำได้</th><th>%Eff</th><th>%Eff งานดี</th><th>เวลาที่หายไป</th><th>ยอดผลิต (ชิ้น)</th></tr></thead>
+                                <tbody id="lineEffTableBody"><tr><td colspan="7" class="line-eff-empty">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <details class="line-eff-howto">
+                        <summary>วิธีคิด %Eff</summary>
+                        <ul>
+                            <li><b>เวลามาตรฐานต่อชิ้น</b> = 3600 ÷ (ความเร็วไลน์ × 60 ÷ ระยะห่างราว × ชิ้นต่อราว) จากชีต <b>Capacity</b> (คิดที่ความเร็วไลน์เต็ม 100%)</li>
+                            <li><b>เวลาที่ทำได้</b> = Σ ยอดผลิต × เวลามาตรฐาน ของทุกชิ้นงานในวันนั้น รวมงาน REWORK ที่ผ่านไลน์</li>
+                            <li><b>เวลาที่มี</b> = ช่วงเวลากะปกติทั้งหมด + ช่วง OT จนถึงช่วงสุดท้ายที่มีการบันทึกยอด (ตามชีต <b>LineTimeSlots</b>) ไม่ต้องจดเวลาหยุดไลน์</li>
+                            <li><b>%Eff</b> = เวลาที่ทำได้ ÷ เวลาที่มี · เป้าหมาย 80% เท่ากับทำได้ตาม capacity ในไฟล์ (OEE 80%)</li>
+                        </ul>
+                    </details>
+                </section>
+
                 <section id="qc-history-tab" class="tab-page" data-permission="qc.read" style="display: none;">
                     <div class="section-title-bar" style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
                         <div>
@@ -1963,6 +2018,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
                 <span>Dashboard</span>
             </div>
+            <div class="mobile-nav-item" data-permission="dashboard.read" onclick="openLineEfficiency(event, this)">
+                <svg viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>
+                <span>%Eff</span>
+            </div>
             <div class="mobile-nav-item" data-permission="qc7.read" onclick="openQC7Tools(event, this)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-7"/></svg>
                 <span>QC 7 TOOL</span>
@@ -2332,7 +2391,8 @@
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
-    <script src="js/page-tabs.js?v=tabs-20261026"></script>
+    <script src="js/line-efficiency.js?v=eff-20261026"></script>
+    <script src="js/page-tabs.js?v=eff-20261026"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>
 

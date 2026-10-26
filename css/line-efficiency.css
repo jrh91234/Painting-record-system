@@ -1,0 +1,236 @@
+/* Line %Eff page (js/line-efficiency.js). Uses the Kurzgesagt tokens. */
+.line-eff-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.line-eff-head .page-title {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.line-eff-sub {
+  margin: 0.25rem 0 0;
+  color: var(--kz-muted);
+  font-size: 0.85rem;
+}
+
+.line-eff-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.line-eff-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--kz-text-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.line-eff-filters .form-control {
+  height: 40px;
+  min-width: 150px;
+}
+
+.line-eff-filters .btn-secondary-custom {
+  height: 40px;
+}
+
+.line-eff-status {
+  min-height: 1.2em;
+  margin: 0.4rem 0 0;
+  color: var(--kz-muted);
+  font-size: 0.85rem;
+}
+
+.line-eff-kpis {
+  margin-top: 0.6rem;
+}
+
+.line-eff-kpis .kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 120px;
+}
+
+.line-eff-kpis .kpi-value {
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+
+.line-eff-key {
+  font-size: 0.9rem;
+}
+
+.is-good { color: #10b981; }
+.is-warn { color: #f59e0b; }
+.is-bad { color: #ef4444; }
+
+.line-eff-unmatched {
+  margin: 1rem 0;
+  padding: 1rem 1.2rem;
+  border-radius: var(--kz-radius-md, 18px);
+  background: color-mix(in srgb, var(--kz-yellow, #ffcc4d) 16%, var(--kz-surface));
+  color: var(--kz-text);
+}
+
+.line-eff-unmatched p {
+  margin: 0.3rem 0 0.6rem;
+  color: var(--kz-text-soft);
+  font-size: 0.88rem;
+}
+
+.line-eff-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.line-eff-chip {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--kz-surface);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.line-eff-chart-card,
+.line-eff-table-card {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+}
+
+.line-eff-card-title {
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+}
+
+.line-eff-card-title small {
+  margin-left: 0.4rem;
+  color: var(--kz-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.line-eff-chart-wrap {
+  position: relative;
+  height: 300px;
+}
+
+.line-eff-table {
+  width: 100%;
+}
+
+.line-eff-table td,
+.line-eff-table th {
+  padding: 0.6rem 0.9rem !important;
+  white-space: nowrap;
+}
+
+.line-eff-row {
+  cursor: pointer;
+}
+
+.line-eff-row:focus-visible {
+  outline: 2px solid var(--kz-purple);
+  outline-offset: -2px;
+}
+
+.line-eff-caret {
+  display: inline-block;
+  width: 1em;
+  color: var(--kz-muted);
+}
+
+.line-eff-pill {
+  display: inline-block;
+  min-width: 64px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-align: center;
+  background: var(--kz-surface-muted);
+}
+
+.line-eff-pill.is-good { background: color-mix(in srgb, #10b981 16%, transparent); }
+.line-eff-pill.is-warn { background: color-mix(in srgb, #f59e0b 16%, transparent); }
+.line-eff-pill.is-bad { background: color-mix(in srgb, #ef4444 16%, transparent); }
+
+.line-eff-detail > td {
+  padding: 0.4rem 0.8rem 1rem !important;
+  background: var(--kz-surface-soft);
+}
+
+.line-eff-parts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.line-eff-parts th,
+.line-eff-parts td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--kz-line);
+  white-space: normal;
+}
+
+.line-eff-parts small {
+  color: var(--kz-muted);
+}
+
+.line-eff-note,
+.line-eff-empty {
+  color: var(--kz-muted);
+  text-align: center;
+  padding: 1.2rem !important;
+}
+
+.line-eff-howto {
+  margin: 1.25rem 0 0.5rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: var(--kz-radius-md, 18px);
+  background: var(--kz-surface);
+  color: var(--kz-text-soft);
+  font-size: 0.88rem;
+}
+
+.line-eff-howto summary {
+  font-weight: 700;
+  color: var(--kz-text);
+}
+
+.line-eff-howto ul {
+  margin: 0.6rem 0 0;
+  padding-left: 1.2rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+  .line-eff-filters {
+    width: 100%;
+  }
+
+  .line-eff-filters label {
+    flex: 1 1 140px;
+  }
+
+  .line-eff-filters .form-control {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .line-eff-chart-wrap {
+    height: 240px;
+  }
+}

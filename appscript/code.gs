@@ -2502,6 +2502,40 @@ function doGetJson_(e) {
 
     // Handle getPartModels action. Keep the legacy PartModel sheet untouched;
     // the related catalog is stored in a dedicated PartModelCatalog sheet.
+    // Line %Eff: standard time per part (Capacity) and the shift's time slots
+    // (LineTimeSlots). Both sheets are maintained by hand in the spreadsheet.
+    if (action === "getLineCapacity") {
+      const capacitySheet = ss.getSheetByName("Capacity");
+      const slotSheet = ss.getSheetByName("LineTimeSlots");
+      const readRows = sheet => {
+        if (!sheet || sheet.getLastRow() < 2) return [];
+        const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+        const headers = values[0].map(h => String(h).trim());
+        return values.slice(1)
+          .filter(row => String(row[0]).trim() !== "")
+          .map(row => {
+            const item = {};
+            headers.forEach((h, i) => { if (h) item[h] = row[i]; });
+            return item;
+          });
+      };
+      const capacity = readRows(capacitySheet).map(r => ({
+        partCode: String(r.PartCode).trim(),
+        partName: String(r.PartName || ""),
+        productGroup: String(r.ProductGroup || ""),
+        qtyPerJig: Number(r.QtyPerJig) || 0,
+        pitch: Number(r.Pitch_m) || 0,
+        lineSpeed: Number(r.LineSpeed_m_min) || 0,
+        stdSec: Number(r.StdSecPerPcs) || 0
+      }));
+      const slots = readRows(slotSheet).map(r => ({
+        timeSlot: String(r.TimeSlot).trim(),
+        minutes: Number(r.Minutes) || 0,
+        type: String(r.Type || "Normal")
+      }));
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", capacity, slots })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (action === "getPartModels") {
       let catalogSheet = ss.getSheetByName("PartModelCatalog");
       if (!catalogSheet) catalogSheet = ss.insertSheet("PartModelCatalog");
