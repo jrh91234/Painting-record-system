@@ -169,12 +169,19 @@ const PART_MODEL_CATALOG = {
   "NMS": { colors: [], categories: { "Box": [], "Cover": [] } }
 };
 
+// "Admin" is granted by the owner from the user-management menu and gets
+// every permission, like the Super Admin, without being the system owner.
+function isFullAccessRole_(role) {
+  const r = String(role || "").trim();
+  return r === "Super Admin" || r === "Admin";
+}
+
 function getDefaultPermissions(role) {
-  return String(role || "").trim() === "Super Admin" ? ALL_PERMISSIONS.slice() : DEFAULT_USER_PERMISSIONS.slice();
+  return isFullAccessRole_(role) ? ALL_PERMISSIONS.slice() : DEFAULT_USER_PERMISSIONS.slice();
 }
 
 function parsePermissions(value, role) {
-  if (String(role || "").trim() === "Super Admin") return ALL_PERMISSIONS.slice();
+  if (isFullAccessRole_(role)) return ALL_PERMISSIONS.slice();
   if (!value) return getDefaultPermissions(role);
   try {
     const parsed = Array.isArray(value) ? value : JSON.parse(String(value));
@@ -1783,6 +1790,8 @@ function upsertUserRecord_(ss, payload) {
     const dept = String(data.department || "").trim();
     const status = String(data.userStatus || "Active").trim();
     const passHash = String(data.passwordHash || "").trim();
+    // Only these two roles can be handed out here; Super Admin stays the owner's.
+    const role = String(data.userRole || "").trim() === "Admin" ? "Admin" : "Inspector";
 
     if (!empId) {
       return { status: "error", message: "กรุณาระบุรหัสพนักงาน" };
@@ -1791,16 +1800,20 @@ function upsertUserRecord_(ss, payload) {
     const values = uSheet.getDataRange().getValues();
     for (let i = 1; i < values.length; i++) {
       if (String(values[i][0] || "").trim() === empId) {
-        // Existing employee: keep the password and role, refresh the rest.
+        // Existing employee: keep the password, refresh the rest. Never
+        // demote the Super Admin through this form.
         if (name) uSheet.getRange(i + 1, 2).setValue(name);
         if (dept) uSheet.getRange(i + 1, 3).setValue(dept);
         uSheet.getRange(i + 1, 6).setValue(status);
+        if (String(values[i][4] || "").trim() !== "Super Admin") {
+          uSheet.getRange(i + 1, 5).setValue(role);
+          uSheet.getRange(i + 1, 9).setValue(JSON.stringify(getDefaultPermissions(role)));
+        }
         SpreadsheetApp.flush();
         return { status: "success", created: false };
       }
     }
 
-    const role = "Inspector";
     const nowStr = formatDateStr(new Date(), true);
     uSheet.appendRow([empId, name, dept, passHash, role, status, nowStr, "", JSON.stringify(getDefaultPermissions(role))]);
     SpreadsheetApp.flush();

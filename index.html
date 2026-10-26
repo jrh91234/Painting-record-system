@@ -688,7 +688,7 @@
 
     <!-- Custom CSS Files Loaded after embedded style to guarantee priority on iOS & Android -->
     <link rel="stylesheet" href="css/style.css?v=96.40.0">
-    <link rel="stylesheet" href="css/auth.css?v=83.2.0">
+    <link rel="stylesheet" href="css/auth.css?v=users-admin-20261026">
     <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
@@ -2325,6 +2325,13 @@
                         <option value="QC / Inspector (พนักงานตรวจเช็ค)">QC / Inspector (พนักงานตรวจเช็ค)</option>
                     </select>
                 </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem; display: block;">สิทธิ์ผู้ใช้งาน (Role)</label>
+                    <select id="adminAddRole" class="form-control">
+                        <option value="Inspector" selected>👤 พนักงาน (Inspector) — สิทธิ์พื้นฐาน กำหนดเพิ่มได้ภายหลัง</option>
+                        <option value="Admin">🛡️ Admin — ใช้งานได้ทุกเมนู รวมถึงจัดการผู้ใช้งาน</option>
+                    </select>
+                </div>
                 <div class="form-group" style="margin-bottom: 1.25rem;">
                     <label style="font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem; display: block;">สถานะการใช้งาน (Initial Status)</label>
                     <select id="adminAddStatus" class="form-control">
@@ -2387,12 +2394,12 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- JS Files -->
-    <script src="js/api.js?v=users-cloud-20261026"></script>
+    <script src="js/api.js?v=users-admin-20261026"></script>
     <script src="js/rtv.js?v=1.0.2"></script>
     <script src="js/theme.js?v=soft-light-20261026"></script>
     <script src="js/chart-style.js?v=eff-other-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
-    <script src="js/auth.js?v=users-cloud-20261026"></script>
+    <script src="js/auth.js?v=users-admin-20261026"></script>
     <script src="js/app.js?v=permissions-20260902"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
     <script src="js/daily-report.js?v=catalog-sheet-20261026"></script>

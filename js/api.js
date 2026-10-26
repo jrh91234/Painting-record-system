@@ -1102,7 +1102,8 @@ const USER_PERMISSION_KEYS = [
 const DEFAULT_USER_PERMISSION_KEYS = USER_PERMISSION_KEYS.filter(key => key !== "users.manage");
 
 function normalizeUserPermissions(permissions, role, employeeId) {
-    if (String(role || "").trim() === "Super Admin" || String(employeeId || "").trim() === "69112") {
+    const cleanRole = String(role || "").trim();
+    if (cleanRole === "Super Admin" || cleanRole === "Admin" || String(employeeId || "").trim() === "69112") {
         return [...USER_PERMISSION_KEYS];
     }
     if (!Array.isArray(permissions)) return [...DEFAULT_USER_PERMISSION_KEYS];
@@ -1402,12 +1403,14 @@ async function upsertUserAPI(userData) {
             displayName: userData.displayName || '',
             department: userData.department || '',
             userStatus: userData.status || 'Active',
+            userRole: userData.role || 'Inspector',
             passwordHash: userData.passwordHash || ''
         }).toString();
         const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + queryParams;
         const response = await fetch(withApiRequestNonce(url), { method: "GET", cache: "no-store" });
         const result = await requireJsonResponse(response, 'Add user');
         updateCachedUser(userData.employeeId, {
+            role: userData.role,
             displayName: userData.displayName,
             department: userData.department,
             status: userData.status
