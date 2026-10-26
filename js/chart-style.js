@@ -22,7 +22,7 @@
     ];
 
     const THEMES = {
-        light: { text: '#5d5f86', title: '#45477a', grid: 'rgba(38, 42, 99, 0.08)', ink: [93, 95, 134], surface: '#f7f6fe', tooltip: '#24264f', tooltipText: '#f7f6fe' },
+        light: { text: '#5d5f86', title: '#45477a', axis: '#1a1a1a', grid: 'rgba(38, 42, 99, 0.08)', ink: [93, 95, 134], surface: '#f7f6fe', tooltip: '#24264f', tooltipText: '#f7f6fe' },
         dark: { text: '#a3a1d6', title: '#c9c8f0', grid: 'rgba(149, 147, 201, 0.14)', ink: [149, 147, 201], surface: '#23275c', tooltip: '#0e1030', tooltipText: '#f4f2ff' }
     };
 
@@ -106,12 +106,19 @@
         }
     }
 
+    // In light mode axis text is plain black, even where a chart colored it
+    // (yellow/red right-axis labels were hard to read on the light card).
+    function axisInk(value, theme, fallback) {
+        if (typeof value === 'function') return value;
+        return theme.axis || remapInk(value, theme, fallback);
+    }
+
     function styleScales(scales, theme) {
         if (!scales) return;
         Object.values(scales).forEach(scale => {
             if (!scale) return;
-            if (scale.ticks) scale.ticks.color = remapInk(scale.ticks.color, theme, theme.text);
-            if (scale.title) scale.title.color = remapInk(scale.title.color, theme, theme.title);
+            if (scale.ticks) scale.ticks.color = axisInk(scale.ticks.color, theme, theme.text);
+            if (scale.title) scale.title.color = axisInk(scale.title.color, theme, theme.title);
             if (scale.grid) scale.grid.color = theme.grid;
             if (scale.border) scale.border.display = false;
         });
