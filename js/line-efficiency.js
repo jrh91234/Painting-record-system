@@ -9,7 +9,13 @@
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
-    const state = { config: null, rows: [], chart: null, from: '', to: '', expanded: new Set() };
+    const state = { config: null, rows: [], chart: null, from: '', to: '', preset: '30d', expanded: new Set() };
+    const CACHE_KEYS = [
+        ['PAINTING_OUTPUTDIARY_CACHE_REVIEWED', 'NEW'],
+        ['PAINTING_OUTPUTDIARY_CACHE_PENDING', 'NEW'],
+        ['PAINTING_REWORK_CACHE_REVIEWED', 'REWORK'],
+        ['PAINTING_REWORK_CACHE_PENDING', 'REWORK']
+    ];
 
     function escapeHtml(value) {
         return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,22 +64,27 @@
         return 'is-bad';
     }
 
-    async function loadConfig() {
-        const baseUrl = typeof getApiUrl === 'function' ? getApiUrl() : '';
-        if (baseUrl && typeof fetchAppsScriptJsonWithRetry === 'function') {
-            try {
-                const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'action=getLineCapacity';
-                const json = await fetchAppsScriptJsonWithRetry(url, 'Load line capacity', { attempts: 2, timeoutMs: 15000 });
-                if (json && json.status === 'success' && Array.isArray(json.capacity) && json.capacity.length) {
-                    return { capacity: json.capacity, slots: json.slots || [], source: 'sheet' };
-                }
-            } catch (error) {
-                console.warn('Line capacity API unavailable, using bundled copy:', error);
-            }
-        }
+    // The bundled copy loads instantly; the sheet version replaces it when the
+    // Apps Script answers, so the page never waits on the network to draw.
+    async function loadBundledConfig() {
         const response = await fetch(FALLBACK_URL, { cache: 'no-store' });
         const json = await response.json();
         return { capacity: json.capacity, slots: json.slots, source: 'fallback' };
+    }
+
+    async function loadSheetConfig() {
+        const baseUrl = typeof getApiUrl === 'function' ? getApiUrl() : '';
+        if (!baseUrl || typeof fetchAppsScriptJsonWithRetry !== 'function') return null;
+        try {
+            const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'action=getLineCapacity';
+            const json = await fetchAppsScriptJsonWithRetry(url, 'Load line capacity', { attempts: 1, timeoutMs: 15000 });
+            if (json && json.status === 'success' && Array.isArray(json.capacity) && json.capacity.length) {
+                return { capacity: json.capacity, slots: json.slots || [], source: 'sheet' };
+            }
+        } catch (error) {
+            console.warn('Line capacity API unavailable, using bundled copy:', error);
+        }
+        return null;
     }
 
     // Pending and reviewed sheets can both hold a record, and some rows are
@@ -88,6 +99,26 @@
         });
     }
 
+    function combine(tagged) {
+        const byType = { NEW: [], REWORK: [] };
+        tagged.forEach(row => byType[row.workType].push(row));
+        return dedupe(byType.NEW).concat(dedupe(byType.REWORK));
+    }
+
+    // Production data the app already cached from earlier visits.
+    function readCachedRows() {
+        const tagged = [];
+        CACHE_KEYS.forEach(([key, workType]) => {
+            try {
+                const rows = JSON.parse(localStorage.getItem(key) || '[]');
+                if (Array.isArray(rows)) rows.forEach(row => tagged.push({ ...row, workType }));
+            } catch (error) {
+                // Ignore unreadable cache entries.
+            }
+        });
+        return combine(tagged);
+    }
+
     async function loadRows() {
         const sources = [];
         if (typeof fetchDailyReportDataFromAPI === 'function') {
@@ -99,10 +130,7 @@
             sources.push(fetchReworkReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'REWORK' }))));
         }
         const results = await Promise.allSettled(sources);
-        const all = results.flatMap(result => (result.status === 'fulfilled' && Array.isArray(result.value)) ? result.value : []);
-        const byType = { NEW: [], REWORK: [] };
-        all.forEach(row => byType[row.workType].push(row));
-        return dedupe(byType.NEW).concat(dedupe(byType.REWORK));
+        return combine(results.flatMap(result => (result.status === 'fulfilled' && Array.isArray(result.value)) ? result.value : []));
     }
 
     function buildSlots(slots) {
@@ -293,36 +321,87 @@
         }
     }
 
-    // Default range: the 30 days up to the latest production record.
-    function defaultRange() {
-        const keys = state.rows.map(row => toDateKey(row.date)).filter(Boolean).sort();
-        const end = keys.length ? keys[keys.length - 1] : new Date().toISOString().slice(0, 10);
-        const endDate = new Date(end + 'T00:00:00');
-        endDate.setDate(endDate.getDate() - 29);
-        return { from: endDate.toISOString().slice(0, 10), to: end };
+    function dateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
-    async function load(force) {
-        const status = document.getElementById('lineEffStatus');
-        if (status) status.textContent = 'กำลังโหลดข้อมูล...';
-        try {
-            if (!state.config || force) state.config = await loadConfig();
-            state.rows = await loadRows();
-            if (!state.from || !state.to) {
-                const range = defaultRange();
-                state.from = range.from;
-                state.to = range.to;
-                const fromInput = document.getElementById('lineEffFrom');
-                const toInput = document.getElementById('lineEffTo');
-                if (fromInput) fromInput.value = state.from;
-                if (toInput) toInput.value = state.to;
-            }
-            render();
-            if (status) status.textContent = '';
-        } catch (error) {
-            console.error(error);
-            if (status) status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณากดรีเฟรช';
+    // Range presets; an empty from/to means no limit on that side.
+    function rangeFor(preset) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const back = days => { const d = new Date(today); d.setDate(d.getDate() - days + 1); return dateKey(d); };
+        if (preset === '7d') return { from: back(7), to: dateKey(today) };
+        if (preset === '30d') return { from: back(30), to: dateKey(today) };
+        if (preset === 'month') return { from: dateKey(new Date(today.getFullYear(), today.getMonth(), 1)), to: dateKey(today) };
+        if (preset === 'lastMonth') {
+            return { from: dateKey(new Date(today.getFullYear(), today.getMonth() - 1, 1)), to: dateKey(new Date(today.getFullYear(), today.getMonth(), 0)) };
         }
+        return { from: '', to: '' };
+    }
+
+    function syncRangeControls() {
+        const fromInput = document.getElementById('lineEffFrom');
+        const toInput = document.getElementById('lineEffTo');
+        if (fromInput) fromInput.value = state.from;
+        if (toInput) toInput.value = state.to;
+        document.querySelectorAll('[data-eff-preset]').forEach(button => {
+            const active = button.dataset.effPreset === state.preset;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function applyPreset(preset) {
+        state.preset = preset;
+        if (preset !== 'custom') Object.assign(state, rangeFor(preset));
+        syncRangeControls();
+        render();
+    }
+
+    let rangeChosen = false;
+    // First visit: last 30 days, or everything when the last 30 days are empty.
+    function chooseInitialRange() {
+        if (rangeChosen || !state.rows.length) return;
+        rangeChosen = true;
+        const recent = rangeFor('30d');
+        const hasRecent = state.rows.some(row => {
+            const day = toDateKey(row.date);
+            return day && day >= recent.from && day <= recent.to;
+        });
+        state.preset = hasRecent ? '30d' : 'all';
+        Object.assign(state, rangeFor(state.preset));
+        syncRangeControls();
+    }
+
+    let loading = null;
+    async function load(force) {
+        if (loading && !force) return loading;
+        const status = document.getElementById('lineEffStatus');
+        loading = (async () => {
+            try {
+                if (!state.config) state.config = await loadBundledConfig();
+                const cached = readCachedRows();
+                if (cached.length && !state.rows.length) {
+                    state.rows = cached;
+                    chooseInitialRange();
+                    render();
+                }
+                if (status) status.textContent = state.rows.length ? 'กำลังอัปเดตข้อมูลล่าสุด...' : 'กำลังโหลดข้อมูล...';
+
+                const [sheetConfig, rows] = await Promise.all([loadSheetConfig(), loadRows()]);
+                if (sheetConfig) state.config = sheetConfig;
+                if (rows.length) state.rows = rows;
+                chooseInitialRange();
+                render();
+                if (status) status.textContent = state.rows.length ? '' : 'ยังไม่มีข้อมูลการผลิต';
+            } catch (error) {
+                console.error(error);
+                if (status) status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณากดรีเฟรช';
+            } finally {
+                loading = null;
+            }
+        })();
+        return loading;
     }
 
     function bind() {
@@ -334,8 +413,11 @@
             if (input) input.addEventListener('change', () => {
                 state.from = document.getElementById('lineEffFrom').value;
                 state.to = document.getElementById('lineEffTo').value;
-                render();
+                applyPreset('custom');
             });
+        });
+        document.querySelectorAll('[data-eff-preset]').forEach(button => {
+            button.addEventListener('click', () => applyPreset(button.dataset.effPreset));
         });
         const refresh = document.getElementById('lineEffRefresh');
         if (refresh) refresh.addEventListener('click', () => load(true));
