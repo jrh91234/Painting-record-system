@@ -165,7 +165,7 @@
             if (qty <= 0) return;
             const code = normalizeCode(row.model);
             const cap = capacity.get(code);
-            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, defects: 0, lastStart: null, parts: new Map(), unmatchedQty: 0 });
+            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, lastStart: null, parts: new Map(), unmatchedQty: 0 });
             const entry = days.get(day);
             const start = slotStartMinutes(row.timeSlot);
             if (start !== null) entry.lastStart = entry.lastStart === null ? start : Math.max(entry.lastStart, start);
@@ -183,7 +183,10 @@
             const earned = qty * cap.stdSec / 60;
             entry.earned += earned;
             entry.earnedGood += (qty - defects) * cap.stdSec / 60;
-            if (row.workType === 'REWORK') entry.earnedRework += earned;
+            if (row.workType === 'REWORK') {
+                entry.earnedRework += earned;
+                entry.reworkQty += qty;
+            }
             entry.qty += qty;
             entry.defects += defects;
 
@@ -226,6 +229,23 @@
         set('lineEffEarnedSub', `จากเวลาที่มี ${fmtMin(available)}`);
         set('lineEffLost', fmtMin(Math.max(0, available - earned)));
         set('lineEffLostSub', rework > 0 ? `ใช้ไปกับ REWORK ${fmtMin(rework)}` : 'ไลน์หยุด / ราวว่าง / แขวนไม่เต็ม');
+
+        // Output counts every recorded piece, including parts without a
+        // standard time yet (they are left out of %Eff only).
+        const unmatched = sum('unmatchedQty');
+        const total = sum('qty') + unmatched;
+        const defects = sum('defects');
+        const reworkQty = sum('reworkQty');
+        const dayCount = days.length;
+        const perDay = dayCount ? total / dayCount : NaN;
+        const goodPerDay = dayCount ? (total - defects) / dayCount : NaN;
+        const fmtQty = value => Number.isFinite(value) ? Math.round(value).toLocaleString() : '-';
+        set('lineEffTotal', `${fmtQty(total)} <small>ชิ้น</small>`);
+        set('lineEffTotalSub', `งานดี ${fmtQty(total - defects)} · NG ${fmtQty(defects)}`
+            + (reworkQty ? ` · รวม REWORK ${fmtQty(reworkQty)}` : '')
+            + (unmatched ? ` · ไม่มีค่ามาตรฐาน ${fmtQty(unmatched)}` : ''));
+        set('lineEffPerDay', `${fmtQty(perDay)} <small>ชิ้น/วัน</small>`);
+        set('lineEffPerDaySub', dayCount ? `งานดีเฉลี่ย ${fmtQty(goodPerDay)} ชิ้น/วัน · ${dayCount} วันทำงาน` : '');
     }
 
     const LEFT_AXIS = 72;
