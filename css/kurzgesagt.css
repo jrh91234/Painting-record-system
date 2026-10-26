@@ -82,7 +82,8 @@ html[data-theme] body::after {
   position: fixed;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 0;
+  /* Behind all page content, including sections outside .app-container. */
+  z-index: -1;
 }
 
 html[data-theme] body::before {
