@@ -476,7 +476,7 @@ html[data-theme] .mobile-nav-item.active {
 /* ---------- Powder spray gun cursor (enabled by js/spray-cursor.js) ---------- */
 html.spray-cursor,
 html.spray-cursor * {
-  cursor: url('../assets/spray-gun-cursor.svg') 1 7, auto !important;
+  cursor: url('../assets/spray-gun-cursor.svg?v=tilt') 1 1, auto !important;
 }
 
 html.spray-cursor input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]),

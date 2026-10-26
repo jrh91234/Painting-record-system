@@ -41,14 +41,15 @@
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    // The nozzle points left, so powder leaves in a cone around 180 degrees.
+    // The gun is tilted like an arrow pointer: the nozzle points up-left, so
+    // powder leaves in a cone around 225 degrees.
     function emit(x, y, count, burst) {
         for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
-            const angle = Math.PI + (Math.random() - 0.5) * (burst ? 0.9 : 0.6);
+            const angle = Math.PI * 1.25 + (Math.random() - 0.5) * (burst ? 0.9 : 0.6);
             const speed = (burst ? 2.5 : 3.2) + Math.random() * 4.5;
             particles.push({
                 x: x - 1,
-                y: y,
+                y: y - 1,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 r: 0.8 + Math.random() * 2.2,
