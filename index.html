@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Painting App">
-    <meta name="theme-color" content="#0c2340">
+    <meta name="theme-color" content="#e4e9ef">
     <link rel="icon" type="image/png" href="assets/icon-192.png?v=5.0.0">
     <link rel="shortcut icon" type="image/png" href="assets/icon-192.png?v=5.0.0">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png?v=5.0.0">
@@ -29,9 +29,9 @@
                 var savedTheme = (urlTheme === 'light' || urlTheme === 'dark')
                     ? urlTheme
                     : localStorage.getItem('PAINTING_THEME');
-                document.documentElement.setAttribute('data-theme', savedTheme === 'light' ? 'light' : 'dark');
+                document.documentElement.setAttribute('data-theme', savedTheme === 'dark' ? 'dark' : 'light');
             } catch (error) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'light');
             }
         }());
     </script>
@@ -689,7 +689,7 @@
     <!-- Custom CSS Files Loaded after embedded style to guarantee priority on iOS & Android -->
     <link rel="stylesheet" href="css/style.css?v=96.40.0">
     <link rel="stylesheet" href="css/auth.css?v=83.2.0">
-    <link rel="stylesheet" href="css/theme.css?v=mobile-light-20260902">
+    <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -701,10 +701,10 @@
 
     <!-- Authentication Glassmorphism Modal Shell -->
     <section class="auth-shell" id="authShell" style="display: flex;">
-        <button type="button" class="theme-toggle auth-theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดสว่าง" title="เปลี่ยนเป็นโหมดสว่าง">
+        <button type="button" class="theme-toggle auth-theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดมืด" title="เปลี่ยนเป็นโหมดมืด">
             <span class="theme-toggle-icon theme-icon-sun" aria-hidden="true">☀</span>
             <span class="theme-toggle-icon theme-icon-moon" aria-hidden="true">☾</span>
-            <span class="theme-toggle-label">โหมดสว่าง</span>
+            <span class="theme-toggle-label">โหมดมืด</span>
         </button>
         <div class="auth-card">
             <div class="auth-brand">
@@ -871,10 +871,10 @@
                 </div>
 
                 <div class="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
-                    <button type="button" class="theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดสว่าง" title="เปลี่ยนเป็นโหมดสว่าง">
+                    <button type="button" class="theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดมืด" title="เปลี่ยนเป็นโหมดมืด">
                         <span class="theme-toggle-icon theme-icon-sun" aria-hidden="true">☀</span>
                         <span class="theme-toggle-icon theme-icon-moon" aria-hidden="true">☾</span>
-                        <span class="theme-toggle-label">โหมดสว่าง</span>
+                        <span class="theme-toggle-label">โหมดมืด</span>
                     </button>
                     <!-- User Profile Chip -->
                     <div class="user-chip" id="currentUserChip" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.12); padding: 0.35rem 0.85rem; border-radius: 20px; border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
@@ -2317,7 +2317,7 @@
     <!-- JS Files -->
     <script src="js/api.js?v=permissions-20260902"></script>
     <script src="js/rtv.js?v=1.0.2"></script>
-    <script src="js/theme.js?v=touch-fix-20260902"></script>
+    <script src="js/theme.js?v=soft-light-20261026"></script>
     <script src="js/auth.js?v=permissions-20260902"></script>
     <script src="js/app.js?v=permissions-20260902"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>

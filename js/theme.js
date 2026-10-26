@@ -5,7 +5,7 @@
     const LIGHT_THEME = 'light';
 
     function normalizeTheme(theme) {
-        return theme === LIGHT_THEME ? LIGHT_THEME : DARK_THEME;
+        return theme === DARK_THEME ? DARK_THEME : LIGHT_THEME;
     }
 
     function getTheme() {
@@ -79,8 +79,8 @@
             if (options.plugins && options.plugins.tooltip) {
                 options.plugins.tooltip.titleColor = titleColor;
                 options.plugins.tooltip.bodyColor = titleColor;
-                options.plugins.tooltip.backgroundColor = getTheme() === LIGHT_THEME ? '#ffffff' : '#0f172a';
-                options.plugins.tooltip.borderColor = getTheme() === LIGHT_THEME ? '#d5e2ee' : 'rgba(56, 189, 248, 0.35)';
+                options.plugins.tooltip.backgroundColor = getTheme() === LIGHT_THEME ? '#f5f7fa' : '#0f172a';
+                options.plugins.tooltip.borderColor = getTheme() === LIGHT_THEME ? '#cfd8e2' : 'rgba(56, 189, 248, 0.35)';
                 options.plugins.tooltip.borderWidth = 1;
             }
             if (options.scales) {
@@ -112,7 +112,7 @@
 
         const themeColorMeta = document.querySelector('meta[name="theme-color"]');
         if (themeColorMeta) {
-            themeColorMeta.setAttribute('content', normalizedTheme === LIGHT_THEME ? '#f3f7fb' : '#0c2340');
+            themeColorMeta.setAttribute('content', normalizedTheme === LIGHT_THEME ? '#e4e9ef' : '#0c2340');
         }
 
         updateThemeControls(normalizedTheme);
