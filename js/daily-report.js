@@ -438,6 +438,43 @@ const PAINTING_TIMESLOTS = [
     "20.00 - 21.00"
 ];
 
+function renderTimeSlotDropdowns() {
+    const timeSelects = document.querySelectorAll('.time-select');
+    let timeHtml = '<option value="">-- เลือกช่วงเวลา --</option>';
+    PAINTING_TIMESLOTS.forEach(t => {
+        timeHtml += `<option value="${t}">${t}</option>`;
+    });
+    const currentSlot = getCurrentTimeSlot();
+    timeSelects.forEach(sel => {
+        const previous = sel.value;
+        sel.innerHTML = timeHtml;
+        if (previous && PAINTING_TIMESLOTS.includes(previous)) sel.value = previous;
+        else if (currentSlot) sel.value = currentSlot;
+    });
+}
+
+// The time slots live in the LineTimeSlots sheet (day and night shifts).
+// Break rows are not recordable. The built-in list above stays as the
+// offline fallback; the array is updated in place so the REWORK and SCREEN
+// forms, which read it when they open, see the same slots.
+async function loadTimeSlotsFromSheet() {
+    const baseUrl = typeof getApiUrl === 'function' ? getApiUrl() : '';
+    if (!baseUrl || typeof fetchAppsScriptJsonWithRetry !== 'function') return;
+    try {
+        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'action=getLineCapacity';
+        const json = await fetchAppsScriptJsonWithRetry(url, 'Load time slots', { attempts: 1, timeoutMs: 15000 });
+        const slots = (json && Array.isArray(json.slots) ? json.slots : [])
+            .filter(slot => String(slot.type || '').toUpperCase() !== 'BREAK')
+            .map(slot => String(slot.timeSlot || '').trim())
+            .filter(label => /\d{1,2}[.:]\d{2}\s*-\s*\d{1,2}[.:]\d{2}/.test(label));
+        if (!slots.length) return;
+        PAINTING_TIMESLOTS.splice(0, PAINTING_TIMESLOTS.length, ...slots);
+        renderTimeSlotDropdowns();
+    } catch (error) {
+        console.warn('Time slots from sheet unavailable, using built-in list:', error);
+    }
+}
+
 function getCurrentTimeSlot() {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -455,7 +492,8 @@ function getCurrentTimeSlot() {
             const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
             
             const endParts = endStr.split(".");
-            const endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            let endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            if (endMins <= startMins) endMins += 24 * 60; // e.g. "23.00 - 00.00"
             
             // If strictly inside the slot, return it immediately
             if (currentMins >= startMins && currentMins <= endMins) {
@@ -694,19 +732,9 @@ function initDailyReportForm() {
     // Populate Part Category & Model Dropdowns from Cloud (PartModel sheet tab)
     loadPartModelsList();
 
-    // Populate Time Dropdowns
-    const timeSelects = document.querySelectorAll('.time-select');
-    let timeHtml = '<option value="">-- เลือกช่วงเวลา --</option>';
-    PAINTING_TIMESLOTS.forEach(t => {
-        timeHtml += `<option value="${t}">${t}</option>`;
-    });
-    timeSelects.forEach(sel => {
-        sel.innerHTML = timeHtml;
-        const currentSlot = getCurrentTimeSlot();
-        if (currentSlot) {
-            sel.value = currentSlot;
-        }
-    });
+    // Populate Time Dropdowns, then refresh them from the LineTimeSlots sheet.
+    renderTimeSlotDropdowns();
+    loadTimeSlotsFromSheet();
 
     // Load any draft records from localStorage if present
     const draft = localStorage.getItem("PAINTING_DAILY_REPORT_DRAFT");

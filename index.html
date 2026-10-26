@@ -1276,7 +1276,7 @@
                         <ul>
                             <li><b>เวลามาตรฐานต่อชิ้น</b> = 3600 ÷ (ความเร็วไลน์ × 60 ÷ ระยะห่างราว × ชิ้นต่อราว) จากชีต <b>Capacity</b> (คิดที่ความเร็วไลน์เต็ม 100%)</li>
                             <li><b>เวลาที่ทำได้</b> = Σ ยอดผลิต × เวลามาตรฐาน ของทุกชิ้นงานในวันนั้น รวมงาน REWORK ที่ผ่านไลน์</li>
-                            <li><b>เวลาที่มี</b> = ช่วงเวลากะปกติทั้งหมด + ช่วง OT จนถึงช่วงสุดท้ายที่มีการบันทึกยอด (ตามชีต <b>LineTimeSlots</b>) ไม่ต้องจดเวลาหยุดไลน์</li>
+                            <li><b>เวลาที่มี</b> = คิดทีละกะตามชีต <b>LineTimeSlots</b> (กะเช้า 08.00–17.00 + OT 17.00–20.00, กะดึก 20.00–05.00 + OT 05.00–08.00): กะไหนมีการลงยอดในวันนั้นจะนับเวลาปกติของกะเต็ม + OT จนถึงช่วงสุดท้ายที่มีการลงยอด ไม่ต้องจดเวลาหยุดไลน์</li>
                             <li><b>%Eff</b> = เวลาที่ทำได้ ÷ เวลาที่มี · เป้าหมาย 80% เท่ากับทำได้ตาม capacity ในไฟล์ (OEE 80%)</li>
                         </ul>
                     </details>
@@ -2408,14 +2408,14 @@
     <script src="js/auth.js?v=user-edit-20261026"></script>
     <script src="js/app.js?v=permissions-20260902"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
-    <script src="js/daily-report.js?v=catalog-sheet-20261026"></script>
+    <script src="js/daily-report.js?v=shifts-20261026"></script>
     <script src="js/rework.js?v=1.2.7"></script>
     <script src="js/screen.js?v=1.0.6"></script>
     <script src="js/parameter-checklist.js?v=1.12.12"></script>
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
-    <script src="js/line-efficiency.js?v=graphite-20261026"></script>
+    <script src="js/line-efficiency.js?v=shifts-20261026"></script>
     <script src="js/page-tabs.js?v=eff-20261026"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>

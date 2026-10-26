@@ -3,9 +3,13 @@
    3600 / (line speed × 60 / hanger pitch × pieces per hanger)), summed over all
    parts painted that day, and compared with the shift time available:
        %Eff = earned minutes ÷ available minutes
-   Available time comes from the shift's time slots (LineTimeSlots sheet): the
-   normal shift always counts, and OT slots count up to the last OT slot that
-   has a production record that day. No one has to log stop times. */
+   Available time comes from the time slots in the LineTimeSlots sheet, read
+   in sheet order as one timeline from the first slot (08.00) through
+   midnight. Each run of Normal/Break slots starts a shift and the OT slots
+   after it belong to that shift (day: 08-17 + OT 17-20, night: 20-05 + OT
+   05-08). A shift counts only on days it has a production record; its
+   normal time counts in full and its OT up to the last OT slot with a
+   record. No one has to log stop times. */
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
@@ -133,16 +137,73 @@
         return combine(results.flatMap(result => (result.status === 'fulfilled' && Array.isArray(result.value)) ? result.value : []));
     }
 
+    function slotEndMinutes(slot) {
+        const m = String(slot || '').match(/-\s*(\d{1,2})[.:](\d{2})/);
+        return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    }
+
+    // Split the sheet's slots into shifts on one timeline that starts at the
+    // first slot and wraps past midnight (so 00.00-08.00 sits after 23.00).
     function buildSlots(slots) {
-        const list = slots
-            .map(slot => ({ ...slot, start: slotStartMinutes(slot.timeSlot), isOT: String(slot.type).toUpperCase() === 'OT' }))
-            .filter(slot => slot.start !== null && slot.minutes > 0)
-            .sort((a, b) => a.start - b.start);
-        return {
-            list,
-            normalMinutes: list.filter(slot => !slot.isOT).reduce((sum, slot) => sum + slot.minutes, 0),
-            ot: list.filter(slot => slot.isOT)
+        const parsed = slots
+            .map(slot => ({ ...slot, start: slotStartMinutes(slot.timeSlot), end: slotEndMinutes(slot.timeSlot), isOT: String(slot.type).toUpperCase() === 'OT' }))
+            .filter(slot => slot.start !== null);
+        const base = parsed.length ? parsed[0].start : 0;
+        const rel = minutes => ((minutes - base) % 1440 + 1440) % 1440;
+        const shifts = [];
+        let current = null;
+        parsed.forEach(slot => {
+            const relStart = rel(slot.start);
+            const length = slot.end === null ? 60 : (((slot.end - slot.start) % 1440 + 1440) % 1440 || 60);
+            const entry = { ...slot, relStart, relEnd: relStart + length, minutes: Number(slot.minutes) || 0 };
+            if (!current || (!entry.isOT && current.lastWasOT)) {
+                current = { index: shifts.length, normalMinutes: 0, ot: [], slots: [], lastWasOT: false };
+                shifts.push(current);
+            }
+            entry.shift = current.index;
+            if (entry.isOT) {
+                entry.otIndex = current.ot.length;
+                current.ot.push(entry);
+            } else {
+                current.normalMinutes += entry.minutes;
+            }
+            current.slots.push(entry);
+            current.lastWasOT = entry.isOT;
+        });
+        const all = shifts.flatMap(shift => shift.slots);
+        // A recorded slot such as "10.10 - 11.00" lands in the sheet slot whose
+        // range holds its start time.
+        const locate = timeSlot => {
+            const start = slotStartMinutes(timeSlot);
+            if (start === null || !all.length) return null;
+            const r = rel(start);
+            return all.find(slot => r >= slot.relStart && r < slot.relEnd)
+                || all.filter(slot => slot.relStart <= r).pop()
+                || all[0];
         };
+        return { shifts, locate };
+    }
+
+    // Remember which shifts ran that day and the last OT slot used in each.
+    // The form's Day/Night choice decides the shift when it is recorded; the
+    // time slot only decides how far into OT it went. A Day record in a slot
+    // that now belongs to the night shift (older data used 20.00-21.00 as day
+    // OT) counts as day OT: all day OT slots plus that slot's own minutes.
+    function markShiftTime(entry, slots, row) {
+        const slot = slots.locate(row.timeSlot);
+        const label = String(row.shift || '').trim().toLowerCase();
+        const named = label === 'day' || label.includes('เช้า') ? 0
+            : (label === 'night' || label.includes('ดึก')) && slots.shifts.length > 1 ? 1 : null;
+        const shiftIndex = named !== null ? named : (slot ? slot.shift : 0);
+        const shift = slots.shifts[shiftIndex];
+        let lastOt = -1;
+        if (slot && slot.shift === shiftIndex) {
+            lastOt = slot.isOT ? slot.otIndex : -1;
+        } else if (slot && shift && slot.shift > shiftIndex) {
+            lastOt = shift.ot.length - 1;
+            entry.extra.set(slot.timeSlot, slot.minutes);
+        }
+        entry.shifts.set(shiftIndex, Math.max(entry.shifts.has(shiftIndex) ? entry.shifts.get(shiftIndex) : -1, lastOt));
     }
 
     function compute() {
@@ -165,10 +226,9 @@
             if (qty <= 0) return;
             const code = normalizeCode(row.model);
             const cap = capacity.get(code);
-            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, lastStart: null, parts: new Map(), unmatchedQty: 0 });
+            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), extra: new Map(), parts: new Map(), unmatchedQty: 0 });
             const entry = days.get(day);
-            const start = slotStartMinutes(row.timeSlot);
-            if (start !== null) entry.lastStart = entry.lastStart === null ? start : Math.max(entry.lastStart, start);
+            markShiftTime(entry, slots, row);
 
             if (!cap || !(cap.stdSec > 0)) {
                 entry.unmatchedQty += qty;
@@ -199,11 +259,18 @@
         });
 
         days.forEach(entry => {
-            const otMinutes = entry.lastStart === null ? 0 : slots.ot
-                .filter(slot => slot.start <= entry.lastStart + 5)
-                .reduce((sum, slot) => sum + slot.minutes, 0);
-            entry.available = slots.normalMinutes + otMinutes;
+            let normalMinutes = 0;
+            let otMinutes = 0;
+            entry.shifts.forEach((lastOt, index) => {
+                const shift = slots.shifts[index];
+                if (!shift) return;
+                normalMinutes += shift.normalMinutes;
+                otMinutes += shift.ot.slice(0, lastOt + 1).reduce((sum, slot) => sum + slot.minutes, 0);
+            });
+            entry.extra.forEach(minutes => { otMinutes += minutes; });
+            entry.available = normalMinutes + otMinutes;
             entry.otMinutes = otMinutes;
+            entry.shiftCount = entry.shifts.size;
             entry.eff = entry.available ? entry.earned / entry.available * 100 : NaN;
             entry.effGood = entry.available ? entry.earnedGood / entry.available * 100 : NaN;
             entry.lost = Math.max(0, entry.available - entry.earned);
@@ -472,7 +539,7 @@
                 </tbody></table></td></tr>` : '';
             return `<tr class="line-eff-row" data-day="${day.day}" tabindex="0" aria-expanded="${open}">
                 <td><span class="line-eff-caret">${open ? '▾' : '▸'}</span> ${formatDateKey(day.day)}</td>
-                <td>${fmtMin(day.available)}${day.otMinutes ? ` <small>(OT ${day.otMinutes} น.)</small>` : ''}</td>
+                <td>${fmtMin(day.available)}${day.shiftCount > 1 ? ` <small>(${day.shiftCount} กะ)</small>` : ''}${day.otMinutes ? ` <small>(OT ${day.otMinutes} น.)</small>` : ''}</td>
                 <td>${fmtMin(day.earned)}</td>
                 <td><span class="line-eff-pill ${effClass(day.eff)}">${fmtPct(day.eff)}</span></td>
                 <td>${fmtPct(day.effGood)}</td>

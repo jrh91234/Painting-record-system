@@ -753,14 +753,19 @@
    "type": "Normal"
   },
   {
-   "timeSlot": "10.10 - 11.00",
-   "minutes": 50,
+   "timeSlot": "10.00 - 11.00",
+   "minutes": 60,
    "type": "Normal"
   },
   {
    "timeSlot": "11.00 - 12.00",
    "minutes": 60,
    "type": "Normal"
+  },
+  {
+   "timeSlot": "12.00 - 13.00",
+   "minutes": 0,
+   "type": "Break"
   },
   {
    "timeSlot": "13.00 - 14.00",
@@ -773,7 +778,7 @@
    "type": "Normal"
   },
   {
-   "timeSlot": "15.10 - 16.00",
+   "timeSlot": "15.00 - 16.00",
    "minutes": 50,
    "type": "Normal"
   },
@@ -783,7 +788,7 @@
    "type": "Normal"
   },
   {
-   "timeSlot": "17.30 - 18.00",
+   "timeSlot": "17.00 - 18.00",
    "minutes": 30,
    "type": "OT"
   },
@@ -799,6 +804,61 @@
   },
   {
    "timeSlot": "20.00 - 21.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "21.00 - 22.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "22.00 - 23.00",
+   "minutes": 50,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "23.00 - 00.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "00.00 - 01.00",
+   "minutes": 0,
+   "type": "Break"
+  },
+  {
+   "timeSlot": "01.00 - 02.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "02.00 - 03.00",
+   "minutes": 50,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "03.00 - 04.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "04.00 - 05.00",
+   "minutes": 60,
+   "type": "Normal"
+  },
+  {
+   "timeSlot": "05.00 - 06.00",
+   "minutes": 30,
+   "type": "OT"
+  },
+  {
+   "timeSlot": "06.00 - 07.00",
+   "minutes": 60,
+   "type": "OT"
+  },
+  {
+   "timeSlot": "07.00 - 08.00",
    "minutes": 60,
    "type": "OT"
   }
