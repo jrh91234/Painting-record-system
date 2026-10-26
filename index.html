@@ -693,7 +693,7 @@
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
     <link rel="stylesheet" href="css/line-efficiency.css?v=graphite-20261026">
-    <link rel="stylesheet" href="css/graphite.css?v=graphite-20261026">
+    <link rel="stylesheet" href="css/graphite.css?v=user-edit-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2304,7 +2304,7 @@
         <div class="modal-box" style="max-width: 480px;">
             <div class="modal-header">
                 <h3 class="modal-title">
-                    <span>👤 เพิ่มผู้ใช้งาน / อนุมัติสิทธิ์พนักงาน</span>
+                    <span id="addUserModalTitle">👤 เพิ่มผู้ใช้งาน / อนุมัติสิทธิ์พนักงาน</span>
                 </h3>
                 <button class="modal-close" type="button" onclick="PaintingAuth.closeAddUserModal()">&times;</button>
             </div>
@@ -2338,8 +2338,13 @@
                     <select id="adminAddStatus" class="form-control">
                         <option value="Active" selected>🟢 ใช้งานได้ทันที (Approved / Active)</option>
                         <option value="Pending">⏳ รอการอนุมัติ (Pending)</option>
+                        <option value="Disabled">🔴 ระงับใช้งาน (Disabled)</option>
                     </select>
                 </div>
+                <label id="adminResetPwRow" class="admin-reset-pw" hidden>
+                    <input type="checkbox" id="adminResetPw">
+                    <span>รีเซ็ตรหัสผ่านเป็น <b>123456</b></span>
+                </label>
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
                     <button type="button" class="btn-modal-cancel" onclick="PaintingAuth.closeAddUserModal()">ยกเลิก</button>
                     <button type="submit" class="btn-modal-save">💾 บันทึกผู้ใช้งาน</button>
@@ -2395,12 +2400,12 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- JS Files -->
-    <script src="js/api.js?v=users-jsonp-20261026"></script>
+    <script src="js/api.js?v=user-edit-20261026"></script>
     <script src="js/rtv.js?v=1.0.2"></script>
     <script src="js/theme.js?v=soft-light-20261026"></script>
     <script src="js/chart-style.js?v=graphite-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
-    <script src="js/auth.js?v=graphite-20261026"></script>
+    <script src="js/auth.js?v=user-edit-20261026"></script>
     <script src="js/app.js?v=permissions-20260902"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
     <script src="js/daily-report.js?v=catalog-sheet-20261026"></script>

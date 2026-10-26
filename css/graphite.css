@@ -406,3 +406,25 @@ html[data-theme] .badge-role-admin { color: var(--kz-orange) !important; }
 html[data-theme] .user-summary-grid span {
   color: var(--kz-text) !important;
 }
+
+.admin-reset-pw {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--kz-surface-muted);
+  color: var(--kz-text-soft);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.admin-reset-pw[hidden] {
+  display: none;
+}
+
+#adminAddEmpId[readonly] {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
