@@ -1,0 +1,408 @@
+/* Graphite: a calm, refined gray theme layered on top of kurzgesagt.css.
+   It reuses the --kz-* tokens (so every page picks it up), swaps the
+   saturated accents for muted ones, and replaces the playful pieces
+   (planets, hard drop shadows, orange pill buttons) with quiet surfaces,
+   hairline borders and a charcoal primary color. Loaded last. */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+
+:root,
+[data-theme="dark"],
+[data-theme="light"] {
+  /* Muted accents: still tell states apart, never shout. */
+  --kz-orange: #a3815e;
+  --kz-yellow: #b39a64;
+  --kz-pink: #9c6b74;
+  --kz-teal: #5f807a;
+  --kz-blue: #5c6c84;
+  --kz-purple: #6f6b80;
+  --kz-radius-lg: 14px;
+  --kz-radius-md: 12px;
+  --kz-radius-sm: 9px;
+  --kz-font-display: 'IBM Plex Sans Thai', 'Sarabun', sans-serif;
+  --gr-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root,
+[data-theme="dark"] {
+  --kz-bg-top: #1a1b1e;
+  --kz-bg: #161719;
+  --kz-bg-deep: #121315;
+  --kz-sidebar: #0f1012;
+  --kz-surface: #212226;
+  --kz-surface-soft: #28292e;
+  --kz-surface-muted: #1c1d20;
+  --kz-input: #1a1b1e;
+  --kz-text: #ececee;
+  --kz-text-soft: #c5c6ca;
+  --kz-muted: #96989f;
+  --kz-line: rgba(255, 255, 255, 0.07);
+  --kz-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --gr-primary: #e4e4e7;
+  --gr-primary-hover: #f4f4f5;
+  --gr-on-primary: #17181a;
+  --gr-hairline: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] {
+  --kz-bg-top: #f3f3f4;
+  --kz-bg: #ececed;
+  --kz-bg-deep: #e4e4e6;
+  --kz-sidebar: #1f2023;
+  --kz-surface: #fbfbfb;
+  --kz-surface-soft: #f3f3f4;
+  --kz-surface-muted: #ebebed;
+  --kz-input: #ffffff;
+  --kz-text: #1d1e21;
+  --kz-text-soft: #3d3f44;
+  --kz-muted: #6a6d74;
+  --kz-line: rgba(20, 22, 26, 0.09);
+  --kz-shadow: 0 1px 2px rgba(20, 22, 26, 0.05), 0 6px 20px rgba(20, 22, 26, 0.05);
+  --gr-primary: #2a2c30;
+  --gr-primary-hover: #3a3d42;
+  --gr-on-primary: #f7f7f8;
+  --gr-hairline: rgba(20, 22, 26, 0.08);
+}
+
+/* ---------- Background: plain, no stars or planets ---------- */
+html[data-theme],
+html[data-theme] body,
+html[data-theme] .app-container,
+html[data-theme] .main-wrapper,
+html[data-theme] .auth-shell {
+  background: linear-gradient(180deg, var(--kz-bg-top) 0%, var(--kz-bg) 60%, var(--kz-bg-deep) 100%) !important;
+  background-attachment: fixed !important;
+}
+
+html[data-theme] body::before,
+html[data-theme] body::after {
+  display: none !important;
+}
+
+html[data-theme] body {
+  font-family: 'IBM Plex Sans Thai', 'Sarabun', 'Plus Jakarta Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Typography ---------- */
+html[data-theme] .brand-title,
+html[data-theme] .page-title,
+html[data-theme] .content-body h1,
+html[data-theme] .content-body h2,
+html[data-theme] .content-body h3,
+html[data-theme] .auth-brand h1,
+html[data-theme] .auth-brand h2 {
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+html[data-theme] .brand-subtitle {
+  color: #9a9ca3 !important;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Sidebar: charcoal panel, quiet active state ---------- */
+html[data-theme] .app-sidebar {
+  box-shadow: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+html[data-theme] .app-sidebar .brand-title {
+  color: #f2f2f3 !important;
+}
+
+html[data-theme] .brand-header,
+html[data-theme] .sidebar-footer {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: #8d9097 !important;
+}
+
+html[data-theme] .nav-link {
+  color: #b9bbc0 !important;
+  border-radius: 9px !important;
+  transition: background 0.2s var(--gr-ease), color 0.2s var(--gr-ease) !important;
+}
+
+html[data-theme] .nav-link svg {
+  stroke: #82858c !important;
+}
+
+html[data-theme] .nav-link:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f2f2f3 !important;
+}
+
+html[data-theme] .nav-link:hover svg {
+  stroke: #d6d7da !important;
+}
+
+html[data-theme] .nav-link.active {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #ffffff !important;
+  box-shadow: inset 3px 0 0 #d9dade !important;
+}
+
+html[data-theme] .nav-link.active svg {
+  stroke: #ffffff !important;
+}
+
+/* ---------- Header ---------- */
+html[data-theme] .app-header {
+  border-bottom: 1px solid var(--gr-hairline) !important;
+}
+
+html[data-theme] .header-search input,
+html[data-theme] .user-chip,
+html[data-theme] .theme-toggle {
+  border-radius: 10px !important;
+  box-shadow: inset 0 0 0 1px var(--gr-hairline) !important;
+}
+
+html[data-theme] .theme-toggle {
+  color: var(--kz-text-soft) !important;
+}
+
+/* ---------- Cards: hairline border + soft shadow ---------- */
+html[data-theme] .chart-card,
+html[data-theme] .table-card,
+html[data-theme] .card-custom,
+html[data-theme] .user-card,
+html[data-theme] .dr-card,
+html[data-theme] .equipment-check-card,
+html[data-theme] .qc7-card,
+html[data-theme] .spare-parts-card,
+html[data-theme] .user-summary-grid > div,
+html[data-theme] .rtv-kpi,
+html[data-theme] .total-preview-box,
+html[data-theme] .modal-box,
+html[data-theme] .auth-card,
+html[data-theme] .kpi-card,
+html[data-theme] .spare-kpi-card {
+  border: 1px solid var(--gr-hairline) !important;
+  box-shadow: var(--kz-shadow) !important;
+}
+
+html[data-theme] .kpi-card::after {
+  display: none !important;
+}
+
+/* KPI icon: a small monochrome tile instead of a glowing planet. */
+html[data-theme] .kpi-icon-box {
+  background: var(--kz-surface-muted) !important;
+  color: var(--kz-accent, var(--kz-text-soft)) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 0 0 1px var(--gr-hairline) !important;
+}
+
+html[data-theme] .kpi-icon-box svg {
+  stroke: currentColor !important;
+}
+
+html[data-theme] .kpi-card .kpi-value {
+  font-family: 'IBM Plex Sans Thai', 'Plus Jakarta Sans', sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em;
+}
+
+html[data-theme] .kpi-label,
+html[data-theme] .spare-kpi-label {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Buttons ---------- */
+html[data-theme] .btn-primary-custom,
+html[data-theme] #submitDailyBtn,
+html[data-theme] .btn-submit-custom,
+html[data-theme] .auth-submit,
+html[data-theme] .btn-modal-save,
+html[data-theme] button[style*="#0284c7"] {
+  background: var(--gr-primary) !important;
+  color: var(--gr-on-primary) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+  transition: background 0.2s var(--gr-ease), transform 0.2s var(--gr-ease), box-shadow 0.2s var(--gr-ease) !important;
+}
+
+html[data-theme] .btn-primary-custom:hover,
+html[data-theme] #submitDailyBtn:hover,
+html[data-theme] .btn-submit-custom:hover,
+html[data-theme] .auth-submit:hover,
+html[data-theme] .btn-modal-save:hover,
+html[data-theme] button[style*="#0284c7"]:hover {
+  background: var(--gr-primary-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
+}
+
+html[data-theme] .btn-primary-custom:active,
+html[data-theme] .btn-submit-custom:active,
+html[data-theme] .auth-submit:active,
+html[data-theme] .btn-modal-save:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+html[data-theme] .btn-secondary-custom,
+html[data-theme] .btn-modal-cancel,
+html[data-theme] .spare-parts-btn.secondary,
+html[data-theme] .parameter-choice-btn,
+html[data-theme] .chart-legend-dropdown > summary {
+  background: var(--kz-surface) !important;
+  color: var(--kz-text) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 0 0 1px var(--kz-line) !important;
+}
+
+html[data-theme] .btn-secondary-custom:hover,
+html[data-theme] .btn-modal-cancel:hover {
+  background: var(--kz-surface-soft) !important;
+}
+
+/* ---------- Form controls ---------- */
+html[data-theme] .form-control,
+html[data-theme] .form-control-custom,
+html[data-theme] .auth-form input,
+html[data-theme] .auth-form select,
+html[data-theme] .qc7-toolbar input,
+html[data-theme] .qc7-toolbar select,
+html[data-theme] input[type="date"],
+html[data-theme] input[type="time"],
+html[data-theme] input[type="datetime-local"] {
+  border: 1px solid var(--kz-line) !important;
+  border-radius: var(--kz-radius-sm) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .form-control:focus,
+html[data-theme] .form-control-custom:focus,
+html[data-theme] .auth-form input:focus,
+html[data-theme] .auth-form select:focus {
+  border-color: var(--kz-muted) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kz-muted) 18%, transparent) !important;
+}
+
+/* ---------- Tables ---------- */
+html[data-theme] .custom-table th,
+html[data-theme] .data-table th {
+  font-weight: 600 !important;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Auth tabs, modals, mobile nav ---------- */
+html[data-theme] .auth-tabs {
+  border-radius: 10px !important;
+}
+
+html[data-theme] .auth-tabs button {
+  border-radius: 8px !important;
+}
+
+html[data-theme] .auth-tabs button.active {
+  background: var(--gr-primary) !important;
+  color: var(--gr-on-primary) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .modal-overlay {
+  background: rgba(16, 17, 19, 0.45) !important;
+}
+
+html[data-theme] .modal-header {
+  border-bottom: 1px solid var(--gr-hairline) !important;
+}
+
+html[data-theme] .mobile-nav-item {
+  color: #b9bbc0 !important;
+}
+
+html[data-theme] .mobile-nav-item.active {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+}
+
+/* ---------- Page tabs (js/page-tabs.js) ---------- */
+html[data-theme] .page-tab {
+  border-radius: 9px;
+}
+
+html[data-theme] .page-tab.is-active {
+  box-shadow: inset 0 0 0 1px var(--gr-hairline), 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: none;
+}
+
+html[data-theme] .page-tab-dot {
+  box-shadow: none;
+}
+
+/* ---------- %Eff page accents ---------- */
+html[data-theme] .line-eff-presets {
+  border-radius: 10px;
+}
+
+html[data-theme] .line-eff-presets button {
+  border-radius: 8px;
+}
+
+html[data-theme] .line-eff-presets button.is-active {
+  background: var(--gr-primary);
+  color: var(--gr-on-primary);
+  box-shadow: none;
+}
+
+html[data-theme] .is-good { color: #4f7f6a; }
+html[data-theme] .is-warn { color: #9a7a3e; }
+html[data-theme] .is-bad { color: #a4505a; }
+
+[data-theme="dark"] .is-good { color: #8fbfa8; }
+[data-theme="dark"] .is-warn { color: #d2b277; }
+[data-theme="dark"] .is-bad { color: #d98a92; }
+
+/* ---------- Small accents that were still bright blue ---------- */
+html[data-theme] .page-tab-dot {
+  background: var(--kz-muted);
+}
+
+html[data-theme] .page-tab.is-active .page-tab-dot {
+  background: var(--kz-text);
+}
+
+html[data-theme] #userHeaderAvatar,
+html[data-theme] .user-avatar {
+  background: var(--gr-primary) !important;
+  color: var(--gr-on-primary) !important;
+}
+
+html[data-theme] .header-search svg {
+  color: var(--kz-muted) !important;
+  stroke: var(--kz-muted) !important;
+}
+
+html[data-theme] .badge-role-inspector,
+html[data-theme] .badge-role-super,
+html[data-theme] .badge-role-admin {
+  background: var(--kz-surface-muted) !important;
+  border-color: var(--kz-line) !important;
+}
+
+html[data-theme] .badge-role-inspector { color: var(--kz-text-soft) !important; }
+html[data-theme] .badge-role-super { color: var(--kz-text) !important; }
+html[data-theme] .badge-role-admin { color: var(--kz-orange) !important; }
+
+.owner-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: var(--kz-surface-muted);
+  border: 1px solid var(--kz-line);
+  color: var(--kz-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+html[data-theme] .user-summary-grid span {
+  color: var(--kz-text) !important;
+}
