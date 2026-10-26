@@ -692,7 +692,7 @@
     <link rel="stylesheet" href="css/theme.css?v=soft-light-20261026">
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
-    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-20261026">
+    <link rel="stylesheet" href="css/line-efficiency.css?v=eff-range-20261026">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1228,6 +1228,13 @@
                             <p class="line-eff-sub">แปลงทุกชิ้นที่พ่นเป็น "เวลามาตรฐาน" แล้วเทียบกับเวลาที่มีในกะ · <span id="lineEffSource"></span></p>
                         </div>
                         <div class="line-eff-filters">
+                            <div class="line-eff-presets" role="group" aria-label="ช่วงข้อมูล">
+                                <button type="button" data-eff-preset="all">ทั้งหมด</button>
+                                <button type="button" data-eff-preset="7d">7 วัน</button>
+                                <button type="button" data-eff-preset="30d">30 วัน</button>
+                                <button type="button" data-eff-preset="month">เดือนนี้</button>
+                                <button type="button" data-eff-preset="lastMonth">เดือนก่อน</button>
+                            </div>
                             <label>ตั้งแต่ <input type="date" id="lineEffFrom" class="form-control"></label>
                             <label>ถึง <input type="date" id="lineEffTo" class="form-control"></label>
                             <button type="button" id="lineEffRefresh" class="btn-secondary-custom">↻ รีเฟรช</button>
@@ -2391,7 +2398,7 @@
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
-    <script src="js/line-efficiency.js?v=eff-20261026"></script>
+    <script src="js/line-efficiency.js?v=eff-range-20261026"></script>
     <script src="js/page-tabs.js?v=eff-20261026"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>
