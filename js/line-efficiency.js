@@ -9,7 +9,7 @@
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
-    const state = { config: null, rows: [], chart: null, from: '', to: '', preset: '30d', expanded: new Set() };
+    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', expanded: new Set() };
     const CACHE_KEYS = [
         ['PAINTING_OUTPUTDIARY_CACHE_REVIEWED', 'NEW'],
         ['PAINTING_OUTPUTDIARY_CACHE_PENDING', 'NEW'],
@@ -228,10 +228,169 @@
         set('lineEffLostSub', rework > 0 ? `ใช้ไปกับ REWORK ${fmtMin(rework)}` : 'ไลน์หยุด / ราวว่าง / แขวนไม่เต็ม');
     }
 
+    const PART_COLORS = ['#4d7cfe', '#2ec4b6', '#ffcc4d', '#8e6cff', '#ff8c42', '#36c5f0', '#3ddc97', '#ff5d8f', '#b07cff', '#f6a04d'];
+    const OTHER_COLOR = '#94a3b8';
+    const MAX_PARTS = 10;
+    const LEFT_AXIS = 72;
+    const RIGHT_AXIS = 56;
+
+    // NG segments: the part's color faded, with red diagonal stripes, so they
+    // never read as good parts even when the colors are close.
+    function ngPattern(color) {
+        const size = 8;
+        const tile = document.createElement('canvas');
+        tile.width = tile.height = size;
+        const ctx = tile.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(0, 0, size, size);
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#e5484d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-1, size + 1); ctx.lineTo(size + 1, -1);
+        ctx.moveTo(-1, 1); ctx.lineTo(1, -1);
+        ctx.moveTo(size - 1, size + 1); ctx.lineTo(size + 1, size - 1);
+        ctx.stroke();
+        return tile.getContext('2d').createPattern(tile, 'repeat');
+    }
+
+    // Top parts by output get their own color; the rest share "อื่นๆ".
+    function partSeries(days) {
+        const totals = new Map();
+        days.forEach(day => day.parts.forEach(part => {
+            const item = totals.get(part.code) || { code: part.code, name: part.name, qty: 0 };
+            item.qty += part.qty;
+            totals.set(part.code, item);
+        }));
+        const ranked = Array.from(totals.values()).sort((a, b) => b.qty - a.qty);
+        const top = ranked.slice(0, MAX_PARTS).map((part, i) => ({ ...part, key: part.code, color: PART_COLORS[i % PART_COLORS.length] }));
+        const series = top.slice();
+        if (ranked.length > MAX_PARTS) series.push({ key: '__other', code: 'อื่นๆ', name: `อีก ${ranked.length - MAX_PARTS} ชิ้นงาน`, color: OTHER_COLOR });
+        const keyOf = code => top.some(part => part.code === code) ? code : '__other';
+        return { series, keyOf };
+    }
+
+    // Shared hover position so both panes show the same day, like a stock chart.
+    let hoverIndex = null;
+    const crosshair = {
+        id: 'lineEffCrosshair',
+        afterDatasetsDraw(chart) {
+            if (hoverIndex === null) return;
+            const x = chart.scales.x;
+            if (!x || hoverIndex >= chart.data.labels.length) return;
+            const center = x.getPixelForValue(hoverIndex);
+            const half = (x.width / Math.max(1, chart.data.labels.length)) / 2;
+            const { ctx, chartArea } = chart;
+            ctx.save();
+            ctx.fillStyle = 'rgba(142, 108, 255, 0.10)';
+            ctx.fillRect(center - half, chartArea.top, half * 2, chartArea.bottom - chartArea.top);
+            ctx.restore();
+        },
+        afterEvent(chart, args) {
+            const event = args.event;
+            let next = hoverIndex;
+            if (event.type === 'mouseout') next = null;
+            else if (event.type === 'mousemove') {
+                const hits = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+                next = hits.length ? hits[0].index : null;
+            }
+            if (next !== hoverIndex) {
+                hoverIndex = next;
+                [state.chart, state.prodChart].forEach(other => { if (other && other !== chart) other.draw(); });
+                args.changed = true;
+            }
+        }
+    };
+
+    function fixedAxisWidth(width) {
+        return scale => { scale.width = width; };
+    }
+
+    function renderProductionChart(days, labels) {
+        const canvas = document.getElementById('lineEffProdChart');
+        if (!canvas) return;
+        const { series, keyOf } = partSeries(days);
+        const good = series.map(() => days.map(() => 0));
+        const ng = series.map(() => days.map(() => 0));
+        const index = new Map(series.map((item, i) => [item.key, i]));
+        days.forEach((day, d) => day.parts.forEach(part => {
+            const i = index.get(keyOf(part.code));
+            good[i][d] += part.qty - part.defects;
+            ng[i][d] += part.defects;
+        }));
+        const ngRate = days.map(day => day.qty ? Number((day.defects / day.qty * 100).toFixed(2)) : 0);
+        const label = item => item.key === '__other' ? 'อื่นๆ' : item.code;
+
+        const datasets = [];
+        series.forEach((item, i) => datasets.push({
+            type: 'bar', stack: 'output', order: 2, label: `FG · ${label(item)}`, data: good[i],
+            backgroundColor: item.color, kzGroup: 'FG', partName: item.name
+        }));
+        // NG is pushed after every FG dataset so it always sits on top of the stack.
+        series.forEach((item, i) => {
+            if (!ng[i].some(v => v > 0)) return;
+            datasets.push({
+                type: 'bar', stack: 'output', order: 2, label: `NG · ${label(item)}`, data: ng[i],
+                backgroundColor: ngPattern(item.color), kzGroup: 'NG', partName: item.name,
+                kzKeepBorder: true, borderColor: '#e5484d', borderWidth: 1
+            });
+        });
+        datasets.push({
+            type: 'line', order: 1, label: 'NG rate (%)', data: ngRate, yAxisID: 'y1',
+            borderColor: '#e5484d', backgroundColor: '#e5484d', borderWidth: 2, pointRadius: 3, tension: 0
+        });
+
+        if (state.prodChart) state.prodChart.destroy();
+        state.prodChart = new Chart(canvas, {
+            data: { labels, datasets },
+            plugins: [crosshair],
+            options: {
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        filter: item => item.raw > 0 || item.dataset.yAxisID === 'y1',
+                        itemSort: (a, b) => (a.dataset.yAxisID === 'y1') - (b.dataset.yAxisID === 'y1') || b.datasetIndex - a.datasetIndex,
+                        callbacks: {
+                            label: item => item.dataset.yAxisID === 'y1'
+                                ? ` NG rate: ${item.raw.toFixed(2)}%`
+                                : ` ${item.dataset.label}: ${Number(item.raw).toLocaleString()} ชิ้น`,
+                            footer: items => {
+                                const day = days[items[0].dataIndex];
+                                return day ? [`FG ${(day.qty - day.defects).toLocaleString()} · NG ${day.defects.toLocaleString()} · รวม ${day.qty.toLocaleString()} ชิ้น`] : [];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: true, ticks: { display: false }, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, afterFit: fixedAxisWidth(LEFT_AXIS), ticks: { color: '#94a3b8', callback: v => Number(v).toLocaleString() }, title: { display: true, text: 'ชิ้น', color: '#94a3b8' } },
+                    y1: { position: 'right', beginAtZero: true, afterFit: fixedAxisWidth(RIGHT_AXIS), grid: { display: false }, ticks: { color: '#e5484d', callback: v => v + '%' }, title: { display: true, text: 'NG %', color: '#e5484d' } }
+                }
+            }
+        });
+
+        renderLegend(series, ng.some(row => row.some(v => v > 0)));
+    }
+
+    function renderLegend(series, hasNg) {
+        const box = document.getElementById('lineEffLegend');
+        if (!box) return;
+        const parts = series.map(item => `<span class="line-eff-legend-item" title="${escapeHtml(item.name || '')}"><i style="background:${item.color}"></i>${escapeHtml(item.key === '__other' ? 'อื่นๆ' : item.code)}</span>`).join('');
+        box.innerHTML = `<span class="line-eff-legend-key"><i class="is-fg"></i>FG งานดี (ทึบ)</span>`
+            + (hasNg ? `<span class="line-eff-legend-key"><i class="is-ng"></i>NG (ลายเฉียงแดง ด้านบน)</span>` : '')
+            + `<span class="line-eff-legend-key"><i class="is-rate"></i>NG rate (%)</span>`
+            + `<span class="line-eff-legend-sep"></span>${parts}`;
+    }
+
     function renderChart(days) {
         const canvas = document.getElementById('lineEffChart');
         if (!canvas || typeof Chart === 'undefined') return;
         const labels = days.map(day => formatDateKey(day.day));
+        renderProductionChart(days, labels);
         const values = days.map(day => Number(day.eff.toFixed(1)));
         const colors = days.map(day => day.eff >= TARGET ? '#10b981' : day.eff >= 60 ? '#f59e0b' : '#ef4444');
         if (state.chart) state.chart.destroy();
@@ -243,13 +402,19 @@
                     { type: 'line', label: `เป้าหมาย ${TARGET}%`, data: days.map(() => TARGET), borderColor: '#8b5cf6', borderDash: [6, 6], pointRadius: 0, borderWidth: 2, order: 1 }
                 ]
             },
+            plugins: [crosshair],
             options: {
                 maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
+                // Same right-hand gutter as the NG % axis above, so the days line up.
+                layout: { padding: { right: RIGHT_AXIS } },
                 plugins: {
                     // Bars are colored per day by status, so the card title
                     // carries the color key instead of a legend.
                     legend: { display: false },
                     tooltip: {
+                        filter: item => item.datasetIndex === 0,
                         callbacks: {
                             afterBody: items => {
                                 const day = days[items[0].dataIndex];
@@ -260,7 +425,7 @@
                 },
                 scales: {
                     x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-                    y: { beginAtZero: true, suggestedMax: 100, ticks: { color: '#94a3b8', callback: value => value + '%' }, grid: { color: 'rgba(148,163,184,.12)' } }
+                    y: { beginAtZero: true, suggestedMax: 100, afterFit: fixedAxisWidth(LEFT_AXIS), ticks: { color: '#94a3b8', callback: value => value + '%' }, grid: { color: 'rgba(148,163,184,.12)' }, title: { display: true, text: '%Eff', color: '#94a3b8' } }
                 }
             }
         });
