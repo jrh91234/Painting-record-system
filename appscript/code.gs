@@ -1179,6 +1179,18 @@ function doPost(e) {
     // QC review writes must not initialize/read the legacy inspection sheet.
     // That unnecessary operation was making the button wait or time out.
     const earlyAction = (e && e.parameter && e.parameter.action) || "";
+    // รับ Mat: photos are too large for a GET, so they come by POST.
+    if (earlyAction === "readMaterialLabel" || earlyAction === "saveMaterialPhoto") {
+      let matPayload = {};
+      try { matPayload = JSON.parse((e.postData && e.postData.contents) || "{}"); } catch (parseErr) {}
+      let matResult;
+      try {
+        matResult = earlyAction === "readMaterialLabel" ? readMaterialLabel_(matPayload) : saveMaterialPhoto_(matPayload);
+      } catch (matErr) {
+        matResult = { status: "error", message: matErr && matErr.message ? matErr.message : String(matErr) };
+      }
+      return ContentService.createTextOutput(JSON.stringify(matResult)).setMimeType(ContentService.MimeType.JSON);
+    }
     if (earlyAction === "submitQCReview") {
       let earlyPayload = {};
       try {
@@ -1841,10 +1853,201 @@ const MATERIAL_RECEIPT_HEADERS_ = [
   "Lot", "BoxNo", "NetWeightKg", "MfgDate", "ExpiryDate", "Note", "PhotoUrl"
 ];
 
-// Reading labels from photos is not switched on yet; the web form then
-// works as manual entry with the photo as a reference.
+// Labels are read by Gemini when GEMINI_API_KEY is set in Script Properties
+// (optional GEMINI_MODEL). Without a key, or when Gemini fails (quota,
+// outage), Google Drive OCR reads the photo instead and the text is parsed
+// with rules for the JOTUN and NUO QI labels.
+const MATERIAL_PHOTO_FOLDER_NAME_ = "Painting Material Receipts";
+const GEMINI_DEFAULT_MODEL_ = "gemini-2.5-flash";
+
 function materialConfig_() {
-  return { status: "success", ocrEnabled: false };
+  const key = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  return { status: "success", ocrEnabled: true, gemini: !!key, photoStorage: true };
+}
+
+// Run once from the Apps Script editor after deploying: it makes Google ask
+// for the new permissions (calling Gemini, Drive for photos and OCR, and
+// reading the OCR result document).
+function authorizeMaterialReceiving() {
+  UrlFetchApp.getRequest("https://generativelanguage.googleapis.com/");
+  getMaterialPhotoFolder_();
+  Drive.Files.list({ pageSize: 1 });
+  Logger.log("Material receiving is authorized. Gemini key set: " + materialConfig_().gemini);
+}
+
+function getMaterialPhotoFolder_() {
+  const folders = DriveApp.getFoldersByName(MATERIAL_PHOTO_FOLDER_NAME_);
+  return folders.hasNext() ? folders.next() : DriveApp.createFolder(MATERIAL_PHOTO_FOLDER_NAME_);
+}
+
+function saveMaterialPhoto_(payload) {
+  const data = payload || {};
+  if (!data.image) return { status: "error", message: "ไม่มีรูป" };
+  const name = "MAT_" + formatDateStr(new Date(), true).replace(/[^0-9]/g, "") + "_" +
+    String(data.colorCode || "").replace(/[^A-Za-z0-9-]/g, "") + "_" + String(data.lot || "").replace(/[^A-Za-z0-9-]/g, "") + ".jpg";
+  const blob = Utilities.newBlob(Utilities.base64Decode(data.image), data.mimeType || "image/jpeg", name);
+  const file = getMaterialPhotoFolder_().createFile(blob);
+  return { status: "success", url: file.getUrl() };
+}
+
+const MATERIAL_LABEL_PROMPT_ = [
+  "This is a photo of a powder paint box label. Read it and return JSON only.",
+  "Fields:",
+  "- supplier: brand/maker, e.g. JOTUN or NUO QI.",
+  "- colorCode: JOTUN = the SKU (e.g. 1259025PX20). NUO QI = 型号 / รหัสสี (e.g. NQPE90001-1).",
+  "- colorName: JOTUN = the product title (e.g. G StyleE02T -Grey SMO). NUO QI = 产品名称; if it is Chinese, give a short English name followed by the original in brackets, e.g. White High Gloss (白高光).",
+  "- lot: JOTUN = Batch No exactly as printed, including * and : (e.g. 4332244-1-*-1:2). NUO QI = 产品批号 / รุ่นล็อต.",
+  "- boxNo: JOTUN 'Box no.' if printed, else empty.",
+  "- netWeightKg: net weight in kg as a number (JOTUN 'Net weight (kg)', NUO QI 净重). Not the gross weight.",
+  "- mfgDate and expiryDate as YYYY-MM-DD. JOTUN dates are day/month/year. NUO QI prints 生产日期 as year.month.day and no expiry.",
+  "- shelfLifeMonths: number of months if the label gives a shelf life instead of an expiry (NUO QI 保质期, e.g. 6个月 = 6).",
+  "Use an empty string (or 0 for numbers) for anything you cannot read. Never guess characters you cannot see."
+].join("\n");
+
+function readMaterialLabel_(payload) {
+  const data = payload || {};
+  if (!data.image) return { status: "error", message: "ไม่มีรูป" };
+  const key = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  let geminiError = "";
+  if (key) {
+    try {
+      const result = readMaterialLabelGemini_(data, key);
+      if (result.status === "success") { result.source = "gemini"; return result; }
+      geminiError = result.message;
+    } catch (err) {
+      geminiError = err && err.message ? err.message : String(err);
+    }
+  }
+  try {
+    const result = readMaterialLabelDriveOcr_(data);
+    result.source = "drive-ocr";
+    if (geminiError && result.status === "success") result.note = "Gemini ใช้ไม่ได้ (" + geminiError + ") จึงอ่านด้วย Drive OCR แทน";
+    if (geminiError && result.status !== "success") result.message = "Gemini: " + geminiError + " / " + result.message;
+    return result;
+  } catch (err) {
+    return { status: "error", message: (geminiError ? "Gemini: " + geminiError + " / " : "") + "Drive OCR: " + (err && err.message ? err.message : String(err)) };
+  }
+}
+
+// Drive converts an uploaded image to a Google Doc with OCR; the temporary
+// doc is read and deleted straight away.
+function readMaterialLabelDriveOcr_(data) {
+  const blob = Utilities.newBlob(Utilities.base64Decode(data.image), data.mimeType || "image/jpeg", "material-label.jpg");
+  const doc = Drive.Files.create({ name: "tmp-material-label-ocr", mimeType: "application/vnd.google-apps.document" }, blob);
+  let text = "";
+  try {
+    text = DocumentApp.openById(doc.id).getBody().getText();
+  } finally {
+    try { Drive.Files.remove(doc.id); } catch (removeErr) {}
+  }
+  if (!String(text).trim()) return { status: "error", message: "Drive OCR อ่านตัวหนังสือในรูปไม่ได้" };
+  return { status: "success", fields: normalizeMaterialLabel_(parseMaterialLabelText_(text)), text: String(text).slice(0, 2000) };
+}
+
+// Rules for the label text Drive OCR returns. OCR may put a value on the
+// same line as its caption or on a later line, so values are matched by
+// their own shape (e.g. JOTUN SKU = 7 digits + "PX" + 2 digits) rather
+// than by position.
+function parseMaterialLabelText_(raw) {
+  const text = String(raw || "").replace(/\r/g, "");
+  const flat = text.replace(/\s+/g, " ");
+  const pick = (re, source) => { const m = (source || flat).match(re); return m ? m[1].trim() : ""; };
+  const isNuoQi = /NUO\s*QI|诺奇|NQPE|NQ[A-Z]*\d{4,}/i.test(flat);
+  if (isNuoQi) {
+    const mfg = flat.match(/(20\d{2})\s*[.\-\/年]\s*(\d{1,2})\s*[.\-\/月]\s*(\d{1,2})/);
+    return {
+      supplier: "NUO QI",
+      colorCode: pick(/\b(NQ[A-Z]*\s?\d{3,}(?:\s?-\s?\d+)?)\b/i).replace(/\s+/g, ""),
+      colorName: pick(/产品名称\s*[:：]?\s*(?:ชื่อผลิตภัณฑ์)?\s*([\u4e00-\u9fff]{2,})/),
+      lot: pick(/\b(20\d{9,12})\b/),
+      boxNo: "",
+      netWeightKg: pick(/(\d+(?:\.\d+)?)\s*KG/i),
+      mfgDate: mfg ? mfg[1] + "-" + mfg[2] + "-" + mfg[3] : "",
+      expiryDate: "",
+      shelfLifeMonths: pick(/(\d{1,2})\s*个?\s*月/)
+    };
+  }
+  const dates = flat.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g) || [];
+  const nameLine = text.split("\n").map(l => l.trim()).filter(l => /Style/i.test(l) && /-/.test(l))[0] || "";
+  return {
+    supplier: /JOTUN/i.test(flat) || /\d{7}PX\d{2}/i.test(flat) ? "JOTUN" : "",
+    colorCode: pick(/\b(\d{7}\s?PX\s?\d{2})\b/i).replace(/\s+/g, "").toUpperCase(),
+    colorName: nameLine.replace(/^[|I\s]+/, "").replace(/\s*Batch\s*No.*$/i, "").trim(),
+    lot: pick(/\b(\d{7}\s?-\s?\d+\s?-\s?[*xX]?\s?-?\s?\d+\s?[:;.]\s?\d+)/).replace(/\s+/g, "").replace(/;/g, ":"),
+    boxNo: pick(/Box\s*no\.?\s*[:.]?\s*(\d{1,4})\b/i),
+    netWeightKg: pick(/Net\s*weight\s*\(?kg\)?\s*[:.]?\s*(\d+(?:\.\d+)?)/i),
+    mfgDate: dates[0] || "",
+    expiryDate: dates[1] || "",
+    shelfLifeMonths: ""
+  };
+}
+
+function readMaterialLabelGemini_(data, key) {
+  const props = PropertiesService.getScriptProperties();
+  const model = props.getProperty("GEMINI_MODEL") || GEMINI_DEFAULT_MODEL_;
+  const str = { type: "STRING" };
+  const body = {
+    contents: [{ parts: [
+      { text: MATERIAL_LABEL_PROMPT_ },
+      { inline_data: { mime_type: data.mimeType || "image/jpeg", data: data.image } }
+    ] }],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          supplier: str, colorCode: str, colorName: str, lot: str, boxNo: str,
+          netWeightKg: { type: "NUMBER" }, mfgDate: str, expiryDate: str, shelfLifeMonths: { type: "NUMBER" }
+        }
+      }
+    }
+  };
+  const response = UrlFetchApp.fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+    method: "post", contentType: "application/json", headers: { "x-goog-api-key": key },
+    payload: JSON.stringify(body), muteHttpExceptions: true
+  });
+  const code = response.getResponseCode();
+  let json = {};
+  try { json = JSON.parse(response.getContentText()); } catch (parseErr) {}
+  if (code !== 200) {
+    return { status: "error", message: "Gemini " + code + ": " + ((json.error && json.error.message) || "request failed") };
+  }
+  let fields = {};
+  try {
+    fields = JSON.parse(json.candidates[0].content.parts[0].text);
+  } catch (parseErr) {
+    return { status: "error", message: "อ่านคำตอบจาก Gemini ไม่ได้" };
+  }
+  return { status: "success", fields: normalizeMaterialLabel_(fields) };
+}
+
+function normalizeMaterialLabel_(fields) {
+  const f = fields || {};
+  const text = v => String(v == null ? "" : v).trim();
+  const result = {
+    supplier: text(f.supplier), colorCode: text(f.colorCode).replace(/\s+/g, ""), colorName: text(f.colorName),
+    lot: text(f.lot).replace(/\s+/g, ""), boxNo: text(f.boxNo),
+    netWeightKg: Number(f.netWeightKg) > 0 ? Number(f.netWeightKg) : "",
+    mfgDate: materialIsoDate_(f.mfgDate), expiryDate: materialIsoDate_(f.expiryDate)
+  };
+  const months = Number(f.shelfLifeMonths);
+  if (!result.expiryDate && result.mfgDate && months > 0) {
+    const p = result.mfgDate.split("-").map(Number);
+    const d = new Date(p[0], p[1] - 1 + months, p[2]);
+    if (d.getDate() !== p[2]) d.setDate(0);
+    result.expiryDate = formatDateStr(d, false);
+  }
+  return result;
+}
+
+function materialIsoDate_(value) {
+  const t = String(value == null ? "" : value).trim();
+  let m = t.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2);
+  m = t.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
+  if (m) return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  return "";
 }
 
 function getOrCreateMaterialReceiptSheet_(ss) {

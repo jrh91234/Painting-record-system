@@ -12,7 +12,7 @@
     const SHELF_LIFE_MONTHS = { 'NUO QI': 6 };
     const NEAR_EXPIRY_DAYS = 30;
     const MAX_PHOTO_SIDE = 1600;
-    const state = { bound: false, config: { ocrEnabled: false }, photo: null, known: new Map(), recent: [] };
+    const state = { bound: false, config: { ocrEnabled: false, photoStorage: false }, photo: null, known: new Map(), recent: [] };
 
     const $ = id => document.getElementById(id);
     const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -132,6 +132,7 @@
     // ---------- photo ----------
     function clearPhoto() {
         state.photo = null;
+        state.photoUrl = null;
         $('mrPhotoPreview').hidden = true;
         $('mrPhotoPreview').removeAttribute('src');
         $('mrPhotoInput').value = '';
@@ -193,28 +194,34 @@
     async function loadConfig() {
         try {
             const result = await call({ action: 'materialConfig' }, 'Material config');
-            state.config = { ocrEnabled: !!(result && result.ocrEnabled) };
+            state.config = { ocrEnabled: !!(result && result.ocrEnabled), photoStorage: !!(result && result.photoStorage) };
         } catch (error) {
-            state.config = { ocrEnabled: false };
+            state.config = { ocrEnabled: false, photoStorage: false };
         }
         $('mrOcrNote').hidden = state.config.ocrEnabled;
     }
 
+    // Photos are too large for a GET/JSONP request, so these two go by POST.
+    async function postPhoto(action, extra) {
+        const base = apiBase();
+        const url = base + (base.includes('?') ? '&' : '?') + 'action=' + action;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(Object.assign({ image: state.photo.split(',')[1], mimeType: 'image/jpeg' }, extra || {}))
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+    }
+
     async function readLabel() {
         if (!state.photo) return;
-        const base = apiBase();
         setReadStatus('⏳ กำลังอ่านฉลาก...', 'info');
         $('mrReadBtn').disabled = true;
         try {
-            const url = base + (base.includes('?') ? '&' : '?') + 'action=readMaterialLabel';
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ image: state.photo.split(',')[1], mimeType: 'image/jpeg' })
-            });
-            const result = await response.json();
+            const result = await postPhoto('readMaterialLabel');
             if (!result || result.status !== 'success' || !result.fields) throw new Error((result && result.message) || 'อ่านฉลากไม่สำเร็จ');
-            applyReadFields(result.fields);
+            applyReadFields(result.fields, result.source, result.note);
         } catch (error) {
             setReadStatus('อ่านอัตโนมัติไม่สำเร็จ: ' + error.message + ' — กรอกเองได้เลย', 'warn');
         } finally {
@@ -222,7 +229,7 @@
         }
     }
 
-    function applyReadFields(fields) {
+    function applyReadFields(fields, source, note) {
         const missing = [];
         const put = (id, value) => {
             if (value === undefined || value === null || String(value).trim() === '') { missing.push(id); return; }
@@ -237,8 +244,14 @@
         put('mrMfgDate', isoDate(parseDate(fields.mfgDate)));
         put('mrExpiryDate', isoDate(parseDate(fields.expiryDate)));
         fillDefaultExpiry();
-        ['mrColorCode', 'mrLot', 'mrWeight'].forEach(id => $(id).classList.toggle('is-missing', !$(id).value));
-        setReadStatus(missing.length ? '✅ อ่านแล้ว — ช่องสีเหลืองอ่านไม่ได้ กรุณากรอก/ตรวจ' : '✅ อ่านแล้ว — ตรวจความถูกต้องก่อนบันทึก', 'good');
+        // Only the required fields count; e.g. NUO QI labels have no box number.
+        const required = ['mrColorCode', 'mrLot', 'mrWeight'];
+        required.forEach(id => $(id).classList.toggle('is-missing', !$(id).value));
+        const unread = required.filter(id => missing.includes(id));
+        // Drive OCR (the fallback) is rule-based and less sure than Gemini.
+        const how = source === 'drive-ocr' ? ' (อ่านด้วย Drive OCR — ตรวจทุกช่องอีกครั้ง)' : '';
+        const base = unread.length ? '⚠️ อ่านแล้ว แต่บางช่องอ่านไม่ได้ (สีเหลือง) กรุณากรอก' : '✅ อ่านแล้ว — ตรวจความถูกต้องก่อนบันทึก';
+        setReadStatus(base + how + (note ? ' · ' + note : ''), unread.length || source === 'drive-ocr' ? 'warn' : 'good');
     }
 
     function normalizeSupplier(value) {
@@ -264,6 +277,16 @@
         btn.disabled = true;
         btn.textContent = '⏳ กำลังบันทึก...';
         try {
+            // Keep the label photo with the record when Drive storage is on.
+            // A failed upload must not block receiving the box.
+            if (state.photo && state.config.photoStorage && !state.photoUrl) {
+                try {
+                    const uploaded = await postPhoto('saveMaterialPhoto', { colorCode: data.colorCode, lot: data.lot });
+                    if (uploaded && uploaded.status === 'success') state.photoUrl = uploaded.url;
+                } catch (error) {
+                    console.warn('Material photo upload failed:', error);
+                }
+            }
             const result = await call({
                 action: 'saveMaterialReceipt',
                 receiptId: state.pendingId || (state.pendingId = 'MR-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7)),
@@ -271,6 +294,7 @@
                 supplier: data.supplier, colorCode: data.colorCode, colorName: data.colorName,
                 lot: data.lot, boxNo: data.boxNo, netWeightKg: data.weight,
                 mfgDate: data.mfgDate, expiryDate: data.expiryDate, note: data.note,
+                photoUrl: state.photoUrl || '',
                 force: force ? '1' : ''
             }, 'Save material receipt');
             if (result && result.status === 'success' && result.duplicate && !result.saved) {
@@ -314,7 +338,7 @@
         body.innerHTML = rows.length ? rows.map(row => {
             const status = expiryStatus(row.expiryDate);
             return `<tr>
-                <td>${esc(row.timestamp)}</td>
+                <td>${esc(row.timestamp)}${row.photoUrl ? `<br><a href="${esc(row.photoUrl)}" target="_blank" rel="noopener">📷 รูป</a>` : ''}</td>
                 <td><b>${esc(row.colorCode)}</b><br><small>${esc(row.colorName)}</small></td>
                 <td>${esc(row.lot)}${row.boxNo ? `<br><small>Box ${esc(row.boxNo)}</small>` : ''}</td>
                 <td>${esc(row.netWeightKg)}</td>
