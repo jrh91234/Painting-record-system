@@ -221,7 +221,7 @@
         try {
             const result = await postPhoto('readMaterialLabel');
             if (!result || result.status !== 'success' || !result.fields) throw new Error((result && result.message) || 'อ่านฉลากไม่สำเร็จ');
-            applyReadFields(result.fields);
+            applyReadFields(result.fields, result.source, result.note);
         } catch (error) {
             setReadStatus('อ่านอัตโนมัติไม่สำเร็จ: ' + error.message + ' — กรอกเองได้เลย', 'warn');
         } finally {
@@ -229,7 +229,7 @@
         }
     }
 
-    function applyReadFields(fields) {
+    function applyReadFields(fields, source, note) {
         const missing = [];
         const put = (id, value) => {
             if (value === undefined || value === null || String(value).trim() === '') { missing.push(id); return; }
@@ -248,7 +248,10 @@
         const required = ['mrColorCode', 'mrLot', 'mrWeight'];
         required.forEach(id => $(id).classList.toggle('is-missing', !$(id).value));
         const unread = required.filter(id => missing.includes(id));
-        setReadStatus(unread.length ? '⚠️ อ่านแล้ว แต่บางช่องอ่านไม่ได้ (สีเหลือง) กรุณากรอก' : '✅ อ่านแล้ว — ตรวจความถูกต้องก่อนบันทึก', unread.length ? 'warn' : 'good');
+        // Drive OCR (the fallback) is rule-based and less sure than Gemini.
+        const how = source === 'drive-ocr' ? ' (อ่านด้วย Drive OCR — ตรวจทุกช่องอีกครั้ง)' : '';
+        const base = unread.length ? '⚠️ อ่านแล้ว แต่บางช่องอ่านไม่ได้ (สีเหลือง) กรุณากรอก' : '✅ อ่านแล้ว — ตรวจความถูกต้องก่อนบันทึก';
+        setReadStatus(base + how + (note ? ' · ' + note : ''), unread.length || source === 'drive-ocr' ? 'warn' : 'good');
     }
 
     function normalizeSupplier(value) {

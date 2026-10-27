@@ -1853,23 +1853,26 @@ const MATERIAL_RECEIPT_HEADERS_ = [
   "Lot", "BoxNo", "NetWeightKg", "MfgDate", "ExpiryDate", "Note", "PhotoUrl"
 ];
 
-// Reading labels needs a Gemini API key in Script Properties
-// (GEMINI_API_KEY; optional GEMINI_MODEL). Without one the web form works
-// as manual entry with the photo as a reference.
+// Labels are read by Gemini when GEMINI_API_KEY is set in Script Properties
+// (optional GEMINI_MODEL). Without a key, or when Gemini fails (quota,
+// outage), Google Drive OCR reads the photo instead and the text is parsed
+// with rules for the JOTUN and NUO QI labels.
 const MATERIAL_PHOTO_FOLDER_NAME_ = "Painting Material Receipts";
 const GEMINI_DEFAULT_MODEL_ = "gemini-2.5-flash";
 
 function materialConfig_() {
   const key = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
-  return { status: "success", ocrEnabled: !!key, photoStorage: true };
+  return { status: "success", ocrEnabled: true, gemini: !!key, photoStorage: true };
 }
 
 // Run once from the Apps Script editor after deploying: it makes Google ask
-// for the two new permissions (calling Gemini, saving photos to Drive).
+// for the new permissions (calling Gemini, Drive for photos and OCR, and
+// reading the OCR result document).
 function authorizeMaterialReceiving() {
   UrlFetchApp.getRequest("https://generativelanguage.googleapis.com/");
   getMaterialPhotoFolder_();
-  Logger.log("Material receiving is authorized. Gemini key set: " + materialConfig_().ocrEnabled);
+  Drive.Files.list({ pageSize: 1 });
+  Logger.log("Material receiving is authorized. Gemini key set: " + materialConfig_().gemini);
 }
 
 function getMaterialPhotoFolder_() {
@@ -1902,11 +1905,85 @@ const MATERIAL_LABEL_PROMPT_ = [
 ].join("\n");
 
 function readMaterialLabel_(payload) {
-  const props = PropertiesService.getScriptProperties();
-  const key = props.getProperty("GEMINI_API_KEY");
-  if (!key) return { status: "error", message: "ยังไม่ได้ตั้งค่า GEMINI_API_KEY" };
   const data = payload || {};
   if (!data.image) return { status: "error", message: "ไม่มีรูป" };
+  const key = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
+  let geminiError = "";
+  if (key) {
+    try {
+      const result = readMaterialLabelGemini_(data, key);
+      if (result.status === "success") { result.source = "gemini"; return result; }
+      geminiError = result.message;
+    } catch (err) {
+      geminiError = err && err.message ? err.message : String(err);
+    }
+  }
+  try {
+    const result = readMaterialLabelDriveOcr_(data);
+    result.source = "drive-ocr";
+    if (geminiError && result.status === "success") result.note = "Gemini ใช้ไม่ได้ (" + geminiError + ") จึงอ่านด้วย Drive OCR แทน";
+    if (geminiError && result.status !== "success") result.message = "Gemini: " + geminiError + " / " + result.message;
+    return result;
+  } catch (err) {
+    return { status: "error", message: (geminiError ? "Gemini: " + geminiError + " / " : "") + "Drive OCR: " + (err && err.message ? err.message : String(err)) };
+  }
+}
+
+// Drive converts an uploaded image to a Google Doc with OCR; the temporary
+// doc is read and deleted straight away.
+function readMaterialLabelDriveOcr_(data) {
+  const blob = Utilities.newBlob(Utilities.base64Decode(data.image), data.mimeType || "image/jpeg", "material-label.jpg");
+  const doc = Drive.Files.create({ name: "tmp-material-label-ocr", mimeType: "application/vnd.google-apps.document" }, blob);
+  let text = "";
+  try {
+    text = DocumentApp.openById(doc.id).getBody().getText();
+  } finally {
+    try { Drive.Files.remove(doc.id); } catch (removeErr) {}
+  }
+  if (!String(text).trim()) return { status: "error", message: "Drive OCR อ่านตัวหนังสือในรูปไม่ได้" };
+  return { status: "success", fields: normalizeMaterialLabel_(parseMaterialLabelText_(text)), text: String(text).slice(0, 2000) };
+}
+
+// Rules for the label text Drive OCR returns. OCR may put a value on the
+// same line as its caption or on a later line, so values are matched by
+// their own shape (e.g. JOTUN SKU = 7 digits + "PX" + 2 digits) rather
+// than by position.
+function parseMaterialLabelText_(raw) {
+  const text = String(raw || "").replace(/\r/g, "");
+  const flat = text.replace(/\s+/g, " ");
+  const pick = (re, source) => { const m = (source || flat).match(re); return m ? m[1].trim() : ""; };
+  const isNuoQi = /NUO\s*QI|诺奇|NQPE|NQ[A-Z]*\d{4,}/i.test(flat);
+  if (isNuoQi) {
+    const mfg = flat.match(/(20\d{2})\s*[.\-\/年]\s*(\d{1,2})\s*[.\-\/月]\s*(\d{1,2})/);
+    return {
+      supplier: "NUO QI",
+      colorCode: pick(/\b(NQ[A-Z]*\s?\d{3,}(?:\s?-\s?\d+)?)\b/i).replace(/\s+/g, ""),
+      colorName: pick(/产品名称\s*[:：]?\s*(?:ชื่อผลิตภัณฑ์)?\s*([\u4e00-\u9fff]{2,})/),
+      lot: pick(/\b(20\d{9,12})\b/),
+      boxNo: "",
+      netWeightKg: pick(/(\d+(?:\.\d+)?)\s*KG/i),
+      mfgDate: mfg ? mfg[1] + "-" + mfg[2] + "-" + mfg[3] : "",
+      expiryDate: "",
+      shelfLifeMonths: pick(/(\d{1,2})\s*个?\s*月/)
+    };
+  }
+  const dates = flat.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g) || [];
+  const nameLine = text.split("\n").map(l => l.trim()).filter(l => /Style/i.test(l) && /-/.test(l))[0] || "";
+  return {
+    supplier: /JOTUN/i.test(flat) || /\d{7}PX\d{2}/i.test(flat) ? "JOTUN" : "",
+    colorCode: pick(/\b(\d{7}\s?PX\s?\d{2})\b/i).replace(/\s+/g, "").toUpperCase(),
+    colorName: nameLine.replace(/^[|I\s]+/, "").replace(/\s*Batch\s*No.*$/i, "").trim(),
+    lot: pick(/\b(\d{7}\s?-\s?\d+\s?-\s?[*xX]?\s?-?\s?\d+\s?[:;.]\s?\d+)/).replace(/\s+/g, "").replace(/;/g, ":"),
+    boxNo: pick(/Box\s*no\.?\s*[:.]?\s*(\d{1,4})\b/i),
+    netWeightKg: pick(/Net\s*weight\s*\(?kg\)?\s*[:.]?\s*(\d+(?:\.\d+)?)/i),
+    mfgDate: dates[0] || "",
+    expiryDate: dates[1] || "",
+    shelfLifeMonths: ""
+  };
+}
+
+function readMaterialLabelGemini_(data, key) {
+  const props = PropertiesService.getScriptProperties();
   const model = props.getProperty("GEMINI_MODEL") || GEMINI_DEFAULT_MODEL_;
   const str = { type: "STRING" };
   const body = {
