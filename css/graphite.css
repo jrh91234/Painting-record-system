@@ -428,3 +428,58 @@ html[data-theme] .user-summary-grid span {
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* ---------- Logout: labelled button in the header chip + sidebar ---------- */
+.user-chip .logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--kz-line);
+  border-radius: 8px;
+  background: var(--kz-surface-muted);
+  color: var(--kz-text-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.user-chip .logout-btn:hover,
+.user-chip .logout-btn:focus-visible {
+  background: color-mix(in srgb, #a4505a 12%, var(--kz-surface));
+  border-color: color-mix(in srgb, #a4505a 35%, transparent);
+  color: #a4505a;
+}
+
+.sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: transparent;
+  color: #c9cbd0;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sidebar-logout:hover,
+.sidebar-logout:focus-visible {
+  background: rgba(217, 138, 146, 0.12);
+  color: #e3a4ab;
+}
+
+@media (max-width: 768px) {
+  /* Phones: icon only, to keep the header on one line. */
+  .user-chip .logout-btn-label { display: none; }
+  .user-chip .logout-btn { padding: 0.35rem 0.45rem; }
+}
