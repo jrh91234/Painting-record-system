@@ -694,6 +694,7 @@
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
     <link rel="stylesheet" href="css/line-efficiency.css?v=graphite-20261026">
     <link rel="stylesheet" href="css/graphite.css?v=logout-20261027">
+    <link rel="stylesheet" href="css/material-receipt.css?v=mat-20261027">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -851,6 +852,10 @@
                 <a href="#" class="nav-link" data-permission="events.read" onclick="switchTab('event-tab', this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
                     Event (บันทึก 5M1E)
+                </a>
+                <a href="#" class="nav-link" data-permission="materials.receive" onclick="openMaterialReceipt(event, this)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path></svg>
+                    รับ Mat
                 </a>
                 <a href="#" class="nav-link" data-permission="spare_parts.read" onclick="switchTab('spare-parts-tab', this)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"></path><path d="M4 7.5 12 12l8-4.5M12 12v9"></path><path d="M8 5.25 16 10"></path></svg>
@@ -1893,6 +1898,90 @@
                     </div>
                 </section>
 
+                <!-- MATERIAL RECEIVING (js/material-receipt.js) -->
+                <section id="material-receipt-tab" class="tab-page mr-page" data-permission="materials.receive" style="display: none;">
+                    <div class="section-title-bar mr-head">
+                        <div>
+                            <h1 class="page-title">รับ Mat (สีฝุ่น)</h1>
+                            <p class="mr-sub">ถ่ายรูปฉลากกล่อง ตรวจข้อมูล แล้วบันทึกทีละกล่อง · วันนี้รับแล้ว <b id="mrTodayCount">0</b> กล่อง</p>
+                        </div>
+                    </div>
+
+                    <div class="mr-grid">
+                        <div class="chart-card mr-photo-card">
+                            <label class="mr-camera-btn" for="mrPhotoInput">
+                                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                <span>ถ่ายรูปฉลาก</span>
+                                <small>ถ่ายใกล้ๆ ให้ฉลากเต็มจอ</small>
+                            </label>
+                            <input type="file" id="mrPhotoInput" accept="image/*" capture="environment" hidden>
+                            <img id="mrPhotoPreview" class="mr-photo-preview" alt="รูปฉลาก" hidden>
+                            <div class="mr-photo-actions">
+                                <button type="button" id="mrReadBtn" class="btn-secondary-custom" hidden>🔍 อ่านฉลากอีกครั้ง</button>
+                                <button type="button" id="mrClearPhotoBtn" class="btn-secondary-custom">ล้างรูป</button>
+                            </div>
+                            <p id="mrReadStatus" class="mr-read-status" hidden></p>
+                            <p id="mrOcrNote" class="mr-ocr-note">ตอนนี้ยังไม่ได้เปิด "อ่านฉลากอัตโนมัติ" — ใช้รูปช่วยดูแล้วกรอกข้อมูลเอง</p>
+                        </div>
+
+                        <div class="chart-card mr-form-card">
+                            <div class="mr-form">
+                                <label>ยี่ห้อ / ซัพพลายเออร์
+                                    <select id="mrSupplier" class="form-control">
+                                        <option value="">-- เลือก --</option>
+                                        <option value="JOTUN">JOTUN</option>
+                                        <option value="NUO QI">NUO QI</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                </label>
+                                <label>รหัสสี (SKU / 型号) *
+                                    <input id="mrColorCode" class="form-control" list="mrColorCodeList" placeholder="เช่น 1259025PX20 หรือ NQPE90001-1" autocomplete="off">
+                                    <datalist id="mrColorCodeList"></datalist>
+                                </label>
+                                <label class="mr-wide">ชื่อสี
+                                    <input id="mrColorName" class="form-control" placeholder="เช่น G StyleE02T -Grey SMO" autocomplete="off">
+                                </label>
+                                <label>Lot / Batch No. *
+                                    <input id="mrLot" class="form-control" placeholder="เช่น 4332244-1-*-1:2" autocomplete="off">
+                                </label>
+                                <label>Box no.
+                                    <input id="mrBoxNo" class="form-control" inputmode="numeric" placeholder="ถ้ามี" autocomplete="off">
+                                </label>
+                                <label>น้ำหนักสุทธิ (kg) *
+                                    <input id="mrWeight" class="form-control" type="number" step="0.1" min="0" inputmode="decimal" value="20">
+                                </label>
+                                <label>วันผลิต
+                                    <input id="mrMfgDate" class="form-control" type="date">
+                                </label>
+                                <label>วันหมดอายุ
+                                    <input id="mrExpiryDate" class="form-control" type="date">
+                                    <span id="mrExpiryBadge" class="mr-expiry-badge" hidden></span>
+                                </label>
+                                <label class="mr-wide">หมายเหตุ
+                                    <input id="mrNote" class="form-control" placeholder="เช่น กล่องบุบ" autocomplete="off">
+                                </label>
+                            </div>
+                            <div class="mr-form-actions">
+                                <button type="button" id="mrResetBtn" class="btn-secondary-custom">ล้างฟอร์ม</button>
+                                <button type="button" id="mrSaveBtn" class="btn-primary-custom">💾 บันทึกรับกล่องนี้</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-card mr-recent-card">
+                        <div class="mr-recent-head">
+                            <h2 class="mr-card-title">รับล่าสุด</h2>
+                            <button type="button" id="mrRefreshBtn" class="btn-secondary-custom">🔄 รีเฟรช</button>
+                        </div>
+                        <div class="mr-table-wrap">
+                            <table class="data-table mr-table">
+                                <thead><tr><th>เวลา</th><th>รหัสสี</th><th>Lot</th><th>kg</th><th>หมดอายุ</th><th>ยี่ห้อ</th><th>ผู้รับ</th></tr></thead>
+                                <tbody id="mrRecentBody"><tr><td colspan="7" class="mr-empty">กำลังโหลด...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- USER APPROVAL & ACCESS MANAGEMENT -->
                 <section id="settings-tab" class="tab-page" data-permission="users.manage" style="display: none;">
                     <div class="section-title-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
@@ -2061,6 +2150,10 @@
             <div class="mobile-nav-item" data-permission="events.read" onclick="switchTab('event-tab', this)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 <span>Event 5M1E</span>
+            </div>
+            <div class="mobile-nav-item" data-permission="materials.receive" onclick="openMaterialReceipt(event, this)">
+                <svg viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+                <span>รับ Mat</span>
             </div>
             <div class="mobile-nav-item" data-permission="spare_parts.read" onclick="switchTab('spare-parts-tab', this)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
@@ -2404,14 +2497,15 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <!-- JS Files -->
-    <script src="js/api.js?v=empid-case-20261026"></script>
+    <script src="js/api.js?v=mat-20261027"></script>
     <script src="js/rtv.js?v=1.0.2"></script>
     <script src="js/theme.js?v=soft-light-20261026"></script>
     <script src="js/chart-style.js?v=graphite-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
-    <script src="js/auth.js?v=empid-case-20261026"></script>
+    <script src="js/auth.js?v=mat-20261027"></script>
     <script src="js/app.js?v=tab-hash-20261026"></script>
     <script src="js/logged-in-recorder.js?v=recorder-20261027"></script>
+    <script src="js/material-receipt.js?v=mat-20261027"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
     <script src="js/daily-report.js?v=shifts-20261026"></script>
     <script src="js/rework.js?v=1.2.7"></script>
@@ -2421,7 +2515,7 @@
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
     <script src="js/line-efficiency.js?v=shifts-20261026"></script>
-    <script src="js/page-tabs.js?v=eff-20261026"></script>
+    <script src="js/page-tabs.js?v=mat-20261027"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>
 

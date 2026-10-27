@@ -24,8 +24,8 @@ const REPORT_READ_MAX_ROWS = 5000;
 // bounded so one malformed tab cannot make every QC request time out.
 const REPORT_READ_MAX_COLUMNS = 64;
 const PARAMETER_CHECKLIST_ID_HEADER = "SubmissionId";
-const ALL_PERMISSIONS = ["dashboard.read", "qc7.read", "qc.read", "inspection.create", "daily_report.read", "rework.read", "screen.read", "checklist.read", "events.read", "spare_parts.read", "users.manage"];
-const DEFAULT_USER_PERMISSIONS = ["dashboard.read", "qc7.read", "qc.read", "inspection.create", "daily_report.read", "rework.read", "screen.read", "checklist.read", "events.read", "spare_parts.read"];
+const ALL_PERMISSIONS = ["dashboard.read", "qc7.read", "qc.read", "inspection.create", "daily_report.read", "rework.read", "screen.read", "checklist.read", "events.read", "spare_parts.read", "materials.receive", "users.manage"];
+const DEFAULT_USER_PERMISSIONS = ["dashboard.read", "qc7.read", "qc.read", "inspection.create", "daily_report.read", "rework.read", "screen.read", "checklist.read", "events.read", "spare_parts.read", "materials.receive"];
 
 function normalizeInspectionWorkType_(value) {
   const raw = String(value == null ? "" : value).trim().toUpperCase();
@@ -1833,6 +1833,105 @@ function upsertUserRecord_(ss, payload) {
 }
 
 // =========================================================
+// Material receiving ("รับ Mat")
+// =========================================================
+const MATERIAL_RECEIPT_SHEET_NAME_ = "MaterialReceipts";
+const MATERIAL_RECEIPT_HEADERS_ = [
+  "Timestamp", "ReceiptId", "ReceivedBy", "Supplier", "ColorCode", "ColorName",
+  "Lot", "BoxNo", "NetWeightKg", "MfgDate", "ExpiryDate", "Note", "PhotoUrl"
+];
+
+// Reading labels from photos is not switched on yet; the web form then
+// works as manual entry with the photo as a reference.
+function materialConfig_() {
+  return { status: "success", ocrEnabled: false };
+}
+
+function getOrCreateMaterialReceiptSheet_(ss) {
+  let sheet = ss.getSheetByName(MATERIAL_RECEIPT_SHEET_NAME_);
+  if (!sheet) {
+    sheet = ss.insertSheet(MATERIAL_RECEIPT_SHEET_NAME_);
+    sheet.appendRow(MATERIAL_RECEIPT_HEADERS_);
+    // Keep codes such as "00123" and dates exactly as typed.
+    sheet.getRange(1, 1, 1000, MATERIAL_RECEIPT_HEADERS_.length).setNumberFormat("@");
+    sheet.setFrozenRows(1);
+    SpreadsheetApp.flush();
+  }
+  return sheet;
+}
+
+function materialReceiptCell_(value) {
+  return value instanceof Date ? formatDateStr(value, false) : String(value == null ? "" : value).trim();
+}
+
+function saveMaterialReceipt_(ss, payload) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const data = payload || {};
+    const colorCode = String(data.colorCode || "").trim();
+    const lot = String(data.lot || "").trim();
+    const weight = Number(data.netWeightKg);
+    if (!colorCode || !lot || !(weight > 0)) {
+      return { status: "error", message: "กรุณากรอก รหัสสี, Lot และน้ำหนัก" };
+    }
+    const receiptId = String(data.receiptId || "").trim();
+    const supplier = String(data.supplier || "").trim();
+    const boxNo = String(data.boxNo || "").trim();
+    const sheet = getOrCreateMaterialReceiptSheet_(ss);
+    const values = sheet.getDataRange().getValues();
+    const same = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+
+    for (let i = 1; i < values.length; i++) {
+      const row = values[i];
+      // A retried request (lost response) must not add a second row.
+      if (receiptId && same(row[1], receiptId)) return { status: "success", saved: true, receiptId: receiptId };
+    }
+    if (String(data.force || "") !== "1") {
+      for (let i = values.length - 1; i >= 1; i--) {
+        const row = values[i];
+        if (same(row[4], colorCode) && same(row[6], lot) && same(row[7], boxNo) && (!supplier || same(row[3], supplier))) {
+          return {
+            status: "success", saved: false, duplicate: true,
+            existing: { timestamp: materialReceiptCell_(row[0]), receivedBy: materialReceiptCell_(row[2]) }
+          };
+        }
+      }
+    }
+
+    sheet.appendRow([
+      formatDateStr(new Date(), true), receiptId, String(data.receivedBy || "").trim(), supplier,
+      colorCode, String(data.colorName || "").trim(), lot, boxNo, String(weight),
+      String(data.mfgDate || "").trim(), String(data.expiryDate || "").trim(),
+      String(data.note || "").trim(), String(data.photoUrl || "").trim()
+    ]);
+    SpreadsheetApp.flush();
+    return { status: "success", saved: true, receiptId: receiptId };
+  } catch (error) {
+    return { status: "error", message: error && error.message ? error.message : "บันทึกการรับ Mat ไม่สำเร็จ" };
+  } finally {
+    try { lock.releaseLock(); } catch (releaseError) {}
+  }
+}
+
+function getMaterialReceipts_(ss, limit) {
+  const sheet = ss.getSheetByName(MATERIAL_RECEIPT_SHEET_NAME_);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const count = Math.min(Math.max(1, limit || 200), 2000, sheet.getLastRow() - 1);
+  const start = sheet.getLastRow() - count + 1;
+  const values = sheet.getRange(start, 1, count, MATERIAL_RECEIPT_HEADERS_.length).getValues();
+  return values.reverse().map(row => ({
+    timestamp: materialReceiptCell_(row[0]), receiptId: materialReceiptCell_(row[1]),
+    receivedBy: materialReceiptCell_(row[2]), supplier: materialReceiptCell_(row[3]),
+    colorCode: materialReceiptCell_(row[4]), colorName: materialReceiptCell_(row[5]),
+    lot: materialReceiptCell_(row[6]), boxNo: materialReceiptCell_(row[7]),
+    netWeightKg: materialReceiptCell_(row[8]), mfgDate: materialReceiptCell_(row[9]),
+    expiryDate: materialReceiptCell_(row[10]), note: materialReceiptCell_(row[11]),
+    photoUrl: materialReceiptCell_(row[12])
+  }));
+}
+
+// =========================================================
 // Spare parts inventory
 // =========================================================
 const SPARE_PARTS_MASTER_HEADERS_ = [
@@ -2295,6 +2394,19 @@ function doGetJson_(e) {
     if (action === "upsertUser") {
       const result = upsertUserRecord_(ss, e && e.parameter ? e.parameter : {});
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Material receiving ("รับ Mat"): one row per paint box.
+    if (action === "materialConfig") {
+      return ContentService.createTextOutput(JSON.stringify(materialConfig_())).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (action === "saveMaterialReceipt") {
+      const result = saveMaterialReceipt_(ss, e && e.parameter ? e.parameter : {});
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (action === "getMaterialReceipts") {
+      const limit = Number((e && e.parameter && e.parameter.limit) || 200);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", rows: getMaterialReceipts_(ss, limit) })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle REWORK submission via GET (fallback used by the static web app).

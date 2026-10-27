@@ -16,6 +16,7 @@ const PaintingAuth = {
         { key: "checklist.read", label: "ดูเช็กลิสก่อนเริ่มงาน" },
         { key: "events.read", label: "ดู Event (5M1E)" },
         { key: "spare_parts.read", label: "ดูคลังอะไหล่" },
+        { key: "materials.receive", label: "รับ Mat (สีฝุ่น)" },
         { key: "users.manage", label: "จัดการผู้ใช้งาน" }
     ],
 
