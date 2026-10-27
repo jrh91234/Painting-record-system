@@ -1176,6 +1176,7 @@ async function loginUserAPI(employeeId, passwordHash) {
     const baseUrl = getApiUrl();
 
     // 1. Try Cloud Google Apps Script API
+    let cloudError = baseUrl ? null : new Error("ยังไม่ได้ตั้งค่า Google Sheet");
     if (baseUrl) {
         try {
             const json = await callUsersApi(baseUrl, {
@@ -1189,6 +1190,7 @@ async function loginUserAPI(employeeId, passwordHash) {
                 return json;
             }
         } catch (e) {
+            cloudError = e;
             console.warn("Cloud login failed, checking fallback...", e);
         }
     }
@@ -1238,6 +1240,17 @@ async function loginUserAPI(employeeId, passwordHash) {
         };
     }
 
+    // When the server could not be reached, "ID not found" would be wrong:
+    // only this device's cache was checked. Say what actually happened.
+    if (cloudError) {
+        const inApp = /Line\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent || "");
+        return {
+            status: "error",
+            message: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ จึงตรวจรหัสพนักงานไม่ได้ — ตรวจอินเทอร์เน็ตแล้วลองใหม่"
+                + (inApp ? " · ถ้าเปิดลิงก์จาก LINE/Facebook ให้กด ⋮ แล้วเลือกเปิดใน Chrome หรือ Safari" : "")
+                + " (" + (cloudError.message || cloudError) + ")"
+        };
+    }
     return { status: "error", message: "ไม่พบรหัสพนักงานนี้ในระบบ" };
 }
 
