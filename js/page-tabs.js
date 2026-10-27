@@ -29,6 +29,7 @@
         'equipment-checklist-tab': 'ตรวจเช็กอุปกรณ์',
         'event-tab': 'Event (5M1E)',
         'spare-parts-tab': 'คลังอะไหล่',
+        'material-receipt-tab': 'รับ Mat',
         'settings-tab': 'จัดการผู้ใช้งาน',
         'history-tab': 'ประวัติ'
     };
@@ -105,6 +106,8 @@
             window.openRTVTab(null, null);
         } else if (tabId === 'maintenance-plan-tab' && typeof window.openMaintenancePlan === 'function') {
             window.openMaintenancePlan(null, null);
+        } else if (tabId === 'material-receipt-tab' && typeof window.openMaterialReceipt === 'function') {
+            window.openMaterialReceipt(null, null);
         } else if (tabId === 'line-eff-tab' && typeof window.openLineEfficiency === 'function') {
             window.openLineEfficiency(null, null);
         } else if (tabId === 'qc7-tools-tab' && typeof window.openQC7Tools === 'function') {

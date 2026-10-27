@@ -1,0 +1,211 @@
+/* รับ Mat page (js/material-receipt.js). Uses the graphite/--kz-* tokens. */
+.mr-page [hidden] {
+  display: none !important;
+}
+
+.mr-head .page-title {
+  margin: 0;
+}
+
+.mr-sub {
+  margin: 0.25rem 0 0;
+  color: var(--kz-muted);
+  font-size: 0.88rem;
+}
+
+.mr-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.mr-photo-card,
+.mr-form-card,
+.mr-recent-card {
+  padding: 1.25rem;
+}
+
+/* Big, thumb-friendly camera button: the main action on a phone. */
+.mr-camera-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 150px;
+  border: 2px dashed var(--kz-line);
+  border-radius: var(--kz-radius-md, 12px);
+  background: var(--kz-surface-muted);
+  color: var(--kz-text);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.mr-camera-btn:hover {
+  border-color: var(--kz-muted);
+  background: var(--kz-surface-soft);
+}
+
+.mr-camera-btn span {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.mr-camera-btn small {
+  color: var(--kz-muted);
+}
+
+.mr-photo-preview {
+  display: block;
+  width: 100%;
+  margin-top: 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--kz-line);
+}
+
+.mr-photo-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.mr-photo-actions .btn-secondary-custom {
+  flex: 1;
+  min-height: 40px;
+}
+
+.mr-read-status,
+.mr-ocr-note {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  background: var(--kz-surface-muted);
+  color: var(--kz-text-soft);
+}
+
+.mr-read-status.is-good { background: color-mix(in srgb, #5f806a 14%, var(--kz-surface)); }
+.mr-read-status.is-warn { background: color-mix(in srgb, #b39a64 18%, var(--kz-surface)); }
+
+.mr-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+}
+
+.mr-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--kz-text-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mr-form .mr-wide {
+  grid-column: 1 / -1;
+}
+
+.mr-form .form-control {
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+/* Filled in by the label reader: worth a second look before saving. */
+.mr-form .form-control.is-auto {
+  background: color-mix(in srgb, #5c6c84 8%, var(--kz-input)) !important;
+}
+
+.mr-form .form-control.is-missing {
+  border-color: #b39a64 !important;
+  background: color-mix(in srgb, #b39a64 14%, var(--kz-input)) !important;
+}
+
+.mr-expiry-badge {
+  align-self: flex-start;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mr-expiry-badge.is-good { background: color-mix(in srgb, #5f806a 16%, transparent); color: #4f7f6a; }
+.mr-expiry-badge.is-warn { background: color-mix(in srgb, #b39a64 22%, transparent); color: #8a6d30; }
+.mr-expiry-badge.is-bad { background: color-mix(in srgb, #a4505a 16%, transparent); color: #a4505a; }
+
+.mr-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.mr-form-actions .btn-primary-custom {
+  min-height: 46px;
+  padding: 0.6rem 1.4rem;
+}
+
+.mr-recent-card {
+  margin-top: 1.25rem;
+}
+
+.mr-recent-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.mr-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mr-table-wrap {
+  overflow-x: auto;
+}
+
+.mr-table td,
+.mr-table th {
+  white-space: nowrap;
+  padding: 0.55rem 0.8rem !important;
+}
+
+.mr-table small {
+  color: var(--kz-muted);
+}
+
+.mr-table small.is-warn { color: #8a6d30; }
+.mr-table small.is-bad { color: #a4505a; }
+
+.mr-empty {
+  text-align: center;
+  color: var(--kz-muted);
+  padding: 1.2rem !important;
+}
+
+[data-theme="dark"] .mr-expiry-badge.is-good,
+[data-theme="dark"] .mr-table small.is-good { color: #8fbfa8; }
+[data-theme="dark"] .mr-expiry-badge.is-warn,
+[data-theme="dark"] .mr-table small.is-warn { color: #d2b277; }
+[data-theme="dark"] .mr-expiry-badge.is-bad,
+[data-theme="dark"] .mr-table small.is-bad { color: #d98a92; }
+
+@media (max-width: 860px) {
+  .mr-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .mr-form {
+    grid-template-columns: 1fr;
+  }
+
+  .mr-form-actions .btn-primary-custom {
+    flex: 1;
+  }
+}
