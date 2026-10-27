@@ -693,7 +693,7 @@
     <link rel="stylesheet" href="css/kurzgesagt.css?v=contrast-20261026">
     <link rel="stylesheet" href="css/page-tabs.css?v=tabs-20261026">
     <link rel="stylesheet" href="css/line-efficiency.css?v=graphite-20261026">
-    <link rel="stylesheet" href="css/graphite.css?v=logout-20261027">
+    <link rel="stylesheet" href="css/graphite.css?v=user-password-20261027">
     <link rel="stylesheet" href="css/material-receipt.css?v=mat-20261027">
 
     <!-- Chart.js CDN & Zoom Plugin -->
@@ -2438,10 +2438,14 @@
                         <option value="Disabled">🔴 ระงับใช้งาน (Disabled)</option>
                     </select>
                 </div>
-                <label id="adminResetPwRow" class="admin-reset-pw" hidden>
-                    <input type="checkbox" id="adminResetPw">
-                    <span>รีเซ็ตรหัสผ่านเป็น <b>123456</b></span>
-                </label>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="adminAddPassword" style="font-weight: 700; color: #cbd5e1; margin-bottom: 0.3rem; display: block;">รหัสผ่าน (Password)</label>
+                    <div class="admin-password-row">
+                        <input type="password" id="adminAddPassword" class="form-control" minlength="6" autocomplete="new-password" placeholder="เว้นว่าง = 123456">
+                        <button type="button" class="btn-secondary-custom admin-password-toggle" onclick="PaintingAuth.toggleAdminPasswordVisibility()" aria-label="แสดงรหัสผ่าน">👁</button>
+                    </div>
+                    <small id="adminPasswordHint" class="admin-password-hint">อย่างน้อย 6 ตัว · เว้นว่างไว้จะใช้ 123456</small>
+                </div>
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
                     <button type="button" class="btn-modal-cancel" onclick="PaintingAuth.closeAddUserModal()">ยกเลิก</button>
                     <button type="submit" class="btn-modal-save">💾 บันทึกผู้ใช้งาน</button>
@@ -2502,7 +2506,7 @@
     <script src="js/theme.js?v=soft-light-20261026"></script>
     <script src="js/chart-style.js?v=graphite-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
-    <script src="js/auth.js?v=mat-20261027"></script>
+    <script src="js/auth.js?v=user-password-20261027"></script>
     <script src="js/app.js?v=tab-hash-20261026"></script>
     <script src="js/logged-in-recorder.js?v=recorder-20261027"></script>
     <script src="js/material-receipt.js?v=mat-20261027"></script>
