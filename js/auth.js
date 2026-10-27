@@ -569,18 +569,29 @@ const PaintingAuth = {
     },
 
     // The add-user modal doubles as the edit form: in edit mode the employee
-    // ID is locked and a "reset password" option appears.
+    // ID is locked and a blank password keeps the current one.
     setUserModalMode(mode) {
         this.userModalMode = mode;
         const isEdit = mode === "edit";
         const title = document.getElementById("addUserModalTitle");
         const idInput = document.getElementById("adminAddEmpId");
-        const resetRow = document.getElementById("adminResetPwRow");
-        const resetBox = document.getElementById("adminResetPw");
+        const password = document.getElementById("adminAddPassword");
+        const hint = document.getElementById("adminPasswordHint");
         if (title) title.textContent = isEdit ? "✏️ แก้ไขข้อมูลผู้ใช้งาน" : "👤 เพิ่มผู้ใช้งาน / อนุมัติสิทธิ์พนักงาน";
         if (idInput) idInput.readOnly = isEdit;
-        if (resetRow) resetRow.hidden = !isEdit;
-        if (resetBox) resetBox.checked = false;
+        if (password) {
+            password.value = "";
+            password.type = "password";
+            password.placeholder = isEdit ? "เว้นว่าง = ใช้รหัสผ่านเดิม" : "เว้นว่าง = 123456";
+        }
+        if (hint) hint.textContent = isEdit
+            ? "ใส่เฉพาะเมื่อต้องการเปลี่ยนรหัสผ่าน (อย่างน้อย 6 ตัว)"
+            : "อย่างน้อย 6 ตัว · เว้นว่างไว้จะใช้ 123456";
+    },
+
+    toggleAdminPasswordVisibility() {
+        const password = document.getElementById("adminAddPassword");
+        if (password) password.type = password.type === "password" ? "text" : "password";
     },
 
     openAddUserModal() {
@@ -634,16 +645,22 @@ const PaintingAuth = {
         }
 
         const isEdit = this.userModalMode === "edit";
-        const resetPassword = isEdit && !!document.getElementById("adminResetPw")?.checked;
+        const typedPassword = (document.getElementById("adminAddPassword")?.value || "").trim();
+        if (typedPassword && typedPassword.length < 6) {
+            alert("รหัสผ่านต้องมีอย่างน้อย 6 ตัว");
+            return;
+        }
+        // A typed password is always applied, also to an ID that already
+        // exists. Left blank: new users get 123456, existing users keep theirs.
+        const setPassword = !!typedPassword;
         const userData = {
             employeeId: empId,
             displayName: name,
             department: dept,
             role: role,
             status: status,
-            // New users start with 123456; an edit keeps the password unless reset.
-            passwordHash: (!isEdit || resetPassword) ? await this.hashPassword("123456") : "",
-            resetPassword: resetPassword
+            passwordHash: (setPassword || !isEdit) ? await this.hashPassword(typedPassword || "123456") : "",
+            resetPassword: setPassword
         };
 
         // Saving can take a few seconds; show it so the button never looks dead.
@@ -657,8 +674,8 @@ const PaintingAuth = {
             if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = submitLabel; }
         }
         this.reportUserWrite(result, isEdit
-            ? `บันทึกการแก้ไขรหัสพนักงาน ${empId} (${name}) แล้ว${resetPassword ? " · รหัสผ่านใหม่ 123456" : ""}`
-            : `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว`);
+            ? `บันทึกการแก้ไขรหัสพนักงาน ${empId} (${name}) แล้ว${setPassword ? " · เปลี่ยนรหัสผ่านแล้ว" : ""}`
+            : `เพิ่ม/อนุมัติรหัสพนักงาน ${empId} (${name}) เรียบร้อยแล้ว${setPassword ? "" : " · รหัสผ่านเริ่มต้น 123456"}`);
         if (!result || result.status !== "success") return;
 
         this.closeAddUserModal();

@@ -407,21 +407,25 @@ html[data-theme] .user-summary-grid span {
   color: var(--kz-text) !important;
 }
 
-.admin-reset-pw {
+.admin-password-row {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
-  margin: 0 0 1rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 10px;
-  background: var(--kz-surface-muted);
-  color: var(--kz-text-soft);
-  font-size: 0.88rem;
-  cursor: pointer;
 }
 
-.admin-reset-pw[hidden] {
-  display: none;
+.admin-password-row .form-control {
+  flex: 1;
+}
+
+.admin-password-toggle {
+  flex: 0 0 auto;
+  min-width: 46px;
+}
+
+.admin-password-hint {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--kz-muted);
+  font-size: 0.78rem;
 }
 
 #adminAddEmpId[readonly] {
