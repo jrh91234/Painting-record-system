@@ -1081,17 +1081,6 @@ async function submitDailyReport() {
         return;
     }
 
-    const downtime = {
-        burner: Number(document.getElementById('dtBurner').value) || 0,
-        wash: Number(document.getElementById('dtWash').value) || 0,
-        oven: Number(document.getElementById('dtOven').value) || 0,
-        gun: Number(document.getElementById('dtGun').value) || 0,
-        power: Number(document.getElementById('dtPower').value) || 0,
-        motor: Number(document.getElementById('dtMotor').value) || 0,
-        other: Number(document.getElementById('dtOther').value) || 0,
-        note: document.getElementById('dtNote').value || ""
-    };
-
     const payload = {
         action: "submitDailyReport",
         submissionId: pendingDailyReportSubmissionId || (pendingDailyReportSubmissionId = createDailyReportSubmissionId()),
@@ -1099,8 +1088,7 @@ async function submitDailyReport() {
         shift: shift,
         recorder: recorder,
         checker: checker,
-        records: dailyReportRecords,
-        downtime: downtime
+        records: dailyReportRecords
     };
 
     const submitBtn = document.getElementById('submitDailyBtn');
@@ -1155,14 +1143,6 @@ async function submitDailyReport() {
         pendingDailyReportSubmissionId = null;
         localStorage.removeItem("PAINTING_DAILY_REPORT_DRAFT");
         renderDailyReportList();
-        document.getElementById('dtBurner').value = "";
-        document.getElementById('dtWash').value = "";
-        document.getElementById('dtOven').value = "";
-        document.getElementById('dtGun').value = "";
-        document.getElementById('dtPower').value = "";
-        document.getElementById('dtMotor').value = "";
-        document.getElementById('dtOther').value = "";
-        document.getElementById('dtNote').value = "";
         document.getElementById('drProdQty').value = "";
         
         if (typeof renderDailyReportCharts === 'function') {
