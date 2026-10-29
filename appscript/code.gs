@@ -2432,6 +2432,146 @@ function readPartModelCatalog_(catalogSheet) {
   return { groups, order };
 }
 
+// The Capacity sheet (PartCode, PartName, ProductGroup, standard times...)
+// becomes the production form's catalog once it has a PartCategory column;
+// ColorName / ColorCode give each part's color (several may be listed with
+// commas). Until then PartModelCatalog is used. setupCapacityCatalog adds
+// those columns and copies what PartModelCatalog already knows.
+const CAPACITY_CATALOG_COLUMNS_ = ["PartCategory", "ColorName", "ColorCode"];
+const CAPACITY_NO_CATEGORY_ = "ไม่ระบุประเภท";
+
+function capacityCode_(value) {
+  return String(value || "").trim().split(/\s+/)[0].toUpperCase();
+}
+
+function readCapacityTable_(ss) {
+  const sheet = ss.getSheetByName("Capacity");
+  if (!sheet || sheet.getLastColumn() < 1) return null;
+  const values = sheet.getRange(1, 1, Math.max(sheet.getLastRow(), 1), sheet.getLastColumn()).getDisplayValues();
+  const col = {};
+  values[0].forEach((h, i) => { const name = String(h).trim(); if (name && !(name in col)) col[name] = i; });
+  return { sheet, values, col };
+}
+
+function readCapacityCatalog_(ss) {
+  const table = readCapacityTable_(ss);
+  if (!table || !("PartCode" in table.col) || !("PartCategory" in table.col)) return null;
+  const { values, col } = table;
+  const cell = (row, name) => (name in col ? String(row[col[name]] || "").trim() : "");
+  const groups = {};
+  const order = [];
+  values.slice(1).forEach(row => {
+    const code = cell(row, "PartCode");
+    const groupName = cell(row, "ProductGroup");
+    if (!code || !groupName) return;
+    if (!groups[groupName]) {
+      groups[groupName] = { categories: {}, colors: [] };
+      order.push(groupName);
+    }
+    const group = groups[groupName];
+    const category = cell(row, "PartCategory") || CAPACITY_NO_CATEGORY_;
+    if (!group.categories[category]) group.categories[category] = [];
+    if (!group.categories[category].some(m => m.value === code)) {
+      const name = cell(row, "PartName");
+      group.categories[category].push({ value: code, label: name ? name + " (" + code + ")" : code });
+    }
+    const colorNames = cell(row, "ColorName").split(",").map(v => v.trim());
+    const colorCodes = cell(row, "ColorCode").split(",").map(v => v.trim());
+    colorNames.forEach((colorName, i) => {
+      if (!colorName || group.colors.some(c => c.value === colorName)) return;
+      const colorCode = colorCodes[i] || "";
+      group.colors.push({ value: colorName, label: colorCode ? colorName + " (" + colorCode + ")" : colorName, code: colorCode });
+    });
+  });
+  return { groups, order };
+}
+
+// "➕ เพิ่มรายการ" while the catalog comes from Capacity: add the part as a
+// Capacity row. Its standard time is left for the sheet's owner to fill in;
+// %Eff treats a part without one as unmatched, as before.
+function addCapacityCatalogEntry_(ss, group, category, code, name) {
+  if (!code) return { status: "success", localOnly: true };
+  const table = readCapacityTable_(ss);
+  const catalog = readCapacityCatalog_(ss);
+  const exists = table.values.slice(1).some(row => capacityCode_(row[table.col.PartCode]) === capacityCode_(code));
+  if (exists) return { status: "success", duplicate: true };
+  const color = ((catalog.groups[group] || {}).colors || [])[0] || {};
+  const row = new Array(table.values[0].length).fill("");
+  const put = (header, value) => { if (header in table.col) row[table.col[header]] = value; };
+  put("PartCode", code);
+  put("PartName", name || code);
+  put("ProductGroup", group);
+  put("PartCategory", category);
+  put("ColorName", color.value || "");
+  put("ColorCode", color.code || "");
+  table.sheet.appendRow(row);
+  SpreadsheetApp.flush();
+  return { status: "success" };
+}
+
+// Run once from the Apps Script editor to switch the production form's
+// dropdowns to the Capacity sheet. It adds PartCategory / ColorName /
+// ColorCode to Capacity, fills them for parts PartModelCatalog already has
+// (matched on PartCode or AppCodes), and appends the catalog's other parts
+// so no option disappears from the form. Empty cells are never overwritten.
+function setupCapacityCatalog() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let table = readCapacityTable_(ss);
+  if (!table || !("PartCode" in table.col)) throw new Error("ไม่พบชีต Capacity หรือคอลัมน์ PartCode");
+  const missingHeaders = CAPACITY_CATALOG_COLUMNS_.filter(h => !(h in table.col));
+  if (missingHeaders.length) {
+    table.sheet.getRange(1, table.values[0].length + 1, 1, missingHeaders.length).setValues([missingHeaders]);
+    SpreadsheetApp.flush();
+    table = readCapacityTable_(ss);
+  }
+  const { sheet, values, col } = table;
+
+  const catalogSheet = ensurePartModelCatalogSheet_(ss);
+  const catalogRows = catalogSheet.getLastRow() < 2 ? [] : catalogSheet.getRange(2, 1, catalogSheet.getLastRow() - 1, 6).getDisplayValues();
+  const known = new Map();
+  catalogRows.forEach(r => {
+    const [group, category, code, name, colorName, colorCode] = r.map(v => String(v || "").trim());
+    if (group && code && !known.has(capacityCode_(code))) known.set(capacityCode_(code), { group, category, code, name, colorName, colorCode });
+  });
+
+  const used = new Set();
+  let filled = 0;
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const codes = [row[col.PartCode]].concat("AppCodes" in col ? String(row[col.AppCodes] || "").split(",") : []).map(capacityCode_).filter(Boolean);
+    const match = codes.map(c => known.get(c)).filter(Boolean)[0];
+    if (!match) continue;
+    used.add(capacityCode_(match.code));
+    const updates = { PartCategory: match.category, ColorName: match.colorName, ColorCode: match.colorCode };
+    Object.keys(updates).forEach(header => {
+      if (updates[header] && !String(row[col[header]] || "").trim()) {
+        sheet.getRange(i + 1, col[header] + 1).setValue(updates[header]);
+        filled++;
+      }
+    });
+  }
+
+  const appended = [];
+  known.forEach((item, key) => {
+    if (used.has(key)) return;
+    const suffix = " (" + item.code + ")";
+    const name = item.name.endsWith(suffix) ? item.name.slice(0, -suffix.length) : item.name;
+    const row = new Array(values[0].length).fill("");
+    const put = (header, value) => { if (header in col) row[col[header]] = value; };
+    put("PartCode", item.code);
+    put("PartName", name || item.code);
+    put("ProductGroup", item.group);
+    put("PartCategory", item.category);
+    put("ColorName", item.colorName);
+    put("ColorCode", item.colorCode);
+    appended.push(row);
+  });
+  if (appended.length) sheet.getRange(sheet.getLastRow() + 1, 1, appended.length, values[0].length).setValues(appended);
+  SpreadsheetApp.flush();
+  Logger.log("Capacity พร้อมใช้เป็นตัวเลือกแล้ว: เติมข้อมูล " + filled + " ช่อง, เพิ่มชิ้นงานจาก PartModelCatalog " + appended.length + " แถว (ยังไม่มีเวลามาตรฐาน: "
+    + appended.map(r => r[col.PartCode]).join(", ") + ")");
+}
+
 function doGet(e) {
   const result = doGetJson_(e);
   const callback = String(e && e.parameter && (e.parameter.prefix || e.parameter.callback) || "").trim();
@@ -2974,6 +3114,10 @@ function doGetJson_(e) {
     }
 
     if (action === "getPartModels") {
+      const capacityCatalog = readCapacityCatalog_(ss);
+      if (capacityCatalog) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "capacity", groups: capacityCatalog.groups, order: capacityCatalog.order })).setMimeType(ContentService.MimeType.JSON);
+      }
       const catalogSheet = ensurePartModelCatalogSheet_(ss);
       const catalog = readPartModelCatalog_(catalogSheet);
       return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "sheet", groups: catalog.groups, order: catalog.order })).setMimeType(ContentService.MimeType.JSON);
@@ -2990,10 +3134,13 @@ function doGetJson_(e) {
       if (!group || !category) {
         return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "ต้องระบุกลุ่มผลิตภัณฑ์และประเภทชิ้นงาน" })).setMimeType(ContentService.MimeType.JSON);
       }
-      const catalogSheet = ensurePartModelCatalogSheet_(ss);
       const lock = LockService.getScriptLock();
       lock.waitLock(10000);
       try {
+        if (readCapacityCatalog_(ss)) {
+          return ContentService.createTextOutput(JSON.stringify(addCapacityCatalogEntry_(ss, group, category, code || name, code ? name : ""))).setMimeType(ContentService.MimeType.JSON);
+        }
+        const catalogSheet = ensurePartModelCatalogSheet_(ss);
         const catalog = readPartModelCatalog_(catalogSheet);
         const models = ((catalog.groups[group] || {}).categories || {})[category];
         const value = code || name;

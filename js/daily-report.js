@@ -263,7 +263,7 @@ function handlePartCategorySelect(select) {
     showToast('เพิ่มประเภทชิ้นงานใหม่แล้ว', 'success');
 }
 
-// New categories/models are added to the PartModelCatalog sheet so every
+// New categories/models are added to the catalog sheet so every
 // device gets them; the local copy above keeps the form usable meanwhile.
 function saveCatalogEntryToSheet(entry) {
     if (typeof addCatalogEntryToAPI !== 'function') return;
@@ -401,12 +401,15 @@ async function loadPartModelsList() {
     if (typeof fetchPartModelsFromAPI === 'function') {
         const cloudGroups = await fetchPartModelsFromAPI();
         const meta = window.PAINTING_PART_CATALOG_META || {};
-        if (cloudGroups && typeof cloudGroups === 'object' && meta.source === 'sheet') {
-            // The PartModelCatalog sheet is the source of truth: show exactly
-            // its groups, categories, models and colors, in sheet order.
+        if (cloudGroups && typeof cloudGroups === 'object' && (meta.source === 'sheet' || meta.source === 'capacity')) {
+            // The sheet is the source of truth (Capacity, or PartModelCatalog
+            // until Capacity has a PartCategory column): show exactly its
+            // groups, categories, models and colors, in sheet order.
             if (Array.isArray(meta.order) && meta.order.length) PAINTING_PRODUCT_GROUP_ORDER = meta.order.slice();
             const sheetCatalog = normalizeProductCatalog(cloudGroups);
-            const localOnly = uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog);
+            // Old browser-only entries were PartModelCatalog codes; never copy
+            // them into Capacity.
+            const localOnly = meta.source === 'sheet' ? uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog) : [];
             PAINTING_MODEL_GROUPS = removeMistypedCatalogEntries(localOnly.length ? mergeProductCatalog(sheetCatalog, localCatalog) : sheetCatalog);
             localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
             renderProductGroupDropdownUI();
