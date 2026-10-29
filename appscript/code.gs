@@ -1890,6 +1890,18 @@ function readMaterialLabel_(payload) {
   return { status: "error", message: "ยังไม่ได้เปิดอ่านฉลากอัตโนมัติ" };
 }
 
+// Run this once from the Apps Script editor after updating the code: it asks
+// for the Drive/Docs permissions label reading needs and checks they work.
+function testMaterialOcrSetup() {
+  if (!materialDriveOcrAvailable_()) {
+    throw new Error("ยังไม่ได้เพิ่ม Drive API: กด Services (+) ทางซ้าย > Drive API > Add แล้วรันใหม่");
+  }
+  const file = Drive.Files.create({ name: "material-ocr-test", mimeType: MimeType.GOOGLE_DOCS }, Utilities.newBlob("OCR test", "text/plain", "material-ocr-test.txt"));
+  const text = DocumentApp.openById(file.id).getBody().getText();
+  Drive.Files.remove(file.id);
+  Logger.log("พร้อมใช้งาน: อ่านฉลากด้วย Google Drive OCR (" + text.trim() + "). Deploy version ใหม่ได้เลย");
+}
+
 // Converting an image to a Google Doc runs Drive's OCR on it; the temporary
 // Doc is deleted as soon as its text has been read.
 function readMaterialLabelWithDrive_(image, mimeType) {
