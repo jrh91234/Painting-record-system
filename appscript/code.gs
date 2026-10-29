@@ -1850,10 +1850,12 @@ const MATERIAL_RECEIPT_HEADERS_ = [
   "Lot", "BoxNo", "NetWeightKg", "MfgDate", "ExpiryDate", "Note", "PhotoUrl"
 ];
 
-// Reading labels from photos uses the Claude API. It is switched on by adding
-// the Script Property ANTHROPIC_API_KEY (Project Settings > Script Properties);
-// without it the web form works as manual entry with the photo as a reference.
-// ANTHROPIC_MODEL may be set to use a different model.
+// Reading labels from photos: with the Script Property ANTHROPIC_API_KEY
+// (Project Settings > Script Properties) the photo goes to the Claude API;
+// ANTHROPIC_MODEL may be set to use a different model. Without a key, Google
+// Drive OCR (the "Drive" advanced service in appsscript.json) reads the text
+// and parseMaterialLabelText_ picks out the fields. With neither, the web form
+// works as manual entry with the photo as a reference.
 const MATERIAL_LABEL_DEFAULT_MODEL_ = "claude-opus-5-5";
 const MATERIAL_LABEL_FIELDS_ = ["supplier", "colorCode", "colorName", "lot", "boxNo", "netWeightKg", "mfgDate", "expiryDate"];
 const MATERIAL_LABEL_PROMPT_ = [
@@ -1870,16 +1872,112 @@ function materialLabelApiKey_() {
   return String(PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY") || "").trim();
 }
 
+function materialDriveOcrAvailable_() {
+  return typeof Drive !== "undefined";
+}
+
 function materialConfig_() {
-  return { status: "success", ocrEnabled: !!materialLabelApiKey_() };
+  const engine = materialLabelApiKey_() ? "claude" : (materialDriveOcrAvailable_() ? "drive" : "");
+  return { status: "success", ocrEnabled: !!engine, ocrEngine: engine };
 }
 
 function readMaterialLabel_(payload) {
-  const apiKey = materialLabelApiKey_();
-  if (!apiKey) return { status: "error", message: "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY" };
   const image = String((payload && payload.image) || "");
   if (!image) return { status: "error", message: "ไม่มีรูป" };
   const mimeType = String((payload && payload.mimeType) || "image/jpeg");
+  if (materialLabelApiKey_()) return readMaterialLabelWithClaude_(image, mimeType);
+  if (materialDriveOcrAvailable_()) return readMaterialLabelWithDrive_(image, mimeType);
+  return { status: "error", message: "ยังไม่ได้เปิดอ่านฉลากอัตโนมัติ" };
+}
+
+// Converting an image to a Google Doc runs Drive's OCR on it; the temporary
+// Doc is deleted as soon as its text has been read.
+function readMaterialLabelWithDrive_(image, mimeType) {
+  let fileId = "";
+  try {
+    const blob = Utilities.newBlob(Utilities.base64Decode(image), mimeType, "material-label.jpg");
+    const file = Drive.Files.create({ name: "material-label-ocr", mimeType: MimeType.GOOGLE_DOCS }, blob);
+    fileId = file.id;
+    const text = DocumentApp.openById(fileId).getBody().getText();
+    const fields = parseMaterialLabelText_(text);
+    if (!fields.colorCode && !fields.lot && !fields.netWeightKg) {
+      return { status: "error", message: "อ่านตัวหนังสือบนฉลากไม่ออก ลองถ่ายใหม่ให้ใกล้และชัดขึ้น" };
+    }
+    return { status: "success", fields: fields };
+  } catch (error) {
+    console.error("Drive OCR failed: " + (error && error.message));
+    return { status: "error", message: "อ่านรูปด้วย Google Drive ไม่สำเร็จ" };
+  } finally {
+    if (fileId) {
+      try { Drive.Files.remove(fileId); } catch (removeError) {
+        try { DriveApp.getFileById(fileId).setTrashed(true); } catch (trashError) {}
+      }
+    }
+  }
+}
+
+// OCR text keeps the words but not the layout (columns and table cells can
+// come out in any order), so fields are found mostly by what their values
+// look like rather than by what is printed next to them.
+//   JOTUN : SKU 1259107PX20, Batch No 4413909-1-*-1:2, Box no. 33,
+//           title "G StyleE88T -White SE3 SMO", dates dd/mm/yyyy, Net weight (kg) 20.0
+//   NUO QI: 型号 NQPE90001-1, 产品批号 20261007014, 净重 20KG,
+//           生产日期 2026.10.07, 保质期 6个月, 产品名称 白高光
+function parseMaterialLabelText_(text) {
+  const raw = String(text || "");
+  const flat = raw.replace(/\s+/g, " ");
+  const pad = n => String(n).padStart(2, "0");
+  const iso = (y, m, d) => {
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    if (isNaN(date) || date.getMonth() !== Number(m) - 1) return "";
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+  };
+  const first = (re, source) => { const m = (source || flat).match(re); return m ? m[1] : ""; };
+  const fields = { supplier: "", colorCode: "", colorName: "", lot: "", boxNo: "", netWeightKg: "", mfgDate: "", expiryDate: "" };
+
+  if (/NUO\s*QI|诺奇|\bNQ[A-Z]{0,4}\d{4,}/i.test(flat)) {
+    fields.supplier = "NUO QI";
+    fields.colorCode = first(/\b(NQ[A-Z]{0,4}\d{3,}(?:\s?-\s?\d+)?)\b/i).replace(/\s/g, "").toUpperCase();
+    // Lot numbers start with the production date (20261007014); phone numbers start with 0.
+    fields.lot = first(/\b(20\d{9,12})\b/);
+    fields.netWeightKg = first(/(\d+(?:[.,]\d+)?)\s*KG\b/i).replace(",", ".");
+    const mfg = flat.match(/\b(20\d{2})\s*[.\-\/]\s*(\d{1,2})\s*[.\-\/]\s*(\d{1,2})\b/);
+    if (mfg) fields.mfgDate = iso(mfg[1], mfg[2], mfg[3]);
+    else if (fields.lot) fields.mfgDate = iso(fields.lot.slice(0, 4), fields.lot.slice(4, 6), fields.lot.slice(6, 8));
+    const nameAt = raw.indexOf("产品名称");
+    if (nameAt >= 0) {
+      const after = raw.slice(nameAt + 4, nameAt + 80).replace(/ชื่อผลิตภัณฑ์/g, "");
+      fields.colorName = first(/([\u4e00-\u9fff]{1,12})/, after);
+    }
+    const months = Number(first(/保质期[^0-9]{0,30}(\d{1,2})\s*个?月/) || first(/(\d{1,2})\s*个月/));
+    if (fields.mfgDate && months > 0) {
+      const p = fields.mfgDate.split("-").map(Number);
+      const end = new Date(p[0], p[1] - 1 + months, p[2]);
+      if (end.getDate() !== p[2]) end.setDate(0);
+      fields.expiryDate = iso(end.getFullYear(), end.getMonth() + 1, end.getDate());
+    }
+    return fields;
+  }
+
+  if (/JOTUN|\bBatch\s*No|Best\s*before|\d{7}PX\d{2}/i.test(flat)) fields.supplier = "JOTUN";
+  fields.colorCode = (first(/SKU\s*:?\s*([0-9]{6,8}[A-Z]{1,3}[0-9]{1,3})\b/i) || first(/\b([0-9]{6,8}PX[0-9]{1,3})\b/i)).toUpperCase();
+  fields.lot = first(/\b(\d{6,8}\s?-\s?\d+\s?-\s?[*\w]\s?-\s?\d+\s?:\s?\d+)/).replace(/\s/g, "")
+    || first(/Batch\s*No\.?\s*:?\s*([0-9][0-9A-Z*:\-]{4,})/i);
+  fields.boxNo = first(/o\s*x\s*no\.?\s*:?\s*(\d{1,5})\b/i);
+  fields.netWeightKg = first(/Net\s*weight\s*\(?\s*kg\s*\)?\s*:?\s*(\d{1,3}[.,]\d{1,2}|\d{1,3})\b/i).replace(",", ".");
+  // Manufacturing date comes before Best before; sorting also copes with OCR reordering.
+  const dates = [];
+  flat.replace(/\b(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(20\d{2})\b/g, (m, d, mo, y) => { const v = iso(y, mo, d); if (v) dates.push(v); return m; });
+  dates.sort();
+  if (dates.length) fields.mfgDate = dates[0];
+  if (dates.length > 1 && dates[dates.length - 1] !== dates[0]) fields.expiryDate = dates[dates.length - 1];
+  const title = raw.split(/\n/).map(line => line.trim()).filter(line => /Style/i.test(line) && /-/.test(line) && !/Standard/i.test(line))[0];
+  if (title) fields.colorName = title.replace(/\s*Batch\s*No.*$/i, "").trim();
+  return fields;
+}
+
+function readMaterialLabelWithClaude_(image, mimeType) {
+  const apiKey = materialLabelApiKey_();
   const model = String(PropertiesService.getScriptProperties().getProperty("ANTHROPIC_MODEL") || "").trim() || MATERIAL_LABEL_DEFAULT_MODEL_;
 
   const properties = {};
