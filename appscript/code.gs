@@ -108,67 +108,6 @@ function inspectionRowValues_(sheet, payload, existingRow) {
   return row.slice(0, lastColumn);
 }
 
-// Production catalog used by the daily report cascading selectors.
-const PART_MODEL_CATALOG = {
-  "LC600 Classic": { colors: [{ value: "GREY BUTTER", label: "GREY BUTTER (1025216PX20)", code: "1025216PX20" }], categories: {
-    "Flat Door": [{ value: "7517016200", label: "Flat Door (7517016200)" }],
-    "Gland Plate": [{ value: "7517014800", label: "Gland Plate (7517014800)" }],
-    "Cover (Four types)": [
-      { value: "75170152", label: "Cover (Four types) (75170152)" },
-      { value: "75170153", label: "Cover (Four types) (75170153)" },
-      { value: "75170154", label: "Cover (Four types) (75170154)" },
-      { value: "75170155", label: "Cover (Four types) (75170155)" }
-    ],
-    "Box": [{ value: "7517014500", label: "Box (7517014500)" }]
-  } },
-  "LC600 Visi-smart": { colors: [{ value: "WHITE", label: "WHITE (1003532PX20)", code: "1003532PX20" }], categories: {
-    "Curve Door": [{ value: "7517016600", label: "Curve Door (7517016600)" }],
-    "Gland Plate": [{ value: "7517014000", label: "Gland Plate (7517014000)" }],
-    "Cover (Four types)": [
-      { value: "75170152", label: "Cover (Four types) (75170152)" },
-      { value: "75170153", label: "Cover (Four types) (75170153)" },
-      { value: "75170154", label: "Cover (Four types) (75170154)" },
-      { value: "75170155", label: "Cover (Four types) (75170155)" }
-    ],
-    "Box": [{ value: "7517014500", label: "Box (7517014500)" }]
-  } },
-  "PDB": { colors: [{ value: "WHITE N-47", label: "WHITE N-47 (1214891PX20)", code: "1214891PX20" }], categories: {
-    "PDB": [
-      { value: "827111-S", label: "DBS30 (827111-S)" },
-      { value: "827198-S", label: "DBS45 (827198-S)" },
-      { value: "827285-S", label: "DBS60 (827285-S)" }
-    ]
-  } },
-  "CU (resi thai)": { colors: [{ value: "White 2910", label: "White 2910 (1223326PX20)", code: "1223326PX20" }], categories: {
-    "Metal Box": [
-      { value: "BRU30887", label: "METAL BOX 4/6 WAY (BRU30887)" },
-      { value: "BRU30888", label: "METAL BOX 8/10 WAY (BRU30888)" },
-      { value: "BRU30889", label: "METAL BOX 14 WAY (BRU30889)" }
-    ],
-    "Metal Cover": [
-      { value: "BRU30890", label: "METAL COVER 4 WAY (BRU30890)" },
-      { value: "BRU30891", label: "METAL COVER 6 WAY (BRU30891)" },
-      { value: "BRU30892", label: "METAL COVER 8 WAY (BRU30892)" },
-      { value: "BRU30893", label: "METAL COVER 10 WAY (BRU30893)" },
-      { value: "BRU30894", label: "METAL COVER 14 WAY (BRU30894)" }
-    ]
-  } },
-  "NLC": { colors: [
-    { value: "GREY", label: "GREY (1259025)", code: "1259025" },
-    { value: "WHITE SE3", label: "WHITE SE3 (1259107)", code: "1259107" }
-  ], categories: {
-    "U BOX": [["BRU53714", "U BOX 450mm"], ["BRU53715", "U BOX 600mm"], ["BRU53716", "U BOX 750mm"], ["BRU53771", "U BOX 900mm"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" })),
-    "Door": [["BRU53743", "Door 450mm"], ["BRU53744", "Door 600mm"], ["BRU53747", "Door 750mm"], ["BRU53749", "Door 900mm"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" })),
-    "Gland Plate": [{ value: "BRU53717", label: "Gland Plate (BRU53717)" }],
-    "Cover 100EZ": [["BRU53718", "Cover EZ100 450mm 12 way"], ["BRU53719", "Cover EZ100 600mm 18 way"], ["BRU53720", "Cover EZ100 600mm 24 way"], ["BRU53721", "Cover EZ100 600mm 30 way"], ["BRU53722", "Cover EZ100 750mm 36 way"], ["BRU53723", "Cover EZ100 750mm 42 way"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" })),
-    "Cover 100LUG": [["BRU53724", "Cover LUG100 450mm 12 way"], ["BRU53725", "Cover LUG100 450mm 18 way"], ["BRU53726", "Cover LUG100 600mm 24 way"], ["BRU53727", "Cover LUG100 600mm 30 way"], ["BRU53728", "Cover LUG100 600mm 36 way"], ["BRU53729", "Cover LUG100 750mm 42 way"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" })),
-    "Cover 250EZ": [["BRU53730", "Cover EZ250 600mm 12 way"], ["BRU53731", "Cover EZ250 600mm 18 way"], ["BRU53732", "Cover EZ250 750mm 24 way"], ["BRU53734", "Cover EZ250 750mm 30 way"], ["BRU53735", "Cover EZ250 900mm 36 way"], ["BRU53736", "Cover EZ250 900mm 42 way"], ["BRU53737", "Cover EZ250 900mm 48 way"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" })),
-    "Cover 250LUG": [["BRU53738", "Cover LUG250 450mm 12 way"], ["BRU53739", "Cover LUG250 600mm 18 way"], ["BRU53740", "Cover LUG250 600mm 24 way"], ["BRU53741", "Cover LUG250 600mm 30 way"], ["BRU53742", "Cover LUG250 750mm 36 way"], ["BRU53745", "Cover LUG250 750mm 42 way"], ["BRU53746", "Cover LUG250 900mm 48 way"]].map(x => ({ value: x[0], label: x[1] + " (" + x[0] + ")" }))
-  } },
-  // Keep NMS selectable while its part/model catalog is being prepared.
-  "NMS": { colors: [], categories: { "Box": [], "Cover": [] } }
-};
-
 // "Admin" is granted by the owner from the user-management menu and gets
 // every permission, like the Super Admin, without being the system owner.
 function isFullAccessRole_(role) {
@@ -2368,76 +2307,11 @@ function recordSparePartTransaction_(ss, payload) {
   }
 }
 
-// Keep the normal JSON response for fetch() callers, but also support a safe
-// JSONP callback. Apps Script /exec uses a short-lived redirect; a browser
-// script request can follow that redirect reliably when fetch() receives a
-// stale googleusercontent.com 404.
-// PartModelCatalog is the source of truth for the production form's
-// Product Group -> Part Category -> Model -> Color dropdowns. Columns:
-// ProductGroup | PartCategory | PartCode | PartName | ColorName | ColorCode
-// (PartCode/PartName as in the Capacity sheet). Columns are read by
-// position, so only the header text depends on these names.
-// A row may leave PartCode empty to add only a category, or leave both
-// PartCategory and PartCode empty to add only a color or an empty group.
-function ensurePartModelCatalogSheet_(ss) {
-  let catalogSheet = ss.getSheetByName("PartModelCatalog");
-  if (!catalogSheet) catalogSheet = ss.insertSheet("PartModelCatalog");
-  // Sheets created before the rename still say ModelCode / ModelName.
-  const codeHeaders = catalogSheet.getRange(1, 3, 1, 2);
-  const headerText = codeHeaders.getDisplayValues()[0].map(v => String(v).trim());
-  if (headerText[0] === "ModelCode" && headerText[1] === "ModelName") codeHeaders.setValues([["PartCode", "PartName"]]);
-  if (catalogSheet.getLastRow() <= 1) {
-    const catalogRows = [["ProductGroup", "PartCategory", "PartCode", "PartName", "ColorName", "ColorCode"]];
-    Object.keys(PART_MODEL_CATALOG).forEach(groupName => {
-      const group = PART_MODEL_CATALOG[groupName];
-      const firstColor = (group.colors || [])[0] || {};
-      Object.keys(group.categories || {}).forEach(category => {
-        (group.categories[category] || []).forEach(model => {
-          catalogRows.push([groupName, category, model.value, model.label, firstColor.value || "", firstColor.code || ""]);
-        });
-      });
-      (group.colors || []).slice(1).forEach(color => catalogRows.push([groupName, "", "", "", color.value || "", color.code || ""]));
-    });
-    catalogSheet.getRange(1, 1, catalogRows.length, catalogRows[0].length).setValues(catalogRows);
-    catalogSheet.setFrozenRows(1);
-    SpreadsheetApp.flush();
-  }
-  return catalogSheet;
-}
-
-function readPartModelCatalog_(catalogSheet) {
-  const groups = {};
-  const order = [];
-  const lastRow = catalogSheet.getLastRow();
-  if (lastRow < 2) return { groups, order };
-  const values = catalogSheet.getRange(2, 1, lastRow - 1, 6).getDisplayValues();
-  values.forEach(row => {
-    const [groupName, category, code, name, colorName, colorCode] = row.map(v => String(v || "").trim());
-    if (!groupName) return;
-    if (!groups[groupName]) {
-      groups[groupName] = { categories: {}, colors: [] };
-      order.push(groupName);
-    }
-    const group = groups[groupName];
-    if (category) {
-      if (!group.categories[category]) group.categories[category] = [];
-      if (code && !group.categories[category].some(m => m.value === code)) {
-        group.categories[category].push({ value: code, label: name || code });
-      }
-    }
-    if (colorName && !group.colors.some(c => c.value === colorName)) {
-      group.colors.push({ value: colorName, label: colorCode ? colorName + " (" + colorCode + ")" : colorName, code: colorCode });
-    }
-  });
-  return { groups, order };
-}
-
-// The Capacity sheet (PartCode, PartName, ProductGroup, standard times...)
-// becomes the production form's catalog once it has a PartCategory column;
-// ColorName / ColorCode give each part's color (several may be listed with
-// commas). Until then PartModelCatalog is used. setupCapacityCatalog adds
-// those columns and copies what PartModelCatalog already knows.
-const CAPACITY_CATALOG_COLUMNS_ = ["PartCategory", "ColorName", "ColorCode"];
+// The Capacity sheet is the production form's part catalog: ProductGroup ->
+// Part Category -> Model (PartCode / PartName) -> Color. Columns are found by
+// header. PartCategory, ColorName and ColorCode are optional: a row without a
+// category is listed under its PartName, and ColorName / ColorCode may list
+// several colors separated by commas.
 const CAPACITY_NO_CATEGORY_ = "ไม่ระบุประเภท";
 
 function capacityCode_(value) {
@@ -2455,7 +2329,7 @@ function readCapacityTable_(ss) {
 
 function readCapacityCatalog_(ss) {
   const table = readCapacityTable_(ss);
-  if (!table || !("PartCode" in table.col) || !("PartCategory" in table.col)) return null;
+  if (!table || !("PartCode" in table.col)) return null;
   const { values, col } = table;
   const cell = (row, name) => (name in col ? String(row[col[name]] || "").trim() : "");
   const groups = {};
@@ -2469,10 +2343,10 @@ function readCapacityCatalog_(ss) {
       order.push(groupName);
     }
     const group = groups[groupName];
-    const category = cell(row, "PartCategory") || CAPACITY_NO_CATEGORY_;
+    const name = cell(row, "PartName");
+    const category = cell(row, "PartCategory") || name || CAPACITY_NO_CATEGORY_;
     if (!group.categories[category]) group.categories[category] = [];
     if (!group.categories[category].some(m => m.value === code)) {
-      const name = cell(row, "PartName");
       group.categories[category].push({ value: code, label: name ? name + " (" + code + ")" : code });
     }
     const colorNames = cell(row, "ColorName").split(",").map(v => v.trim());
@@ -2486,12 +2360,18 @@ function readCapacityCatalog_(ss) {
   return { groups, order };
 }
 
-// "➕ เพิ่มรายการ" while the catalog comes from Capacity: add the part as a
-// Capacity row. Its standard time is left for the sheet's owner to fill in;
-// %Eff treats a part without one as unmatched, as before.
+// "➕ เพิ่มรายการ" in the production form: add the part as a Capacity row.
+// Its standard time is left for the sheet's owner to fill in; %Eff treats a
+// part without one as unmatched. A category with no part yet stays in the
+// browser until a part is added to it.
 function addCapacityCatalogEntry_(ss, group, category, code, name) {
   if (!code) return { status: "success", localOnly: true };
-  const table = readCapacityTable_(ss);
+  let table = readCapacityTable_(ss);
+  if (!table || !("PartCode" in table.col)) return { status: "error", message: "ไม่พบชีต Capacity หรือคอลัมน์ PartCode" };
+  if (category && category !== (name || code) && !("PartCategory" in table.col)) {
+    table.sheet.getRange(1, table.values[0].length + 1).setValue("PartCategory");
+    table = readCapacityTable_(ss);
+  }
   const catalog = readCapacityCatalog_(ss);
   const exists = table.values.slice(1).some(row => capacityCode_(row[table.col.PartCode]) === capacityCode_(code));
   if (exists) return { status: "success", duplicate: true };
@@ -2509,69 +2389,10 @@ function addCapacityCatalogEntry_(ss, group, category, code, name) {
   return { status: "success" };
 }
 
-// Run once from the Apps Script editor to switch the production form's
-// dropdowns to the Capacity sheet. It adds PartCategory / ColorName /
-// ColorCode to Capacity, fills them for parts PartModelCatalog already has
-// (matched on PartCode or AppCodes), and appends the catalog's other parts
-// so no option disappears from the form. Empty cells are never overwritten.
-function setupCapacityCatalog() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let table = readCapacityTable_(ss);
-  if (!table || !("PartCode" in table.col)) throw new Error("ไม่พบชีต Capacity หรือคอลัมน์ PartCode");
-  const missingHeaders = CAPACITY_CATALOG_COLUMNS_.filter(h => !(h in table.col));
-  if (missingHeaders.length) {
-    table.sheet.getRange(1, table.values[0].length + 1, 1, missingHeaders.length).setValues([missingHeaders]);
-    SpreadsheetApp.flush();
-    table = readCapacityTable_(ss);
-  }
-  const { sheet, values, col } = table;
-
-  const catalogSheet = ensurePartModelCatalogSheet_(ss);
-  const catalogRows = catalogSheet.getLastRow() < 2 ? [] : catalogSheet.getRange(2, 1, catalogSheet.getLastRow() - 1, 6).getDisplayValues();
-  const known = new Map();
-  catalogRows.forEach(r => {
-    const [group, category, code, name, colorName, colorCode] = r.map(v => String(v || "").trim());
-    if (group && code && !known.has(capacityCode_(code))) known.set(capacityCode_(code), { group, category, code, name, colorName, colorCode });
-  });
-
-  const used = new Set();
-  let filled = 0;
-  for (let i = 1; i < values.length; i++) {
-    const row = values[i];
-    const codes = [row[col.PartCode]].concat("AppCodes" in col ? String(row[col.AppCodes] || "").split(",") : []).map(capacityCode_).filter(Boolean);
-    const match = codes.map(c => known.get(c)).filter(Boolean)[0];
-    if (!match) continue;
-    used.add(capacityCode_(match.code));
-    const updates = { PartCategory: match.category, ColorName: match.colorName, ColorCode: match.colorCode };
-    Object.keys(updates).forEach(header => {
-      if (updates[header] && !String(row[col[header]] || "").trim()) {
-        sheet.getRange(i + 1, col[header] + 1).setValue(updates[header]);
-        filled++;
-      }
-    });
-  }
-
-  const appended = [];
-  known.forEach((item, key) => {
-    if (used.has(key)) return;
-    const suffix = " (" + item.code + ")";
-    const name = item.name.endsWith(suffix) ? item.name.slice(0, -suffix.length) : item.name;
-    const row = new Array(values[0].length).fill("");
-    const put = (header, value) => { if (header in col) row[col[header]] = value; };
-    put("PartCode", item.code);
-    put("PartName", name || item.code);
-    put("ProductGroup", item.group);
-    put("PartCategory", item.category);
-    put("ColorName", item.colorName);
-    put("ColorCode", item.colorCode);
-    appended.push(row);
-  });
-  if (appended.length) sheet.getRange(sheet.getLastRow() + 1, 1, appended.length, values[0].length).setValues(appended);
-  SpreadsheetApp.flush();
-  Logger.log("Capacity พร้อมใช้เป็นตัวเลือกแล้ว: เติมข้อมูล " + filled + " ช่อง, เพิ่มชิ้นงานจาก PartModelCatalog " + appended.length + " แถว (ยังไม่มีเวลามาตรฐาน: "
-    + appended.map(r => r[col.PartCode]).join(", ") + ")");
-}
-
+// Keep the normal JSON response for fetch() callers, but also support a safe
+// JSONP callback. Apps Script /exec uses a short-lived redirect; a browser
+// script request can follow that redirect reliably when fetch() receives a
+// stale googleusercontent.com 404.
 function doGet(e) {
   const result = doGetJson_(e);
   const callback = String(e && e.parameter && (e.parameter.prefix || e.parameter.callback) || "").trim();
@@ -3074,8 +2895,6 @@ function doGetJson_(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: "success", data: filteredData })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Handle getPartModels action. Keep the legacy PartModel sheet untouched;
-    // the related catalog is stored in a dedicated PartModelCatalog sheet.
     // Line %Eff: standard time per part (Capacity) and the shift's time slots
     // (LineTimeSlots). Both sheets are maintained by hand in the spreadsheet.
     if (action === "getLineCapacity") {
@@ -3114,17 +2933,12 @@ function doGetJson_(e) {
     }
 
     if (action === "getPartModels") {
-      const capacityCatalog = readCapacityCatalog_(ss);
-      if (capacityCatalog) {
-        return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "capacity", groups: capacityCatalog.groups, order: capacityCatalog.order })).setMimeType(ContentService.MimeType.JSON);
-      }
-      const catalogSheet = ensurePartModelCatalogSheet_(ss);
-      const catalog = readPartModelCatalog_(catalogSheet);
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "sheet", groups: catalog.groups, order: catalog.order })).setMimeType(ContentService.MimeType.JSON);
+      const catalog = readCapacityCatalog_(ss) || { groups: {}, order: [] };
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", source: "capacity", groups: catalog.groups, order: catalog.order })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // "➕ เพิ่มรายการ" in the production form: store the new category/model in
-    // PartModelCatalog so every device sees it, not just the browser that added it.
+    // "➕ เพิ่มรายการ" in the production form: store the new part in the
+    // Capacity sheet so every device sees it, not just the browser that added it.
     if (action === "addCatalogEntry") {
       const p = (e && e.parameter) || {};
       const group = String(p.group || "").trim();
@@ -3137,24 +2951,10 @@ function doGetJson_(e) {
       const lock = LockService.getScriptLock();
       lock.waitLock(10000);
       try {
-        if (readCapacityCatalog_(ss)) {
-          return ContentService.createTextOutput(JSON.stringify(addCapacityCatalogEntry_(ss, group, category, code || name, code ? name : ""))).setMimeType(ContentService.MimeType.JSON);
-        }
-        const catalogSheet = ensurePartModelCatalogSheet_(ss);
-        const catalog = readPartModelCatalog_(catalogSheet);
-        const models = ((catalog.groups[group] || {}).categories || {})[category];
-        const value = code || name;
-        if (models && (!value ? true : models.some(m => String(m.value).toLowerCase() === value.toLowerCase()))) {
-          return ContentService.createTextOutput(JSON.stringify({ status: "success", duplicate: true })).setMimeType(ContentService.MimeType.JSON);
-        }
-        const color = ((catalog.groups[group] || {}).colors || [])[0] || {};
-        const label = value ? (code && name ? name + " (" + code + ")" : value) : "";
-        catalogSheet.appendRow([group, category, value, label, color.value || "", color.code || ""]);
-        SpreadsheetApp.flush();
+        return ContentService.createTextOutput(JSON.stringify(addCapacityCatalogEntry_(ss, group, category, code || name, code ? name : ""))).setMimeType(ContentService.MimeType.JSON);
       } finally {
         lock.releaseLock();
       }
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle getRecorders action (Cloud Sync)

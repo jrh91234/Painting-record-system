@@ -1,6 +1,7 @@
 // Canonical production catalog used by the daily production form.
 // Each selection is intentionally hierarchical: product group -> part category -> model/code -> color.
-// Replaced by the PartModelCatalog sheet order once the catalog loads.
+// Built-in list for a browser that has never reached the server; replaced by
+// the Capacity sheet's groups, in sheet order, once the catalog loads.
 let PAINTING_PRODUCT_GROUP_ORDER = ["LC600 Classic", "LC600 Visi-smart", "PDB", "CU (resi thai)", "NLC", "NMS"];
 const PAINTING_PRODUCT_GROUPS_DEFAULT = {
     "LC600 Classic": {
@@ -158,28 +159,6 @@ function normalizeProductCatalog(source) {
     return Object.keys(candidate).length ? candidate : JSON.parse(JSON.stringify(PAINTING_PRODUCT_GROUPS_DEFAULT));
 }
 
-function mergeProductCatalog(base, extra) {
-    const merged = normalizeProductCatalog(base);
-    if (!extra || typeof extra !== 'object') return merged;
-    Object.entries(extra).forEach(([groupName, group]) => {
-        if (!group || typeof group !== 'object') return;
-        if (!merged[groupName]) merged[groupName] = { categories: {}, colors: [] };
-        if (!merged[groupName].categories) merged[groupName].categories = {};
-        Object.entries(group.categories || {}).forEach(([category, models]) => {
-            if (!Array.isArray(models)) return;
-            if (!merged[groupName].categories[category]) merged[groupName].categories[category] = [];
-            models.forEach(model => {
-                const item = typeof model === 'string' ? { value: model, label: model } : model;
-                if (!item || !item.value) return;
-                if (!merged[groupName].categories[category].some(existing => String(existing.value) === String(item.value))) {
-                    merged[groupName].categories[category].push({ value: String(item.value), label: String(item.label || item.value) });
-                }
-            });
-        });
-    });
-    return merged;
-}
-
 // Remove a known mistyped locally-added catalog entry. User-added models are
 // kept in browser storage, so clean this exact label once while preserving the
 // canonical BRU30890 model and every other catalog item.
@@ -204,14 +183,21 @@ function removeMistypedCatalogEntries(catalog) {
     return catalog;
 }
 
-// Screen can be opened without mounting the daily-report form. Clean the
-// shared browser catalog immediately so every form sees the corrected list.
+// The catalog and its group order always change together; REWORK and SCREEN
+// read both.
+function setProductCatalog(groups, order) {
+    PAINTING_MODEL_GROUPS = groups;
+    PAINTING_PRODUCT_GROUP_ORDER = Array.isArray(order) && order.length
+        ? order.filter(name => groups[name]).concat(Object.keys(groups).filter(name => !order.includes(name)))
+        : Object.keys(groups);
+}
+
+// Screen can be opened without mounting the daily-report form. Load the
+// shared browser catalog immediately so every form sees the same list.
 try {
     const cachedCatalog = localStorage.getItem(PAINTING_PRODUCT_CATALOG_CACHE);
     if (cachedCatalog) {
-        const cachedGroups = normalizeProductCatalog(JSON.parse(cachedCatalog));
-        PAINTING_MODEL_GROUPS = removeMistypedCatalogEntries(mergeProductCatalog(PAINTING_MODEL_GROUPS, cachedGroups));
-        localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
+        setProductCatalog(removeMistypedCatalogEntries(normalizeProductCatalog(JSON.parse(cachedCatalog))));
     }
 } catch (_) {}
 
@@ -263,46 +249,13 @@ function handlePartCategorySelect(select) {
     showToast('เพิ่มประเภทชิ้นงานใหม่แล้ว', 'success');
 }
 
-// New categories/models are added to the catalog sheet so every
+// New parts are added to the Capacity sheet so every
 // device gets them; the local copy above keeps the form usable meanwhile.
 function saveCatalogEntryToSheet(entry) {
     if (typeof addCatalogEntryToAPI !== 'function') return;
     addCatalogEntryToAPI(entry).then(ok => {
         if (!ok && typeof showToast === 'function') showToast('บันทึกรายการใหม่ลง Google Sheet ไม่สำเร็จ (ใช้ได้เฉพาะเครื่องนี้)', 'error');
     });
-}
-
-// Models added with "➕" before the catalog moved to the sheet exist only in
-// this browser. Send them to the sheet once so they are not lost.
-const PAINTING_CATALOG_UPLOADED_FLAG = 'PAINTING_CATALOG_LOCAL_UPLOADED_V1';
-function uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog) {
-    // Once per browser, so rows deleted from the sheet later are not re-added
-    // from an old local copy. Built-in defaults are never uploaded either.
-    try {
-        if (localStorage.getItem(PAINTING_CATALOG_UPLOADED_FLAG)) return [];
-        localStorage.setItem(PAINTING_CATALOG_UPLOADED_FLAG, new Date().toISOString());
-    } catch (_) {
-        return [];
-    }
-    const isDefault = (group, category, value) => (PAINTING_PRODUCT_GROUPS_DEFAULT[group]?.categories?.[category] || [])
-        .some(item => String(item.value) === String(value));
-    const missing = [];
-    Object.entries(localCatalog || {}).forEach(([group, data]) => {
-        Object.entries(data?.categories || {}).forEach(([category, models]) => {
-            const sheetModels = sheetCatalog?.[group]?.categories?.[category];
-            const isDefaultCategory = !!PAINTING_PRODUCT_GROUPS_DEFAULT[group]?.categories?.[category];
-            if (!sheetModels && !(models || []).length && !isDefaultCategory) missing.push({ group, category });
-            (models || []).forEach(model => {
-                if (isDefault(group, category, model.value)) return;
-                if (sheetModels && sheetModels.some(item => String(item.value) === String(model.value))) return;
-                const suffix = ` (${model.value})`;
-                const name = String(model.label || '').endsWith(suffix) ? String(model.label).slice(0, -suffix.length) : String(model.label || '');
-                missing.push({ group, category, code: String(model.value), name: name === String(model.value) ? '' : name });
-            });
-        });
-    });
-    missing.forEach(entry => saveCatalogEntryToSheet(entry));
-    return missing;
 }
 
 function renderModelDropdownOptions(productGroup = selectedProductGroup(), category = document.getElementById('drPartGroup')?.value || "") {
@@ -387,13 +340,10 @@ function filterModelDropdown() {
 }
 
 async function loadPartModelsList() {
-    let localCatalog = null;
     const cached = localStorage.getItem(PAINTING_PRODUCT_CATALOG_CACHE);
     if (cached) {
         try {
-            localCatalog = normalizeProductCatalog(JSON.parse(cached));
-            removeMistypedCatalogEntries(localCatalog);
-            PAINTING_MODEL_GROUPS = localCatalog;
+            setProductCatalog(removeMistypedCatalogEntries(normalizeProductCatalog(JSON.parse(cached))));
         } catch (e) {}
     }
     renderProductGroupDropdownUI();
@@ -401,24 +351,16 @@ async function loadPartModelsList() {
     if (typeof fetchPartModelsFromAPI === 'function') {
         const cloudGroups = await fetchPartModelsFromAPI();
         const meta = window.PAINTING_PART_CATALOG_META || {};
-        if (cloudGroups && typeof cloudGroups === 'object' && (meta.source === 'sheet' || meta.source === 'capacity')) {
-            // The sheet is the source of truth (Capacity, or PartModelCatalog
-            // until Capacity has a PartCategory column): show exactly its
+        if (cloudGroups && typeof cloudGroups === 'object' && meta.source) {
+            // The Capacity sheet is the source of truth: show exactly its
             // groups, categories, models and colors, in sheet order.
-            if (Array.isArray(meta.order) && meta.order.length) PAINTING_PRODUCT_GROUP_ORDER = meta.order.slice();
-            const sheetCatalog = normalizeProductCatalog(cloudGroups);
-            // Old browser-only entries were PartModelCatalog codes; never copy
-            // them into Capacity.
-            const localOnly = meta.source === 'sheet' ? uploadLocalOnlyCatalogEntries(localCatalog, sheetCatalog) : [];
-            PAINTING_MODEL_GROUPS = removeMistypedCatalogEntries(localOnly.length ? mergeProductCatalog(sheetCatalog, localCatalog) : sheetCatalog);
+            setProductCatalog(normalizeProductCatalog(cloudGroups), meta.order);
             localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
             renderProductGroupDropdownUI();
             filterProductGroupDropdown();
         } else if (cloudGroups && typeof cloudGroups === 'object') {
-            // Keep locally defined groups (including newly introduced NMS)
-            // even when the deployed Apps Script catalog has not caught up.
-            const normalized = mergeProductCatalog(PAINTING_PRODUCT_GROUPS_DEFAULT, cloudGroups);
-            PAINTING_MODEL_GROUPS = removeMistypedCatalogEntries(mergeProductCatalog(normalized, localCatalog));
+            // The server could not be reached: the last catalog it sent.
+            setProductCatalog(removeMistypedCatalogEntries(normalizeProductCatalog(cloudGroups)));
             localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
             renderProductGroupDropdownUI();
             filterProductGroupDropdown();
