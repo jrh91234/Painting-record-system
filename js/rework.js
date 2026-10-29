@@ -241,22 +241,6 @@ function reworkFormMarkup() {
         </div>
 
         <div class="dr-card rework-form-card">
-            <h2 class="dr-section-title">ส่วนที่ 3: เวลาสูญเสีย (Downtime)</h2>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="rwDtBurner">เบอร์เนอร์</label><input id="rwDtBurner" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtWash">ไลน์ล้าง</label><input id="rwDtWash" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtOven">เตาอบ</label><input id="rwDtOven" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtGun">ระบบปืน</label><input id="rwDtGun" class="form-control" type="number" min="0" value="0"></div>
-            </div>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="rwDtPower">ไฟฟ้าดับ</label><input id="rwDtPower" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtMotor">มอเตอร์</label><input id="rwDtMotor" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtOther">อื่นๆ</label><input id="rwDtOther" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="rwDtNote">หมายเหตุ</label><input id="rwDtNote" class="form-control" type="text" placeholder="ระบุสาเหตุเพิ่มเติม"></div>
-            </div>
-        </div>
-
-        <div class="dr-card rework-form-card">
             <div class="rework-list-heading">
                 <h2 class="dr-section-title">รายการ REWORK ที่เพิ่ม</h2>
                 <div class="rework-list-toolbar">
@@ -571,8 +555,7 @@ async function submitReworkReport() {
         date: document.getElementById("rwDate")?.value || reworkToday(),
         shift: document.querySelector('input[name="reworkShift"]:checked')?.value || "Day",
         recorder: document.getElementById("rwRecorder")?.value?.trim() || "",
-        checker: "", records,
-        downtime: { burner: reworkNum("rwDtBurner"), wash: reworkNum("rwDtWash"), oven: reworkNum("rwDtOven"), gun: reworkNum("rwDtGun"), power: reworkNum("rwDtPower"), motor: reworkNum("rwDtMotor"), other: reworkNum("rwDtOther"), note: document.getElementById("rwDtNote")?.value || "" }
+        checker: "", records
     };
     if (!payload.recorder) return showToast?.("กรุณาระบุชื่อผู้บันทึก", "error");
     const button = document.getElementById("reworkSubmitButton");

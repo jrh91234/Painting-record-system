@@ -247,22 +247,6 @@ function screenFormMarkup() {
         </div>
 
         <div class="dr-card rework-form-card">
-            <h2 class="dr-section-title">ส่วนที่ 3: เวลาสูญเสีย (Downtime)</h2>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="scDtBurner">เบอร์เนอร์</label><input id="scDtBurner" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtWash">ไลน์ล้าง</label><input id="scDtWash" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtOven">เตาอบ</label><input id="scDtOven" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtGun">ระบบปืน</label><input id="scDtGun" class="form-control" type="number" min="0" value="0"></div>
-            </div>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="scDtPower">ไฟฟ้าดับ</label><input id="scDtPower" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtMotor">มอเตอร์</label><input id="scDtMotor" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtOther">อื่นๆ</label><input id="scDtOther" class="form-control" type="number" min="0" value="0"></div>
-                <div class="form-group"><label for="scDtNote">หมายเหตุ</label><input id="scDtNote" class="form-control" type="text" placeholder="ระบุสาเหตุเพิ่มเติม"></div>
-            </div>
-        </div>
-
-        <div class="dr-card rework-form-card">
             <div class="rework-list-heading">
                 <h2 class="dr-section-title">รายการ SCREEN ที่เพิ่ม</h2>
                 <div class="rework-list-toolbar">
@@ -579,8 +563,7 @@ async function submitScreenReport() {
         date: document.getElementById("scDate")?.value || screenToday(),
         shift: document.querySelector('input[name="screenShift"]:checked')?.value || "Day",
         recorder: document.getElementById("scRecorder")?.value?.trim() || "",
-        checker: "", records,
-        downtime: { burner: screenNum("scDtBurner"), wash: screenNum("scDtWash"), oven: screenNum("scDtOven"), gun: screenNum("scDtGun"), power: screenNum("scDtPower"), motor: screenNum("scDtMotor"), other: screenNum("scDtOther"), note: document.getElementById("scDtNote")?.value || "" }
+        checker: "", records
     };
     if (!payload.recorder) return showToast?.("กรุณาระบุชื่อผู้บันทึก", "error");
     const button = document.getElementById("screenSubmitButton");
