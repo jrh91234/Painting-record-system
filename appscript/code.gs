@@ -1193,6 +1193,15 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Label reading only calls the Claude API; skip the sheet setup below.
+    if (earlyAction === "readMaterialLabel") {
+      let labelPayload = {};
+      try {
+        labelPayload = e && e.postData && e.postData.contents ? JSON.parse(e.postData.contents) : {};
+      } catch (parseErr) {}
+      return ContentService.createTextOutput(JSON.stringify(readMaterialLabel_(labelPayload))).setMimeType(ContentService.MimeType.JSON);
+    }
+
     let sheet = ensureInspectionSheet_(ss);
 
     /* Inspection writes are sent as GET by the web client for Apps Script CORS compatibility.
@@ -1841,10 +1850,85 @@ const MATERIAL_RECEIPT_HEADERS_ = [
   "Lot", "BoxNo", "NetWeightKg", "MfgDate", "ExpiryDate", "Note", "PhotoUrl"
 ];
 
-// Reading labels from photos is not switched on yet; the web form then
-// works as manual entry with the photo as a reference.
+// Reading labels from photos uses the Claude API. It is switched on by adding
+// the Script Property ANTHROPIC_API_KEY (Project Settings > Script Properties);
+// without it the web form works as manual entry with the photo as a reference.
+// ANTHROPIC_MODEL may be set to use a different model.
+const MATERIAL_LABEL_DEFAULT_MODEL_ = "claude-opus-5-5";
+const MATERIAL_LABEL_FIELDS_ = ["supplier", "colorCode", "colorName", "lot", "boxNo", "netWeightKg", "mfgDate", "expiryDate"];
+const MATERIAL_LABEL_PROMPT_ = [
+  "This is a photo of a paint box label received at a factory. Read the label and return its fields.",
+  "Known labels:",
+  "- JOTUN: SKU (colorCode), colour name (colorName), Batch No (lot), Net weight in kg (netWeightKg), Manufacturing date (mfgDate), Best before (expiryDate).",
+  "- NUO QI (诺奇): 型号/รหัสสี (colorCode), colour name if printed (colorName), 产品批号/รุ่นล็อต (lot), 净重/น้ำหนัก (netWeightKg), 生产日期/วันที่ผลิต (mfgDate). It prints shelf life (保质期) instead of an expiry date, so leave expiryDate empty unless a date is printed.",
+  "supplier is the brand as printed (e.g. JOTUN, NUO QI). boxNo is a box or carton number if one is printed.",
+  "netWeightKg is the number only, in kg (convert g to kg). Write dates as YYYY-MM-DD.",
+  "Copy codes exactly as printed, keeping leading zeros, dashes and letters. Use an empty string for any field that is missing or unreadable; never guess."
+].join("\n");
+
+function materialLabelApiKey_() {
+  return String(PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY") || "").trim();
+}
+
 function materialConfig_() {
-  return { status: "success", ocrEnabled: false };
+  return { status: "success", ocrEnabled: !!materialLabelApiKey_() };
+}
+
+function readMaterialLabel_(payload) {
+  const apiKey = materialLabelApiKey_();
+  if (!apiKey) return { status: "error", message: "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY" };
+  const image = String((payload && payload.image) || "");
+  if (!image) return { status: "error", message: "ไม่มีรูป" };
+  const mimeType = String((payload && payload.mimeType) || "image/jpeg");
+  const model = String(PropertiesService.getScriptProperties().getProperty("ANTHROPIC_MODEL") || "").trim() || MATERIAL_LABEL_DEFAULT_MODEL_;
+
+  const properties = {};
+  MATERIAL_LABEL_FIELDS_.forEach(name => { properties[name] = { type: "string" }; });
+  const response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", {
+    method: "post",
+    contentType: "application/json",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2026-10-21",
+      "anthropic-beta": "server-side-fallback-2026-07-01"
+    },
+    muteHttpExceptions: true,
+    payload: JSON.stringify({
+      model: model,
+      max_tokens: 4000,
+      output_config: {
+        effort: "low",
+        format: {
+          type: "json_schema",
+          schema: { type: "object", properties: properties, required: MATERIAL_LABEL_FIELDS_, additionalProperties: false }
+        }
+      },
+      fallbacks: "default",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mimeType, data: image } },
+          { type: "text", text: MATERIAL_LABEL_PROMPT_ }
+        ]
+      }]
+    })
+  });
+
+  const code = response.getResponseCode();
+  let body = {};
+  try { body = JSON.parse(response.getContentText()); } catch (parseErr) {}
+  if (code !== 200) {
+    const detail = body && body.error && body.error.message ? body.error.message : "HTTP " + code;
+    console.error("readMaterialLabel failed: " + detail);
+    return { status: "error", message: code === 401 ? "API key ไม่ถูกต้อง" : "เรียก AI ไม่สำเร็จ (" + detail + ")" };
+  }
+  if (body.stop_reason === "refusal") return { status: "error", message: "AI ไม่อ่านรูปนี้" };
+  const textBlock = (body.content || []).filter(block => block.type === "text")[0];
+  let fields;
+  try { fields = JSON.parse(textBlock ? textBlock.text : ""); } catch (parseErr) {
+    return { status: "error", message: "อ่านผลจาก AI ไม่ได้" };
+  }
+  return { status: "success", fields: fields };
 }
 
 function getOrCreateMaterialReceiptSheet_(ss) {
