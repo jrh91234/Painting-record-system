@@ -346,8 +346,23 @@
     window.openMaterialReceipt = function (event, element) {
         if (event) event.preventDefault();
         switchTab('material-receipt-tab', element);
-        bind();
-        loadConfig();
-        loadRecent();
     };
+
+    // The page is not always opened through the menu: a reload on
+    // #material-receipt-tab (Android often reloads the page after the camera
+    // app closes) shows it with switchTab alone. So bind the controls now and
+    // load the data whenever the page becomes visible, however it got there.
+    bind();
+    const page = $('material-receipt-tab');
+    let shown = false;
+    const onPageVisibility = () => {
+        const active = page.classList.contains('active');
+        if (active && !shown) {
+            loadConfig();
+            loadRecent();
+        }
+        shown = active;
+    };
+    new MutationObserver(onPageVisibility).observe(page, { attributes: true, attributeFilter: ['class'] });
+    onPageVisibility();
 }());
