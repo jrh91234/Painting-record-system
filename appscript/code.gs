@@ -2374,14 +2374,20 @@ function recordSparePartTransaction_(ss, payload) {
 // stale googleusercontent.com 404.
 // PartModelCatalog is the source of truth for the production form's
 // Product Group -> Part Category -> Model -> Color dropdowns. Columns:
-// ProductGroup | PartCategory | ModelCode | ModelName | ColorName | ColorCode.
-// A row may leave ModelCode empty to add only a category, or leave both
-// PartCategory and ModelCode empty to add only a color or an empty group.
+// ProductGroup | PartCategory | PartCode | PartName | ColorName | ColorCode
+// (PartCode/PartName as in the Capacity sheet). Columns are read by
+// position, so only the header text depends on these names.
+// A row may leave PartCode empty to add only a category, or leave both
+// PartCategory and PartCode empty to add only a color or an empty group.
 function ensurePartModelCatalogSheet_(ss) {
   let catalogSheet = ss.getSheetByName("PartModelCatalog");
   if (!catalogSheet) catalogSheet = ss.insertSheet("PartModelCatalog");
+  // Sheets created before the rename still say ModelCode / ModelName.
+  const codeHeaders = catalogSheet.getRange(1, 3, 1, 2);
+  const headerText = codeHeaders.getDisplayValues()[0].map(v => String(v).trim());
+  if (headerText[0] === "ModelCode" && headerText[1] === "ModelName") codeHeaders.setValues([["PartCode", "PartName"]]);
   if (catalogSheet.getLastRow() <= 1) {
-    const catalogRows = [["ProductGroup", "PartCategory", "ModelCode", "ModelName", "ColorName", "ColorCode"]];
+    const catalogRows = [["ProductGroup", "PartCategory", "PartCode", "PartName", "ColorName", "ColorCode"]];
     Object.keys(PART_MODEL_CATALOG).forEach(groupName => {
       const group = PART_MODEL_CATALOG[groupName];
       const firstColor = (group.colors || [])[0] || {};
