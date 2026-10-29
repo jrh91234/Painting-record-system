@@ -87,7 +87,7 @@ function handleReworkModelSelect(select) {
         return;
     }
 
-    models.push({ value, label: code ? `${name} (${code})` : name });
+    models.push({ value, label: code ? `(${code}) ${name}` : name });
     try {
         const catalog = (typeof PAINTING_MODEL_GROUPS !== "undefined" && PAINTING_MODEL_GROUPS) || groups;
         if (typeof PAINTING_PRODUCT_CATALOG_CACHE !== "undefined") {

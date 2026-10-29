@@ -231,7 +231,7 @@ function productGroupParts(productGroup) {
 
 function renderModelDropdownOptions(productGroup = selectedProductGroup()) {
     const models = productGroupParts(productGroup);
-    const html = productGroup ? '<option value="">-- เลือกชิ้นงาน (PartCode / PartName) --</option>' : '<option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option>';
+    const html = productGroup ? '<option value="">-- เลือกชิ้นงาน (PartCode) PartName --</option>' : '<option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option>';
     const addOption = productGroup
         ? '<option value="' + PAINTING_ADD_MODEL_VALUE + '">➕ เพิ่มรายการ</option>'
         : '';
@@ -269,7 +269,7 @@ function handleModelSelect(select) {
     // Capacity lists a part without a PartCategory under its PartName.
     const category = name || code;
     if (!categories[category]) categories[category] = [];
-    categories[category].push({ value: code, label: name ? `${name} (${code})` : code });
+    categories[category].push({ value: code, label: name ? `(${code}) ${name}` : code });
     localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
     saveCatalogEntryToSheet({ group: productGroup, category, code, name });
     renderModelDropdownOptions(productGroup);

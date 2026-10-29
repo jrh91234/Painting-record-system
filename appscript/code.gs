@@ -2347,7 +2347,7 @@ function readCapacityCatalog_(ss) {
     const category = cell(row, "PartCategory") || name || CAPACITY_NO_CATEGORY_;
     if (!group.categories[category]) group.categories[category] = [];
     if (!group.categories[category].some(m => m.value === code)) {
-      group.categories[category].push({ value: code, label: name ? name + " (" + code + ")" : code });
+      group.categories[category].push({ value: code, label: name ? "(" + code + ") " + name : code });
     }
     const colorNames = cell(row, "ColorName").split(",").map(v => v.trim());
     const colorCodes = cell(row, "ColorCode").split(",").map(v => v.trim());
