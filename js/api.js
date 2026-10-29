@@ -855,7 +855,7 @@ function generateSampleOutputDiaryData() {
     return [];
 }
 
-// Append a new category or model to the PartModelCatalog sheet.
+// Append a new part to the Capacity sheet.
 async function addCatalogEntryToAPI(entry) {
     const baseUrl = getApiUrl();
     if (!baseUrl) return false;
