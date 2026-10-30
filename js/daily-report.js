@@ -128,7 +128,6 @@ const PAINTING_PRODUCT_GROUPS_DEFAULT = {
 let PAINTING_MODEL_GROUPS = JSON.parse(JSON.stringify(PAINTING_PRODUCT_GROUPS_DEFAULT));
 const PAINTING_PRODUCT_CATALOG_CACHE = "PAINTING_PRODUCT_CATALOG_CACHE_V2";
 const PAINTING_ADD_MODEL_VALUE = "__ADD_MODEL__";
-const PAINTING_ADD_CATEGORY_VALUE = "__ADD_CATEGORY__";
 
 function escapeDailyReportHtml(value) {
     return String(value ?? "")
@@ -215,40 +214,6 @@ function renderProductGroupDropdownUI() {
     if (previous && PAINTING_MODEL_GROUPS[previous]) select.value = previous;
 }
 
-function renderPartGroupDropdownUI(productGroup = selectedProductGroup()) {
-    const select = document.getElementById('drPartGroup');
-    if (!select) return;
-    const categories = PAINTING_MODEL_GROUPS[productGroup]?.categories || {};
-    const previous = select.value;
-    select.innerHTML = '<option value="">-- เลือกประเภทชิ้นงาน --</option>' + Object.keys(categories)
-        .map(name => `<option value="${escapeDailyReportHtml(name)}">${escapeDailyReportHtml(name)}</option>`).join('')
-        + (productGroup ? '<option value="' + PAINTING_ADD_CATEGORY_VALUE + '">➕ เพิ่มรายการใหม่</option>' : '');
-    select.disabled = !productGroup;
-    if (previous && categories[previous]) select.value = previous;
-}
-
-function handlePartCategorySelect(select) {
-    if (!select || select.value !== PAINTING_ADD_CATEGORY_VALUE) return;
-    const productGroup = selectedProductGroup();
-    const categories = PAINTING_MODEL_GROUPS[productGroup]?.categories;
-    if (!categories) { select.value = ''; return; }
-    const name = String(window.prompt('ชื่อประเภทชิ้นงานใหม่') || '').trim();
-    if (!name) { select.value = ''; return; }
-    if (Object.keys(categories).some(item => item.toLowerCase() === name.toLowerCase())) {
-        showToast('มีประเภทชิ้นงานนี้อยู่แล้ว', 'error');
-        renderPartGroupDropdownUI(productGroup);
-        select.value = name;
-        return;
-    }
-    categories[name] = [];
-    localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
-    saveCatalogEntryToSheet({ group: productGroup, category: name });
-    renderPartGroupDropdownUI(productGroup);
-    select.value = name;
-    renderModelDropdownOptions(productGroup, name);
-    showToast('เพิ่มประเภทชิ้นงานใหม่แล้ว', 'success');
-}
-
 // New parts are added to the Capacity sheet so every
 // device gets them; the local copy above keeps the form usable meanwhile.
 function saveCatalogEntryToSheet(entry) {
@@ -258,16 +223,22 @@ function saveCatalogEntryToSheet(entry) {
     });
 }
 
-function renderModelDropdownOptions(productGroup = selectedProductGroup(), category = document.getElementById('drPartGroup')?.value || "") {
-    const models = PAINTING_MODEL_GROUPS[productGroup]?.categories?.[category] || [];
-    const html = productGroup && category ? '<option value="">-- เลือกรุ่นงาน / รหัส --</option>' : '<option value="">-- เลือกประเภทชิ้นงานก่อน --</option>';
-    const addOption = productGroup && category
+// The form asks only for the product group and the part (Capacity's
+// ProductGroup, PartCode and PartName), so list every part of the group.
+function productGroupParts(productGroup) {
+    return Object.values(PAINTING_MODEL_GROUPS[productGroup]?.categories || {}).flat();
+}
+
+function renderModelDropdownOptions(productGroup = selectedProductGroup()) {
+    const models = productGroupParts(productGroup);
+    const html = productGroup ? '<option value="">-- เลือกชิ้นงาน (PartCode) PartName --</option>' : '<option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option>';
+    const addOption = productGroup
         ? '<option value="' + PAINTING_ADD_MODEL_VALUE + '">➕ เพิ่มรายการ</option>'
         : '';
     document.querySelectorAll('.model-select').forEach(select => {
         const previous = select.value;
         select.innerHTML = html + models.map(item => `<option value="${escapeDailyReportHtml(item.value)}">${escapeDailyReportHtml(item.label)}</option>`).join('') + addOption;
-        select.disabled = !(productGroup && category);
+        select.disabled = !productGroup;
         if (previous && models.some(item => item.value === previous)) select.value = previous;
     });
 }
@@ -276,64 +247,37 @@ function handleModelSelect(select) {
     if (!select || select.value !== PAINTING_ADD_MODEL_VALUE) return;
 
     const productGroup = selectedProductGroup();
-    const category = document.getElementById('drPartGroup')?.value || '';
-    const models = PAINTING_MODEL_GROUPS[productGroup]?.categories?.[category];
-    if (!models) {
+    const categories = PAINTING_MODEL_GROUPS[productGroup]?.categories;
+    if (!categories) {
         select.value = '';
         return;
     }
 
-    const modelName = window.prompt('ชื่อ/รายละเอียดรุ่นงานใหม่');
-    if (!modelName || !modelName.trim()) {
+    const code = String(window.prompt('PartCode ของชิ้นงานใหม่') || '').trim();
+    if (!code) {
         select.value = '';
         return;
     }
-    const modelCode = window.prompt('รหัสรุ่นงาน (ถ้ามี)') || '';
-    const name = modelName.trim();
-    const code = modelCode.trim();
-    const value = code || name;
-    if (models.some(item => String(item.value).trim().toLowerCase() === value.toLowerCase())) {
-        showToast('มีรายการรุ่นงานนี้อยู่แล้ว', 'error');
-        renderModelDropdownOptions(productGroup, category);
-        select.value = value;
+    if (productGroupParts(productGroup).some(item => String(item.value).trim().toLowerCase() === code.toLowerCase())) {
+        showToast('มีชิ้นงานนี้อยู่แล้ว', 'error');
+        renderModelDropdownOptions(productGroup);
+        select.value = code;
         return;
     }
+    const name = String(window.prompt('PartName ของชิ้นงานใหม่') || '').trim();
 
-    const entry = { value, label: code ? `${name} (${code})` : name };
-    models.push(entry);
+    // Capacity lists a part without a PartCategory under its PartName.
+    const category = name || code;
+    if (!categories[category]) categories[category] = [];
+    categories[category].push({ value: code, label: name ? `(${code}) ${name}` : code });
     localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(PAINTING_MODEL_GROUPS));
     saveCatalogEntryToSheet({ group: productGroup, category, code, name });
-    renderModelDropdownOptions(productGroup, category);
-    select.value = value;
-    showToast('เพิ่มรายการรุ่นงานแล้ว', 'success');
-}
-
-function renderColorDropdownUI(productGroup = selectedProductGroup()) {
-    const select = document.getElementById('drColor');
-    if (!select) return;
-    const colors = [
-        ...(PAINTING_MODEL_GROUPS[productGroup]?.colors || []),
-        { value: "สีเฉพาะงาน", label: "สีเฉพาะงาน", code: "CUSTOM" }
-    ];
-    const previous = select.value;
-    select.innerHTML = '<option value="">-- เลือกสี --</option>' + colors.map(color => `<option value="${escapeDailyReportHtml(color.value)}" data-color-code="${escapeDailyReportHtml(color.code)}">${escapeDailyReportHtml(color.label)}</option>`).join('');
-    select.disabled = !productGroup;
-    if (previous && colors.some(color => color.value === previous)) select.value = previous;
+    renderModelDropdownOptions(productGroup);
+    select.value = code;
+    showToast('เพิ่มชิ้นงานแล้ว', 'success');
 }
 
 function filterProductGroupDropdown() {
-    const partSelect = document.getElementById('drPartGroup');
-    const modelSelect = document.getElementById('drModel');
-    const colorSelect = document.getElementById('drColor');
-    if (partSelect) partSelect.value = "";
-    if (modelSelect) modelSelect.value = "";
-    if (colorSelect) colorSelect.value = "";
-    renderPartGroupDropdownUI();
-    renderModelDropdownOptions();
-    renderColorDropdownUI();
-}
-
-function filterModelDropdown() {
     const modelSelect = document.getElementById('drModel');
     if (modelSelect) modelSelect.value = "";
     renderModelDropdownOptions();
@@ -700,11 +644,12 @@ function initDailyReportForm() {
 
 function addDailyReportRecord({ silent = false } = {}) {
     const productGroup = document.getElementById('drProductGroup')?.value || "";
-    const partCategory = document.getElementById('drPartGroup')?.value || "";
     const model = document.getElementById('drModel').value;
-    const colorSelect = document.getElementById('drColor');
-    const color = colorSelect?.value || "";
-    const colorCode = colorSelect?.selectedOptions?.[0]?.dataset?.colorCode || "";
+    // Kept in the record for the sheet's PartCategory column.
+    const partCategory = Object.entries(PAINTING_MODEL_GROUPS[productGroup]?.categories || {})
+        .find(([, models]) => (models || []).some(item => item.value === model))?.[0] || "";
+    const color = "";
+    const colorCode = "";
     const timeSlot = document.getElementById('drTime').value;
     const prodQty = Number(document.getElementById('drProdQty').value) || 0;
     
@@ -719,8 +664,8 @@ function addDailyReportRecord({ silent = false } = {}) {
     const dust = Number(document.getElementById('drDust').value) || 0;
     const otherDefect = Number(document.getElementById('drOtherDefect').value) || 0;
 
-    if (!productGroup || !partCategory || !model || !color || !timeSlot) {
-        showToast("กรุณาเลือกกลุ่มผลิตภัณฑ์ ประเภท รุ่น สี และช่วงเวลาให้ครบถ้วน", "error");
+    if (!productGroup || !model || model === PAINTING_ADD_MODEL_VALUE || !timeSlot) {
+        showToast("กรุณาเลือกกลุ่มผลิตภัณฑ์ ชิ้นงาน และช่วงเวลาให้ครบถ้วน", "error");
         return false;
     }
 
@@ -761,9 +706,7 @@ function addDailyReportRecord({ silent = false } = {}) {
     const currentSlot = getCurrentTimeSlot();
     document.getElementById('drTime').value = currentSlot || "";
     if (document.getElementById('drProductGroup')) document.getElementById('drProductGroup').value = "";
-    renderPartGroupDropdownUI("");
-    renderModelDropdownOptions("", "");
-    renderColorDropdownUI("");
+    renderModelDropdownOptions("");
     document.getElementById('drProdQty').value = "";
     document.getElementById('drRust').value = "";
     document.getElementById('drDent').value = "";

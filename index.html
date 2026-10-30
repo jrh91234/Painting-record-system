@@ -1742,28 +1742,16 @@
                     <div class="dr-card">
                         <h3 class="dr-section-title">ส่วนที่ 2: ยอดผลิตและของเสีย</h3>
                         <div class="dr-form-stack">
-                            <div class="dr-grid-4">
+                            <div class="dr-grid-2">
                                 <div class="form-group">
-                                    <label>กลุ่มผลิตภัณฑ์ (Product Group)</label>
+                                    <label>กลุ่มผลิตภัณฑ์ (ProductGroup)</label>
                                     <select id="drProductGroup" class="form-control" onchange="filterProductGroupDropdown()">
                                         <option value="">-- เลือกกลุ่มผลิตภัณฑ์ --</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>ประเภทชิ้นงาน (Part Category)</label>
-                                    <select id="drPartGroup" class="form-control" onchange="handlePartCategorySelect(this); filterModelDropdown()" disabled>
-                                        <option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>รุ่นงาน (Model)</label>
+                                    <label>ชิ้นงาน (PartCode) PartName</label>
                                     <select id="drModel" class="form-control model-select" onchange="handleModelSelect(this)" disabled>
-                                        <option value="">-- เลือกประเภทชิ้นงานก่อน --</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>สี</label>
-                                    <select id="drColor" class="form-control" disabled>
                                         <option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option>
                                     </select>
                                 </div>
@@ -2492,9 +2480,9 @@
     <script src="js/logged-in-recorder.js?v=recorder-20261027"></script>
     <script src="js/material-receipt.js?v=mat-20261029"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
-    <script src="js/daily-report.js?v=capacity-only-20261029"></script>
-    <script src="js/rework.js?v=1.2.8"></script>
-    <script src="js/screen.js?v=1.0.7"></script>
+    <script src="js/daily-report.js?v=code-first-20261029"></script>
+    <script src="js/rework.js?v=1.2.9"></script>
+    <script src="js/screen.js?v=1.0.8"></script>
     <script src="js/parameter-checklist.js?v=1.12.12"></script>
     <script src="js/equipment-checklist.js?v=1.4.1"></script>
     <script src="js/qc-review.js?v=1.0.46"></script>

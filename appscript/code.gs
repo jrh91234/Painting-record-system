@@ -2347,7 +2347,7 @@ function readCapacityCatalog_(ss) {
     const category = cell(row, "PartCategory") || name || CAPACITY_NO_CATEGORY_;
     if (!group.categories[category]) group.categories[category] = [];
     if (!group.categories[category].some(m => m.value === code)) {
-      group.categories[category].push({ value: code, label: name ? name + " (" + code + ")" : code });
+      group.categories[category].push({ value: code, label: name ? "(" + code + ") " + name : code });
     }
     const colorNames = cell(row, "ColorName").split(",").map(v => v.trim());
     const colorCodes = cell(row, "ColorCode").split(",").map(v => v.trim());
@@ -2356,6 +2356,30 @@ function readCapacityCatalog_(ss) {
       const colorCode = colorCodes[i] || "";
       group.colors.push({ value: colorName, label: colorCode ? colorName + " (" + colorCode + ")" : colorName, code: colorCode });
     });
+  });
+
+  // A group named like its sized groups without the size (the "NLC" row next
+  // to "NLC 450", "NLC 600"...) holds parts shared by all sizes: list those
+  // parts under each sized group and drop the shared group itself. "LC600"
+  // is not merged into "LC600 Visi-smart", which is not a size.
+  order.slice().forEach(baseName => {
+    const members = order.filter(name => name.indexOf(baseName + " ") === 0 && /^\d/.test(name.slice(baseName.length + 1)));
+    if (!members.length) return;
+    const base = groups[baseName];
+    members.forEach(name => {
+      const group = groups[name];
+      Object.keys(base.categories).forEach(category => {
+        if (!group.categories[category]) group.categories[category] = [];
+        base.categories[category].forEach(model => {
+          if (!group.categories[category].some(m => m.value === model.value)) group.categories[category].push(model);
+        });
+      });
+      base.colors.forEach(color => {
+        if (!group.colors.some(c => c.value === color.value)) group.colors.push(color);
+      });
+    });
+    delete groups[baseName];
+    order.splice(order.indexOf(baseName), 1);
   });
   return { groups, order };
 }
