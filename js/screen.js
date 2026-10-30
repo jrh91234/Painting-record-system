@@ -64,15 +64,16 @@ function screenOptions(selectId, options, placeholder) {
 
 // Like the daily production form, SCREEN asks only for the product group
 // and the part (Capacity's ProductGroup, PartCode and PartName). Only the
-// NMS and CU groups go through the screen line; the Capacity sheet spells
-// NMS as "MNS", so both spellings are accepted.
+// covers of the NMS and CU groups go through the screen line; the Capacity
+// sheet spells NMS as "MNS", so both spellings are accepted.
 function isScreenProductGroup(name) {
     const key = String(name || "").replace(/\s+/g, "").toUpperCase();
     return key === "NMS" || key === "MNS" || key.startsWith("CU");
 }
 
 function screenGroupParts(group) {
-    return Object.values(screenCatalog().groups[group]?.categories || {}).flat();
+    return Object.values(screenCatalog().groups[group]?.categories || {}).flat()
+        .filter(item => /COVER/i.test(String(item?.label ?? item ?? "")));
 }
 
 function handleScreenModelSelect(select) {
