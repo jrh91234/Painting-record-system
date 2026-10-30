@@ -45,17 +45,21 @@ function reworkOptions(selectId, options, placeholder) {
     if (!select) return;
     const current = select.value;
     const includeAddOption = selectId === "rwModel";
-    const includeAddCategory = selectId === "rwPartGroup";
     const addValue = typeof PAINTING_ADD_MODEL_VALUE !== "undefined" ? PAINTING_ADD_MODEL_VALUE : "__ADD_MODEL__";
     select.innerHTML = `<option value="">${reworkEsc(placeholder)}</option>` + options.map(option => {
         const value = typeof option === "string" ? option : (option.value ?? option.code ?? "");
         const label = typeof option === "string" ? option : (option.label ?? option.value ?? option.code ?? "");
         return `<option value="${reworkEsc(value)}">${reworkEsc(label)}</option>`;
     }).join("") + (includeAddOption ? `<option value="${reworkEsc(addValue)}">➕ เพิ่มรายการ</option>` : "");
-    if (includeAddCategory) select.insertAdjacentHTML("beforeend", '<option value="__ADD_CATEGORY__">➕ เพิ่มรายการใหม่</option>');
     if (options.some(option => String(typeof option === "string" ? option : (option.value ?? option.code ?? "")) === String(current))) {
         select.value = current;
     }
+}
+
+// Like the daily production form, REWORK asks only for the product group
+// and the part (Capacity's ProductGroup, PartCode and PartName).
+function reworkGroupParts(group) {
+    return Object.values(reworkCatalog().groups[group]?.categories || {}).flat();
 }
 
 function handleReworkModelSelect(select) {
@@ -63,86 +67,50 @@ function handleReworkModelSelect(select) {
     if (!select || select.value !== addValue) return;
     const { groups } = reworkCatalog();
     const group = document.getElementById("rwProductGroup")?.value || "";
-    const part = document.getElementById("rwPartGroup")?.value || "";
-    const models = groups[group]?.categories?.[part];
-    if (!Array.isArray(models)) {
+    const categories = groups[group]?.categories;
+    if (!categories) {
         select.value = "";
         return;
     }
 
-    const modelName = window.prompt("ชื่อ/รายละเอียดรุ่นงานใหม่");
-    if (!modelName || !modelName.trim()) {
+    const code = String(window.prompt("PartCode ของชิ้นงานใหม่") || "").trim();
+    if (!code) {
         select.value = "";
         return;
     }
-    const modelCode = window.prompt("รหัสรุ่นงาน (ถ้ามี)") || "";
-    const name = modelName.trim();
-    const code = modelCode.trim();
-    const value = code || name;
-    const exists = models.some(item => String(typeof item === "string" ? item : (item.value ?? item.code ?? "")).trim().toLowerCase() === value.toLowerCase());
-    if (exists) {
-        showToast?.("มีรายการรุ่นงานนี้อยู่แล้ว", "error");
+    if (reworkGroupParts(group).some(item => String(item.value ?? item).trim().toLowerCase() === code.toLowerCase())) {
+        showToast?.("มีชิ้นงานนี้อยู่แล้ว", "error");
         renderReworkModels();
-        select.value = value;
+        select.value = code;
         return;
     }
+    const name = String(window.prompt("PartName ของชิ้นงานใหม่") || "").trim();
 
-    models.push({ value, label: code ? `(${code}) ${name}` : name });
+    // Capacity lists a part without a PartCategory under its PartName.
+    const category = name || code;
+    if (!categories[category]) categories[category] = [];
+    categories[category].push({ value: code, label: name ? `(${code}) ${name}` : code });
     try {
-        const catalog = (typeof PAINTING_MODEL_GROUPS !== "undefined" && PAINTING_MODEL_GROUPS) || groups;
         if (typeof PAINTING_PRODUCT_CATALOG_CACHE !== "undefined") {
-            localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(catalog));
+            localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(groups));
         }
     } catch (_) {}
+    if (typeof saveCatalogEntryToSheet === "function") saveCatalogEntryToSheet({ group, category, code, name });
     renderReworkModels();
-    select.value = value;
-    showToast?.("เพิ่มรายการรุ่นงานแล้ว", "success");
-}
-
-function handleReworkPartCategorySelect(select) {
-    if (!select || select.value !== "__ADD_CATEGORY__") return;
-    const { groups } = reworkCatalog();
-    const group = document.getElementById("rwProductGroup")?.value || "";
-    const categories = groups[group]?.categories;
-    const name = String(window.prompt("ชื่อประเภทชิ้นงานใหม่") || "").trim();
-    if (!categories || !name) { select.value = ""; return; }
-    if (Object.keys(categories).some(item => item.toLowerCase() === name.toLowerCase())) { showToast?.("มีประเภทชิ้นงานนี้อยู่แล้ว", "error"); select.value = name; return; }
-    categories[name] = [];
-    localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(groups));
-    renderReworkPartGroups(); select.value = name; renderReworkModels();
-    showToast?.("เพิ่มประเภทชิ้นงานใหม่แล้ว", "success");
+    select.value = code;
+    showToast?.("เพิ่มชิ้นงานแล้ว", "success");
 }
 
 function renderReworkProductGroups() {
     const { groups, order } = reworkCatalog();
     reworkOptions("rwProductGroup", order.filter(key => groups[key]), "-- เลือกกลุ่มผลิตภัณฑ์ --");
-    renderReworkPartGroups();
-    renderReworkColors();
-}
-
-function renderReworkPartGroups() {
-    const { groups } = reworkCatalog();
-    const group = document.getElementById("rwProductGroup")?.value || "";
-    const categories = groups[group]?.categories || {};
-    reworkOptions("rwPartGroup", Object.keys(categories), "-- เลือกประเภทชิ้นงาน --");
-    document.getElementById("rwPartGroup")?.setAttribute("onchange", "handleReworkPartCategorySelect(this)");
     renderReworkModels();
 }
 
 function renderReworkModels() {
     document.getElementById("rwModel")?.setAttribute("onchange", "handleReworkModelSelect(this)");
-    const { groups } = reworkCatalog();
     const group = document.getElementById("rwProductGroup")?.value || "";
-    const part = document.getElementById("rwPartGroup")?.value || "";
-    const models = groups[group]?.categories?.[part] || [];
-    reworkOptions("rwModel", models, "-- เลือกรุ่นงาน / รหัส --");
-}
-
-function renderReworkColors() {
-    const { groups } = reworkCatalog();
-    const group = document.getElementById("rwProductGroup")?.value || "";
-    const colors = groups[group]?.colors || [];
-    reworkOptions("rwColor", colors, "-- เลือกสี --");
+    reworkOptions("rwModel", reworkGroupParts(group), group ? "-- เลือกชิ้นงาน (PartCode) PartName --" : "-- เลือกกลุ่มผลิตภัณฑ์ก่อน --");
 }
 
 // REWORK uses the same recorder source and add-name flow as the daily
@@ -223,11 +191,9 @@ function reworkFormMarkup() {
 
         <div class="dr-card rework-form-card">
             <h2 class="dr-section-title">ส่วนที่ 2: รายการผลิตและของเสีย</h2>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="rwProductGroup">กลุ่มผลิตภัณฑ์</label><select id="rwProductGroup" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ --</option></select></div>
-                <div class="form-group"><label for="rwPartGroup">ประเภทชิ้นงาน</label><select id="rwPartGroup" class="form-control"><option value="">-- เลือกประเภทชิ้นงาน --</option></select></div>
-                <div class="form-group"><label for="rwModel">รุ่นงาน / รหัส</label><select id="rwModel" class="form-control"><option value="">-- เลือกรุ่นงาน / รหัส --</option></select></div>
-                <div class="form-group"><label for="rwColor">สี</label><select id="rwColor" class="form-control"><option value="">-- เลือกสี --</option></select></div>
+            <div class="dr-grid-2">
+                <div class="form-group"><label for="rwProductGroup">กลุ่มผลิตภัณฑ์ (ProductGroup)</label><select id="rwProductGroup" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ --</option></select></div>
+                <div class="form-group"><label for="rwModel">ชิ้นงาน (PartCode) PartName</label><select id="rwModel" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option></select></div>
             </div>
             <div class="dr-grid-2">
                 <div class="form-group"><label for="rwTime">ช่วงเวลา</label><select id="rwTime" class="form-control">${slots.map(slot => `<option value="${reworkEsc(slot)}">${reworkEsc(slot)}</option>`).join("")}</select></div>
@@ -268,9 +234,7 @@ function initReworkForm() {
             const saved = JSON.parse(localStorage.getItem(REWORK_DRAFT_KEY) || "[]");
             if (Array.isArray(saved)) reworkDraftRecords = saved;
         } catch (_) { reworkDraftRecords = []; }
-        ["rwProductGroup", "rwPartGroup"].forEach(id => document.getElementById(id)?.addEventListener("change", () => {
-            if (id === "rwProductGroup") { renderReworkPartGroups(); renderReworkColors(); } else renderReworkModels();
-        }));
+        document.getElementById("rwProductGroup")?.addEventListener("change", renderReworkModels);
         renderReworkProductGroups();
         renderReworkRecorderDropdownUI();
         normalizeReworkNumericInputs();
@@ -280,21 +244,17 @@ function initReworkForm() {
     }
 }
 
-function selectedReworkColor() {
-    const select = document.getElementById("rwColor");
-    const group = document.getElementById("rwProductGroup")?.value || "";
-    const colors = reworkCatalog().groups[group]?.colors || [];
-    return colors.find(color => String(color.value ?? color.code) === String(select?.value || "")) || {};
-}
-
 function addReworkRecord() {
     const model = document.getElementById("rwModel")?.value || "";
-    if (!model) return showToast?.("กรุณาเลือกรุ่นงาน / รหัสก่อนเพิ่มรายการ", "error");
-    const color = selectedReworkColor();
+    const addValue = typeof PAINTING_ADD_MODEL_VALUE !== "undefined" ? PAINTING_ADD_MODEL_VALUE : "__ADD_MODEL__";
+    if (!model || model === addValue) return showToast?.("กรุณาเลือกชิ้นงานก่อนเพิ่มรายการ", "error");
+    const productGroup = document.getElementById("rwProductGroup")?.value || "";
+    // Kept in the record for the sheet's PartCategory column.
+    const partCategory = Object.entries(reworkCatalog().groups[productGroup]?.categories || {})
+        .find(([, models]) => (models || []).some(item => String(item.value ?? item) === model))?.[0] || "";
     const record = {
-        productGroup: document.getElementById("rwProductGroup")?.value || "",
-        partCategory: document.getElementById("rwPartGroup")?.value || "",
-        model, color: color.value || document.getElementById("rwColor")?.value || "", colorCode: color.code || "",
+        productGroup, partCategory,
+        model, color: "", colorCode: "",
         timeSlot: document.getElementById("rwTime")?.value || "", prodQty: reworkNum("rwProdQty"),
         rust: reworkNum("rwRust"), dent: reworkNum("rwDent"), colorDrop: reworkNum("rwColorDrop"),
         thinPaint: reworkNum("rwThinPaint"), thickPaint: reworkNum("rwThickPaint"), waterStain: reworkNum("rwWaterStain"),
