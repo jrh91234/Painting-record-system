@@ -45,7 +45,6 @@ function screenOptions(selectId, options, placeholder) {
     if (!select) return;
     const current = select.value;
     const includeAddOption = selectId === "scModel";
-    const includeAddCategory = selectId === "scPartGroup";
     const addValue = typeof PAINTING_ADD_MODEL_VALUE !== "undefined" ? PAINTING_ADD_MODEL_VALUE : "__ADD_MODEL__";
     const visibleOptions = (Array.isArray(options) ? options : []).filter(option => {
         const label = String(typeof option === "string" ? option : (option?.label ?? option?.value ?? option?.code ?? ""))
@@ -58,10 +57,22 @@ function screenOptions(selectId, options, placeholder) {
         const label = typeof option === "string" ? option : (option.label ?? option.value ?? option.code ?? "");
         return `<option value="${screenEsc(value)}">${screenEsc(label)}</option>`;
     }).join("") + (includeAddOption ? `<option value="${screenEsc(addValue)}">➕ เพิ่มรายการ</option>` : "");
-    if (includeAddCategory) select.insertAdjacentHTML("beforeend", '<option value="__ADD_CATEGORY__">➕ เพิ่มรายการใหม่</option>');
     if (visibleOptions.some(option => String(typeof option === "string" ? option : (option.value ?? option.code ?? "")) === String(current))) {
         select.value = current;
     }
+}
+
+// Like the daily production form, SCREEN asks only for the product group
+// and the part (Capacity's ProductGroup, PartCode and PartName). Only the
+// NMS and CU groups go through the screen line; the Capacity sheet spells
+// NMS as "MNS", so both spellings are accepted.
+function isScreenProductGroup(name) {
+    const key = String(name || "").replace(/\s+/g, "").toUpperCase();
+    return key === "NMS" || key === "MNS" || key.startsWith("CU");
+}
+
+function screenGroupParts(group) {
+    return Object.values(screenCatalog().groups[group]?.categories || {}).flat();
 }
 
 function handleScreenModelSelect(select) {
@@ -69,86 +80,50 @@ function handleScreenModelSelect(select) {
     if (!select || select.value !== addValue) return;
     const { groups } = screenCatalog();
     const group = document.getElementById("scProductGroup")?.value || "";
-    const part = document.getElementById("scPartGroup")?.value || "";
-    const models = groups[group]?.categories?.[part];
-    if (!Array.isArray(models)) {
+    const categories = groups[group]?.categories;
+    if (!categories) {
         select.value = "";
         return;
     }
 
-    const modelName = window.prompt("ชื่อ/รายละเอียดรุ่นงานใหม่");
-    if (!modelName || !modelName.trim()) {
+    const code = String(window.prompt("PartCode ของชิ้นงานใหม่") || "").trim();
+    if (!code) {
         select.value = "";
         return;
     }
-    const modelCode = window.prompt("รหัสรุ่นงาน (ถ้ามี)") || "";
-    const name = modelName.trim();
-    const code = modelCode.trim();
-    const value = code || name;
-    const exists = models.some(item => String(typeof item === "string" ? item : (item.value ?? item.code ?? "")).trim().toLowerCase() === value.toLowerCase());
-    if (exists) {
-        showToast?.("มีรายการรุ่นงานนี้อยู่แล้ว", "error");
+    if (screenGroupParts(group).some(item => String(item.value ?? item).trim().toLowerCase() === code.toLowerCase())) {
+        showToast?.("มีชิ้นงานนี้อยู่แล้ว", "error");
         renderScreenModels();
-        select.value = value;
+        select.value = code;
         return;
     }
+    const name = String(window.prompt("PartName ของชิ้นงานใหม่") || "").trim();
 
-    models.push({ value, label: code ? `(${code}) ${name}` : name });
+    // Capacity lists a part without a PartCategory under its PartName.
+    const category = name || code;
+    if (!categories[category]) categories[category] = [];
+    categories[category].push({ value: code, label: name ? `(${code}) ${name}` : code });
     try {
-        const catalog = (typeof PAINTING_MODEL_GROUPS !== "undefined" && PAINTING_MODEL_GROUPS) || groups;
         if (typeof PAINTING_PRODUCT_CATALOG_CACHE !== "undefined") {
-            localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(catalog));
+            localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(groups));
         }
     } catch (_) {}
+    if (typeof saveCatalogEntryToSheet === "function") saveCatalogEntryToSheet({ group, category, code, name });
     renderScreenModels();
-    select.value = value;
-    showToast?.("เพิ่มรายการรุ่นงานแล้ว", "success");
-}
-
-function handleScreenPartCategorySelect(select) {
-    if (!select || select.value !== "__ADD_CATEGORY__") return;
-    const { groups } = screenCatalog();
-    const group = document.getElementById("scProductGroup")?.value || "";
-    const categories = groups[group]?.categories;
-    const name = String(window.prompt("ชื่อประเภทชิ้นงานใหม่") || "").trim();
-    if (!categories || !name) { select.value = ""; return; }
-    if (Object.keys(categories).some(item => item.toLowerCase() === name.toLowerCase())) { showToast?.("มีประเภทชิ้นงานนี้อยู่แล้ว", "error"); select.value = name; return; }
-    categories[name] = [];
-    localStorage.setItem(PAINTING_PRODUCT_CATALOG_CACHE, JSON.stringify(groups));
-    renderScreenPartGroups(); select.value = name; renderScreenModels();
-    showToast?.("เพิ่มประเภทชิ้นงานใหม่แล้ว", "success");
+    select.value = code;
+    showToast?.("เพิ่มชิ้นงานแล้ว", "success");
 }
 
 function renderScreenProductGroups() {
     const { groups, order } = screenCatalog();
-    screenOptions("scProductGroup", order.filter(key => groups[key]), "-- เลือกกลุ่มผลิตภัณฑ์ --");
-    renderScreenPartGroups();
-    renderScreenColors();
-}
-
-function renderScreenPartGroups() {
-    const { groups } = screenCatalog();
-    const group = document.getElementById("scProductGroup")?.value || "";
-    const categories = groups[group]?.categories || {};
-    screenOptions("scPartGroup", Object.keys(categories), "-- เลือกประเภทชิ้นงาน --");
-    document.getElementById("scPartGroup")?.setAttribute("onchange", "handleScreenPartCategorySelect(this)");
+    screenOptions("scProductGroup", order.filter(key => groups[key] && isScreenProductGroup(key)), "-- เลือกกลุ่มผลิตภัณฑ์ --");
     renderScreenModels();
 }
 
 function renderScreenModels() {
     document.getElementById("scModel")?.setAttribute("onchange", "handleScreenModelSelect(this)");
-    const { groups } = screenCatalog();
     const group = document.getElementById("scProductGroup")?.value || "";
-    const part = document.getElementById("scPartGroup")?.value || "";
-    const models = groups[group]?.categories?.[part] || [];
-    screenOptions("scModel", models, "-- เลือกรุ่นงาน / รหัส --");
-}
-
-function renderScreenColors() {
-    const { groups } = screenCatalog();
-    const group = document.getElementById("scProductGroup")?.value || "";
-    const colors = groups[group]?.colors || [];
-    screenOptions("scColor", colors, "-- เลือกสี --");
+    screenOptions("scModel", screenGroupParts(group), group ? "-- เลือกชิ้นงาน (PartCode) PartName --" : "-- เลือกกลุ่มผลิตภัณฑ์ก่อน --");
 }
 
 // SCREEN uses the same recorder source and add-name flow as the daily
@@ -229,11 +204,9 @@ function screenFormMarkup() {
 
         <div class="dr-card rework-form-card">
             <h2 class="dr-section-title">ส่วนที่ 2: รายการผลิตและของเสีย</h2>
-            <div class="dr-grid-4">
-                <div class="form-group"><label for="scProductGroup">กลุ่มผลิตภัณฑ์</label><select id="scProductGroup" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ --</option></select></div>
-                <div class="form-group"><label for="scPartGroup">ประเภทชิ้นงาน</label><select id="scPartGroup" class="form-control"><option value="">-- เลือกประเภทชิ้นงาน --</option></select></div>
-                <div class="form-group"><label for="scModel">รุ่นงาน / รหัส</label><select id="scModel" class="form-control"><option value="">-- เลือกรุ่นงาน / รหัส --</option></select></div>
-                <div class="form-group"><label for="scColor">สี</label><select id="scColor" class="form-control"><option value="">-- เลือกสี --</option></select></div>
+            <div class="dr-grid-2">
+                <div class="form-group"><label for="scProductGroup">กลุ่มผลิตภัณฑ์ (ProductGroup)</label><select id="scProductGroup" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ --</option></select></div>
+                <div class="form-group"><label for="scModel">ชิ้นงาน (PartCode) PartName</label><select id="scModel" class="form-control"><option value="">-- เลือกกลุ่มผลิตภัณฑ์ก่อน --</option></select></div>
             </div>
             <div class="dr-grid-2">
                 <div class="form-group"><label for="scTime">ช่วงเวลา</label><select id="scTime" class="form-control">${slots.map(slot => `<option value="${screenEsc(slot)}">${screenEsc(slot)}</option>`).join("")}</select></div>
@@ -274,9 +247,7 @@ function initScreenForm() {
             const saved = JSON.parse(localStorage.getItem(SCREEN_DRAFT_KEY) || "[]");
             if (Array.isArray(saved)) screenDraftRecords = saved;
         } catch (_) { screenDraftRecords = []; }
-        ["scProductGroup", "scPartGroup"].forEach(id => document.getElementById(id)?.addEventListener("change", () => {
-            if (id === "scProductGroup") { renderScreenPartGroups(); renderScreenColors(); } else renderScreenModels();
-        }));
+        document.getElementById("scProductGroup")?.addEventListener("change", renderScreenModels);
         renderScreenProductGroups();
         renderScreenRecorderDropdownUI();
         normalizeScreenNumericInputs();
@@ -286,21 +257,17 @@ function initScreenForm() {
     }
 }
 
-function selectedScreenColor() {
-    const select = document.getElementById("scColor");
-    const group = document.getElementById("scProductGroup")?.value || "";
-    const colors = screenCatalog().groups[group]?.colors || [];
-    return colors.find(color => String(color.value ?? color.code) === String(select?.value || "")) || {};
-}
-
 function addScreenRecord() {
     const model = document.getElementById("scModel")?.value || "";
-    if (!model) return showToast?.("กรุณาเลือกรุ่นงาน / รหัสก่อนเพิ่มรายการ", "error");
-    const color = selectedScreenColor();
+    const addValue = typeof PAINTING_ADD_MODEL_VALUE !== "undefined" ? PAINTING_ADD_MODEL_VALUE : "__ADD_MODEL__";
+    if (!model || model === addValue) return showToast?.("กรุณาเลือกชิ้นงานก่อนเพิ่มรายการ", "error");
+    const productGroup = document.getElementById("scProductGroup")?.value || "";
+    // Kept in the record for the sheet's PartCategory column.
+    const partCategory = Object.entries(screenCatalog().groups[productGroup]?.categories || {})
+        .find(([, models]) => (models || []).some(item => String(item.value ?? item) === model))?.[0] || "";
     const record = {
-        productGroup: document.getElementById("scProductGroup")?.value || "",
-        partCategory: document.getElementById("scPartGroup")?.value || "",
-        model, color: color.value || document.getElementById("scColor")?.value || "", colorCode: color.code || "",
+        productGroup, partCategory,
+        model, color: "", colorCode: "",
         timeSlot: document.getElementById("scTime")?.value || "", prodQty: screenNum("scProdQty"),
         rust: screenNum("scRust"), dent: screenNum("scDent"), colorDrop: screenNum("scColorDrop"),
         thinPaint: screenNum("scThinPaint"), thickPaint: screenNum("scThickPaint"), waterStain: screenNum("scWaterStain"),
