@@ -339,7 +339,7 @@ function renderScreenList() {
     const summary = document.getElementById("screenTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
     if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${screenEsc(row.date || "-")}</td><td>${screenEsc(row.model || "-")}</td><td>${screenEsc(row.timeSlot || "-")}</td><td>${screenEsc(getDailyReportProductGroup(row))}</td><td title="${screenEsc(getDailyReportPartName(row))}">${screenEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${screenDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeScreenRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    body.innerHTML = rows.map((row, index) => `<tr><td>${screenEsc(row.date || "-")}</td><td>${screenEsc(row.model || "-")}</td><td>${screenEsc(row.timeSlot || "-")}</td><td>${screenEsc(getDailyReportProductGroup(row))}</td><td title="${screenEsc(getDailyReportPartName(row))}">${screenEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${screenDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeScreenRecord(${index})">ลบ</button>` : savedRecordActions("SCREEN", row, "บันทึกแล้ว")}</td></tr>`).join("");
 }
 
 async function refreshScreenHistory() {

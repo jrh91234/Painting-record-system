@@ -850,7 +850,7 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
                 <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; font-weight: 800; color: #34d399; text-align: center; font-size: 1.05rem; text-shadow: 0 0 10px rgba(52, 211, 153, 0.25);">${Number(r.prodQty || r.ProdQty || r.prod_qty || r.qty) || 0}</td>
             <td style="padding: 0.95rem 1.1rem; text-align: center;"><span style="${getDailyReportDefectTotal(r) > 0 ? 'background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4);' : 'background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2);'} padding: 0.2rem 0.65rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">${getDailyReportDefectTotal(r)}</span></td>
-            <td style="padding: 0.95rem 1.1rem; text-align: center; font-size: 0.78rem; color: #38bdf8; font-weight: 700;"><span style="background: rgba(56, 189, 248, 0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">✓ บันทึกแล้ว</span></td>
+            <td style="padding: 0.95rem 1.1rem; text-align: center; font-size: 0.78rem; color: #38bdf8; font-weight: 700;">${savedRecordActions('NEW', r, '<span style="background: rgba(56, 189, 248, 0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">✓ บันทึกแล้ว</span>')}</td>
         </tr>
     `).join('');
 }
@@ -870,6 +870,11 @@ function getDailyReportPartName(record) {
         }
     }
     return '-';
+}
+
+// Edit / delete buttons for a saved record (record-edit.js), or the given label.
+function savedRecordActions(kind, record, label) {
+    return typeof window.productionRecordActions === 'function' ? window.productionRecordActions(kind, record, label) : label;
 }
 
 function getSavedDailyReportRecords() {
