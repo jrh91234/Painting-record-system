@@ -411,12 +411,15 @@ function switchTab(tabId, element) {
         }
     } else if (tabId === "rework-tab") {
         if (typeof initReworkForm === 'function') initReworkForm();
+        if (typeof selectCurrentTimeSlot === 'function') selectCurrentTimeSlot('rwTime');
         if (typeof refreshReworkHistory === 'function') refreshReworkHistory();
     } else if (tabId === "screen-tab") {
         if (typeof initScreenForm === 'function') initScreenForm();
+        if (typeof selectCurrentTimeSlot === 'function') selectCurrentTimeSlot('scTime');
         if (typeof refreshScreenHistory === 'function') refreshScreenHistory();
     } else if (tabId === "pre-assy-tab") {
         if (typeof initPreAssyForm === 'function') initPreAssyForm();
+        if (typeof selectCurrentTimeSlot === 'function') selectCurrentTimeSlot('paTime');
         if (typeof refreshPreAssyHistory === 'function') refreshPreAssyHistory();
     } else if (tabId === "parameter-checklist-tab") {
         if (typeof initParameterChecklist === 'function') {

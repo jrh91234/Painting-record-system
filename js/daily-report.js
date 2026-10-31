@@ -434,6 +434,14 @@ function getCurrentTimeSlot() {
     return closestSlot;
 }
 
+// REWORK, SCREEN and Pre-assy build their own time select; each time one of
+// them is opened, move it to the current slot like the daily form does.
+function selectCurrentTimeSlot(selectId) {
+    const select = document.getElementById(selectId);
+    const slot = getCurrentTimeSlot();
+    if (select && slot && Array.from(select.options).some(option => option.value === slot)) select.value = slot;
+}
+
 let currentTargetStaffType = "recorder";
 
 // The cloud Recorders sheet is the source of truth. Do not seed this with mock names.
@@ -812,7 +820,7 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
                 <td style="padding: 0.95rem 1.1rem; font-size: 0.85rem; font-weight: 700; color: #38bdf8; white-space: nowrap;">${escapeDailyReportHtml(draftDateLabel)}</td>
                 <td style="padding: 0.95rem 1.1rem; font-size: 0.92rem; font-weight: 700; color: #f8fafc;">${escapeDailyReportHtml(r.model || '-')}</td>
                 <td style="padding: 0.95rem 1.1rem;"><span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem;">${escapeDailyReportHtml(r.timeSlot || '-')}</span></td>
-                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(r.color || 'ไม่ระบุ')}</td>
+                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; font-weight: 800; color: #34d399; text-align: center; font-size: 1.05rem; text-shadow: 0 0 10px rgba(52, 211, 153, 0.25);">${Number(r.prodQty) || 0}</td>
                 <td style="padding: 0.95rem 1.1rem; text-align: center;"><span style="${r.totalDefect > 0 ? 'background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4);' : 'background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2);'} padding: 0.2rem 0.65rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">${r.totalDefect}</span></td>
                 <td style="padding: 0.95rem 1.1rem; text-align: center;"><button type="button" onclick="removeDailyReportRecord(${i})" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; padding: 0.35rem 0.85rem; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 0.8rem; transition: all 0.2s ease; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);">🗑️ ลบ</button></td>
@@ -837,12 +845,29 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
             <td style="padding: 0.95rem 1.1rem; font-size: 0.85rem; font-weight: 700; color: #94a3b8; white-space: nowrap;">${formatDailyReportDate(r.date, r.timestamp)}</td>
             <td style="padding: 0.95rem 1.1rem; font-size: 0.92rem; font-weight: 700; color: #f8fafc;">${escapeDailyReportHtml(r.model || r.Model || '-')}</td>
             <td style="padding: 0.95rem 1.1rem;"><span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem;">${escapeDailyReportHtml(r.timeSlot || r.TimeSlot || '-')}</span></td>
-                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(r.color || r.Color || 'ไม่ระบุ')}</td>
+                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; font-weight: 800; color: #34d399; text-align: center; font-size: 1.05rem; text-shadow: 0 0 10px rgba(52, 211, 153, 0.25);">${Number(r.prodQty || r.ProdQty || r.prod_qty || r.qty) || 0}</td>
             <td style="padding: 0.95rem 1.1rem; text-align: center;"><span style="${getDailyReportDefectTotal(r) > 0 ? 'background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4);' : 'background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2);'} padding: 0.2rem 0.65rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">${getDailyReportDefectTotal(r)}</span></td>
             <td style="padding: 0.95rem 1.1rem; text-align: center; font-size: 0.78rem; color: #38bdf8; font-weight: 700;"><span style="background: rgba(56, 189, 248, 0.1); padding: 0.25rem 0.6rem; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.2);">✓ บันทึกแล้ว</span></td>
         </tr>
     `).join('');
+}
+
+// Capacity labels a part "(PartCode) PartName"; the tables show the name next
+// to the code the record stores.
+function getDailyReportPartName(record) {
+    const model = String(record?.model || record?.Model || '').trim().toUpperCase();
+    if (!model) return '-';
+    for (const groups of [PAINTING_MODEL_GROUPS, PAINTING_PREASSY_GROUPS]) {
+        for (const group of Object.values(groups || {})) {
+            for (const item of Object.values(group?.categories || {}).flat()) {
+                if (String(item?.value || '').trim().toUpperCase() !== model) continue;
+                const name = String(item.label || '').replace(/^\([^)]*\)\s*/, '').trim();
+                if (name && name.toUpperCase() !== model) return name;
+            }
+        }
+    }
+    return '-';
 }
 
 function getSavedDailyReportRecords() {
@@ -949,7 +974,7 @@ async function openDailyReportHistory() {
             <td style="font-weight: 700; white-space: nowrap;">${formatDailyReportDate(r.date || r.Date, r.timestamp || r.Timestamp)}</td>
             <td style="font-weight: 600;">${escapeDailyReportHtml(r.model || r.Model || '-')}</td>
             <td><span class="badge" style="background:#e2e8f0; color:#475569;">${escapeDailyReportHtml(r.timeSlot || r.TimeSlot || '-')}</span></td>
-            <td>${escapeDailyReportHtml(r.color || r.Color || 'ไม่ระบุ')}</td>
+            <td>${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
             <td>${escapeDailyReportHtml(r.shift || r.Shift || '-')}</td>
             <td style="font-weight: 700; color: #10b981;">${Number(r.prodQty || r.ProdQty || r.prod_qty || r.qty) || 0}</td>
             <td><span class="badge-defect ${getDailyReportDefectTotal(r) > 0 ? 'badge-has-defect' : 'badge-zero'}">${getDailyReportDefectTotal(r)}</span></td>
