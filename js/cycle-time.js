@@ -37,8 +37,27 @@
                     <h1 class="page-title" style="margin:0;">Cycle time</h1>
                     <p class="page-subtitle">ค่ามาตรฐานของทุกพาร์ทจากชีต Capacity ที่ใช้คำนวณ %Eff · แก้แล้วกด "บันทึก" ของแถวนั้น</p>
                 </div>
-                <button type="button" class="btn-secondary-custom" onclick="loadCycleTimes(true)" style="padding:0.6rem 1.2rem !important; border-radius:12px !important;">🔄 รีเฟรช</button>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="btn-primary-custom" id="cycleTimeAddToggle" style="padding:0.6rem 1.2rem !important;">➕ เพิ่มพาร์ทใหม่</button>
+                    <button type="button" class="btn-secondary-custom" onclick="loadCycleTimes(true)" style="padding:0.6rem 1.2rem !important; border-radius:12px !important;">🔄 รีเฟรช</button>
+                </div>
             </div>
+            <form id="cycleTimeAddForm" class="dr-card" style="padding:1rem 1.25rem; margin-bottom:1rem;" hidden>
+                <h2 class="dr-section-title" style="margin-top:0;">เพิ่มพาร์ทใหม่ลงชีต Capacity</h2>
+                <div class="dr-grid-3">
+                    <div class="form-group"><label for="ctNewCode">PartCode *</label><input id="ctNewCode" class="form-control" required></div>
+                    <div class="form-group"><label for="ctNewName">PartName</label><input id="ctNewName" class="form-control"></div>
+                    <div class="form-group"><label for="ctNewGroup">ProductGroup *</label><input id="ctNewGroup" class="form-control" list="ctGroupList" required placeholder="เลือกหรือพิมพ์กลุ่มใหม่"><datalist id="ctGroupList"></datalist></div>
+                </div>
+                <div class="dr-grid-3">
+                    ${FIELDS.map(f => `<div class="form-group"><label for="ctNew_${f.key}">${esc(f.label)}</label><input id="ctNew_${f.key}" data-field="${f.key}" class="form-control" type="number" min="0" step="${f.step}"></div>`).join('')}
+                </div>
+                <p style="margin:0 0 0.75rem; font-size:0.8rem; opacity:0.75;">เว้นช่อง cycle time พ่นสีว่างไว้ได้ ถ้าชีตคำนวณจาก ชิ้น/ราว · ระยะราว · ความเร็วไลน์ — แถวใหม่จะใช้สูตรเดียวกับแถวอื่น</p>
+                <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                    <button type="button" class="btn-secondary-custom" id="cycleTimeAddCancel">ยกเลิก</button>
+                    <button type="submit" class="btn-primary" id="cycleTimeAddSubmit">💾 เพิ่มพาร์ท</button>
+                </div>
+            </form>
             <div class="dr-card" style="padding:1rem 1.25rem; margin-bottom:1rem;">
                 <div class="dr-grid-2">
                     <div class="form-group"><label for="cycleTimeSearch">ค้นหา PartCode / PartName</label><input id="cycleTimeSearch" class="form-control" type="search" placeholder="เช่น BRU30890 หรือ Cover"></div>
@@ -97,6 +116,50 @@
         state.rows.forEach(row => { if (row.productGroup && !groups.includes(row.productGroup)) groups.push(row.productGroup); });
         select.innerHTML = '<option value="">ทั้งหมด</option>' + groups.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
         select.value = groups.includes(state.group) ? state.group : '';
+        const list = document.getElementById('ctGroupList');
+        if (list) list.innerHTML = groups.map(g => `<option value="${esc(g)}"></option>`).join('');
+    }
+
+    async function addPart(event) {
+        event.preventDefault();
+        const form = document.getElementById('cycleTimeAddForm');
+        const params = {
+            action: 'addCycleTimePart',
+            partCode: document.getElementById('ctNewCode').value.trim(),
+            partName: document.getElementById('ctNewName').value.trim(),
+            productGroup: document.getElementById('ctNewGroup').value.trim()
+        };
+        if (!params.partCode || !params.productGroup) {
+            if (typeof showToast === 'function') showToast('กรุณาระบุ PartCode และ ProductGroup', 'error');
+            return;
+        }
+        if (state.rows.some(row => row.partCode.toUpperCase() === params.partCode.toUpperCase())) {
+            if (typeof showToast === 'function') showToast(`มี PartCode ${params.partCode} อยู่แล้ว`, 'error');
+            return;
+        }
+        form.querySelectorAll('[data-field]').forEach(input => { params[input.dataset.field] = input.value; });
+        const button = document.getElementById('cycleTimeAddSubmit');
+        button.disabled = true;
+        button.textContent = 'กำลังเพิ่ม...';
+        try {
+            const json = await fetchAppsScriptJsonp(apiUrl(params), 'Add cycle time part', 20000);
+            if (!json || json.status !== 'success') throw new Error((json && json.message) || 'เพิ่มไม่สำเร็จ');
+            if (json.row) state.rows.push(json.row);
+            form.reset();
+            form.hidden = true;
+            state.filter = params.partCode;
+            document.getElementById('cycleTimeSearch').value = params.partCode;
+            renderGroups();
+            render();
+            setStatus(`${state.rows.length} พาร์ท`);
+            if (typeof showToast === 'function') showToast(`เพิ่ม ${params.partCode} ลงชีต Capacity แล้ว`, 'success');
+        } catch (error) {
+            console.error('Add cycle time part failed', error);
+            if (typeof showToast === 'function') showToast(`เพิ่ม ${params.partCode} ไม่สำเร็จ: ${error.message || error}`, 'error');
+        } finally {
+            button.disabled = false;
+            button.textContent = '💾 เพิ่มพาร์ท';
+        }
     }
 
     async function load(force) {
@@ -153,6 +216,13 @@
         root.dataset.ready = 'true';
         root.innerHTML = markup();
         document.getElementById('cycleTimeSearch').addEventListener('input', event => { state.filter = event.target.value; render(); });
+        const addForm = document.getElementById('cycleTimeAddForm');
+        document.getElementById('cycleTimeAddToggle').addEventListener('click', () => {
+            addForm.hidden = !addForm.hidden;
+            if (!addForm.hidden) document.getElementById('ctNewCode').focus();
+        });
+        document.getElementById('cycleTimeAddCancel').addEventListener('click', () => { addForm.reset(); addForm.hidden = true; });
+        addForm.addEventListener('submit', addPart);
         document.getElementById('cycleTimeGroup').addEventListener('change', event => { state.group = event.target.value; render(); });
         const body = document.getElementById('cycleTimeBody');
         body.addEventListener('input', event => {
