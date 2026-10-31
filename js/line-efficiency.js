@@ -13,12 +13,22 @@
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
-    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', expanded: new Set() };
+    // Each line is measured on its own records: the paint line runs new work
+    // and REWORK, SCREEN and Pre-assy are recorded in their own menus.
+    const LINES = {
+        paint: ['NEW', 'REWORK'],
+        screen: ['SCREEN'],
+        preassy: ['PREASSY']
+    };
+    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', line: 'paint', expanded: new Set() };
     const CACHE_KEYS = [
         ['PAINTING_OUTPUTDIARY_CACHE_REVIEWED', 'NEW'],
         ['PAINTING_OUTPUTDIARY_CACHE_PENDING', 'NEW'],
         ['PAINTING_REWORK_CACHE_REVIEWED', 'REWORK'],
-        ['PAINTING_REWORK_CACHE_PENDING', 'REWORK']
+        ['PAINTING_REWORK_CACHE_PENDING', 'REWORK'],
+        ['PAINTING_SCREEN_CACHE_REVIEWED', 'SCREEN'],
+        ['PAINTING_SCREEN_CACHE_PENDING', 'SCREEN'],
+        ['PAINTING_PREASSY_CACHE', 'PREASSY']
     ];
 
     function escapeHtml(value) {
@@ -104,9 +114,9 @@
     }
 
     function combine(tagged) {
-        const byType = { NEW: [], REWORK: [] };
+        const byType = { NEW: [], REWORK: [], SCREEN: [], PREASSY: [] };
         tagged.forEach(row => byType[row.workType].push(row));
-        return dedupe(byType.NEW).concat(dedupe(byType.REWORK));
+        return Object.values(byType).flatMap(dedupe);
     }
 
     // Production data the app already cached from earlier visits.
@@ -132,6 +142,13 @@
         if (typeof fetchReworkReportDataFromAPI === 'function') {
             sources.push(fetchReworkReportDataFromAPI('', { scope: 'reviewed' }).then(rows => rows.map(r => ({ ...r, workType: 'REWORK' }))));
             sources.push(fetchReworkReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'REWORK' }))));
+        }
+        if (typeof fetchScreenReportDataFromAPI === 'function') {
+            sources.push(fetchScreenReportDataFromAPI('', { scope: 'reviewed' }).then(rows => rows.map(r => ({ ...r, workType: 'SCREEN' }))));
+            sources.push(fetchScreenReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'SCREEN' }))));
+        }
+        if (typeof fetchPreAssyReportDataFromAPI === 'function') {
+            sources.push(fetchPreAssyReportDataFromAPI('').then(rows => rows.map(r => ({ ...r, workType: 'PREASSY' }))));
         }
         const results = await Promise.allSettled(sources);
         return combine(results.flatMap(result => (result.status === 'fulfilled' && Array.isArray(result.value)) ? result.value : []));
@@ -219,10 +236,14 @@
         const days = new Map();
         const unmatched = new Map();
 
+        const workTypes = LINES[state.line] || LINES.paint;
         state.rows.forEach(row => {
+            if (!workTypes.includes(row.workType)) return;
             const day = toDateKey(row.date);
             if (!day || (state.from && day < state.from) || (state.to && day > state.to)) return;
-            const qty = Number(row.prodQty) || 0;
+            // A Pre-assy record holds either good output or rejects (ProdQty
+            // is 0 on a reject record), so its rejects add to the pieces made.
+            const qty = (Number(row.prodQty) || 0) + (row.workType === 'PREASSY' ? Number(row.totalDefect) || 0 : 0);
             if (qty <= 0) return;
             const code = normalizeCode(row.model);
             const cap = capacity.get(code);
@@ -605,6 +626,11 @@
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
+        document.querySelectorAll('[data-eff-line]').forEach(button => {
+            const active = button.dataset.effLine === state.line;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
     }
 
     function applyPreset(preset) {
@@ -664,6 +690,7 @@
         const page = document.getElementById('line-eff-tab');
         if (!page || page.dataset.bound) return;
         page.dataset.bound = 'true';
+        syncRangeControls();
         ['lineEffFrom', 'lineEffTo'].forEach(id => {
             const input = document.getElementById(id);
             if (input) input.addEventListener('change', () => {
@@ -674,6 +701,14 @@
         });
         document.querySelectorAll('[data-eff-preset]').forEach(button => {
             button.addEventListener('click', () => applyPreset(button.dataset.effPreset));
+        });
+        document.querySelectorAll('[data-eff-line]').forEach(button => {
+            button.addEventListener('click', () => {
+                state.line = button.dataset.effLine;
+                state.expanded.clear();
+                syncRangeControls();
+                render();
+            });
         });
         const refresh = document.getElementById('lineEffRefresh');
         if (refresh) refresh.addEventListener('click', () => load(true));
