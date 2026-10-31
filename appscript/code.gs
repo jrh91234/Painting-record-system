@@ -2517,6 +2517,60 @@ function updateCycleTime_(ss, params) {
   return { status: "success", row: updated || null };
 }
 
+// Admin "Cycle time" page: add a part as a new Capacity row. A column the
+// form leaves empty that the sheet works out with a formula (StdSecPerPcs,
+// CapPerHr...) gets the nearest formula above copied down, so the new row
+// is calculated the same way as the others.
+function addCycleTimePart_(ss, params) {
+  const sheet = ss.getSheetByName("Capacity");
+  if (!sheet) return { status: "error", message: "ไม่พบชีต Capacity" };
+  const partCode = String(params.partCode || "").trim();
+  const productGroup = String(params.productGroup || "").trim();
+  if (!partCode || !productGroup) return { status: "error", message: "ต้องระบุ PartCode และ ProductGroup" };
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const codeCol = headers.indexOf("PartCode");
+  if (codeCol < 0) return { status: "error", message: "ไม่พบคอลัมน์ PartCode ในชีต Capacity" };
+  const lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    const codes = sheet.getRange(2, codeCol + 1, lastRow - 1, 1).getValues();
+    if (codes.some(r => capacityCode_(r[0]) === capacityCode_(partCode))) {
+      return { status: "error", message: "มี PartCode " + partCode + " ในชีต Capacity อยู่แล้ว" };
+    }
+  }
+  if (headers.indexOf(CYCLE_TIME_FIELDS_.screenStdSec) < 0 && String(params.screenStdSec || "").trim() !== "") {
+    sheet.getRange(1, headers.length + 1).setValue(CYCLE_TIME_FIELDS_.screenStdSec);
+    headers.push(CYCLE_TIME_FIELDS_.screenStdSec);
+  }
+
+  const provided = {};
+  provided.PartCode = partCode;
+  provided.PartName = String(params.partName || "").trim() || partCode;
+  provided.ProductGroup = productGroup;
+  Object.keys(CYCLE_TIME_FIELDS_).forEach(key => {
+    const raw = String(params[key] == null ? "" : params[key]).trim();
+    if (raw !== "" && Number(raw) >= 0) provided[CYCLE_TIME_FIELDS_[key]] = Number(raw);
+  });
+  const row = headers.map(h => (h in provided ? provided[h] : ""));
+  sheet.appendRow(row);
+  const newRow = sheet.getLastRow();
+
+  if (lastRow >= 2) {
+    const firstRow = Math.max(2, lastRow - 199);
+    const formulas = sheet.getRange(firstRow, 1, lastRow - firstRow + 1, headers.length).getFormulas();
+    headers.forEach((header, c) => {
+      if (header in provided) return;
+      for (let i = formulas.length - 1; i >= 0; i--) {
+        if (!formulas[i][c]) continue;
+        sheet.getRange(firstRow + i, c + 1).copyTo(sheet.getRange(newRow, c + 1), SpreadsheetApp.CopyPasteType.PASTE_FORMULA, false);
+        break;
+      }
+    });
+  }
+  SpreadsheetApp.flush();
+  const added = readCycleTimes_(ss).filter(r => r.row === newRow)[0];
+  return { status: "success", row: added || null };
+}
+
 // "➕ เพิ่มรายการ" in the production form: add the part as a Capacity row.
 // Its standard time is left for the sheet's owner to fill in; %Eff treats a
 // part without one as unmatched. A category with no part yet stays in the
@@ -3106,6 +3160,16 @@ function doGetJson_(e) {
 
     if (action === "getCycleTimes") {
       return ContentService.createTextOutput(JSON.stringify({ status: "success", rows: readCycleTimes_(ss) })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "addCycleTimePart") {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        return ContentService.createTextOutput(JSON.stringify(addCycleTimePart_(ss, (e && e.parameter) || {}))).setMimeType(ContentService.MimeType.JSON);
+      } finally {
+        lock.releaseLock();
+      }
     }
 
     if (action === "updateCycleTime") {
