@@ -247,11 +247,13 @@
             if (qty <= 0) return;
             const code = normalizeCode(row.model);
             const cap = capacity.get(code);
+            // SCREEN runs the same parts at its own cycle time (ScreenStdSecPerPcs).
+            const stdSec = cap ? (row.workType === 'SCREEN' ? cap.screenStdSec : cap.stdSec) : 0;
             if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), extra: new Map(), parts: new Map(), unmatchedQty: 0 });
             const entry = days.get(day);
             markShiftTime(entry, slots, row);
 
-            if (!cap || !(cap.stdSec > 0)) {
+            if (!(stdSec > 0)) {
                 entry.unmatchedQty += qty;
                 const miss = unmatched.get(code) || { code, raw: row.model, qty: 0, days: new Set() };
                 miss.qty += qty;
@@ -261,9 +263,9 @@
             }
 
             const defects = Math.min(qty, Number(row.totalDefect) || 0);
-            const earned = qty * cap.stdSec / 60;
+            const earned = qty * stdSec / 60;
             entry.earned += earned;
-            entry.earnedGood += (qty - defects) * cap.stdSec / 60;
+            entry.earnedGood += (qty - defects) * stdSec / 60;
             if (row.workType === 'REWORK') {
                 entry.earnedRework += earned;
                 entry.reworkQty += qty;
@@ -272,7 +274,7 @@
             entry.defects += defects;
 
             const partKey = code + '|' + row.workType;
-            const part = entry.parts.get(partKey) || { code, name: cap.partName, workType: row.workType, qty: 0, defects: 0, stdSec: cap.stdSec, qtyPerJig: cap.qtyPerJig, earned: 0 };
+            const part = entry.parts.get(partKey) || { code, name: cap.partName, workType: row.workType, qty: 0, defects: 0, stdSec, qtyPerJig: cap.qtyPerJig, earned: 0 };
             part.qty += qty;
             part.defects += defects;
             part.earned += earned;
@@ -555,7 +557,7 @@
             const parts = Array.from(day.parts.values()).sort((a, b) => b.earned - a.earned);
             const detail = open ? `<tr class="line-eff-detail"><td colspan="7">
                 <table class="line-eff-parts"><thead><tr><th>ชิ้นงาน</th><th>ประเภท</th><th>ยอดผลิต</th><th>ชิ้น/ราว</th><th>เวลามาตรฐาน</th><th>เวลาที่ทำได้</th></tr></thead><tbody>
-                ${parts.map(part => `<tr><td><strong>${escapeHtml(part.code)}</strong><br><small>${escapeHtml(part.name)}</small></td><td>${part.workType === 'REWORK' ? 'REWORK' : 'งานใหม่'}</td><td>${part.qty.toLocaleString()}${part.defects ? ` <small>(เสีย ${part.defects})</small>` : ''}</td><td>${part.qtyPerJig}</td><td>${part.stdSec.toFixed(2)} วินาที</td><td>${fmtMin(part.earned)}</td></tr>`).join('')}
+                ${parts.map(part => `<tr><td><strong>${escapeHtml(part.code)}</strong><br><small>${escapeHtml(part.name)}</small></td><td>${({ REWORK: 'REWORK', SCREEN: 'SCREEN', PREASSY: 'Pre-assy' })[part.workType] || 'งานใหม่'}</td><td>${part.qty.toLocaleString()}${part.defects ? ` <small>(เสีย ${part.defects})</small>` : ''}</td><td>${part.qtyPerJig}</td><td>${part.stdSec.toFixed(2)} วินาที</td><td>${fmtMin(part.earned)}</td></tr>`).join('')}
                 ${day.unmatchedQty ? `<tr><td colspan="6" class="line-eff-note">⚠ มีงาน ${day.unmatchedQty.toLocaleString()} ชิ้นที่ยังไม่มีค่ามาตรฐาน จึงยังไม่ถูกนับ</td></tr>` : ''}
                 </tbody></table></td></tr>` : '';
             return `<tr class="line-eff-row" data-day="${day.day}" tabindex="0" aria-expanded="${open}">
@@ -579,7 +581,9 @@
         }
         box.hidden = false;
         box.innerHTML = `<strong>⚠ ชิ้นงานที่ยังไม่มีค่ามาตรฐาน (${unmatched.length} รายการ)</strong>
-            <p>งานเหล่านี้ยังไม่ถูกนับใน %Eff — เพิ่มรหัสลงชีต <b>Capacity</b> ใน Google Sheet แล้วกดรีเฟรช</p>
+            <p>${state.line === 'screen'
+                ? 'งานเหล่านี้ยังไม่ถูกนับใน %Eff — ใส่ cycle time ของไลน์ SCREEN ในคอลัมน์ <b>ScreenStdSecPerPcs</b> ของชีต <b>Capacity</b> แล้วกดรีเฟรช'
+                : 'งานเหล่านี้ยังไม่ถูกนับใน %Eff — เพิ่มรหัสลงชีต <b>Capacity</b> ใน Google Sheet แล้วกดรีเฟรช'}</p>
             <div class="line-eff-chips">${unmatched.map(item => `<span class="line-eff-chip">${escapeHtml(item.raw || item.code || '(ว่าง)')} · ${item.qty.toLocaleString()} ชิ้น</span>`).join('')}</div>`;
     }
 
