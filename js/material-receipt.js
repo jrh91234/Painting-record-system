@@ -12,7 +12,7 @@
     const SHELF_LIFE_MONTHS = { 'NUO QI': 6 };
     const NEAR_EXPIRY_DAYS = 30;
     const MAX_PHOTO_SIDE = 1600;
-    const state = { bound: false, config: { ocrEnabled: false }, photo: null, known: new Map(), recent: [] };
+    const state = { bound: false, config: { ocrEnabled: false }, photo: null, known: new Map(), recent: [], editing: null };
 
     const $ = id => document.getElementById(id);
     const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -87,6 +87,7 @@
     }
 
     function resetForm() {
+        stopEditing();
         const supplier = $('mrSupplier').value;
         FIELDS.forEach(id => {
             const el = $(id);
@@ -248,7 +249,82 @@
         return value ? 'อื่นๆ' : '';
     }
 
+    // ---------- edit / delete (same production day only; the sheet decides) ----------
+    function stopEditing() {
+        state.editing = null;
+        $('mrSaveBtn').innerHTML = '💾 บันทึกรับกล่องนี้';
+        $('mrResetBtn').textContent = 'ล้างฟอร์ม';
+        const banner = $('mrEditBanner');
+        if (banner) banner.hidden = true;
+    }
+
+    function startEditing(receiptId) {
+        const row = state.recent.find(item => item.receiptId === receiptId);
+        if (!row) return;
+        resetForm();
+        state.editing = receiptId;
+        [['mrSupplier', row.supplier], ['mrColorCode', row.colorCode], ['mrColorName', row.colorName], ['mrLot', row.lot],
+            ['mrBoxNo', row.boxNo], ['mrWeight', row.netWeightKg], ['mrMfgDate', row.mfgDate], ['mrExpiryDate', row.expiryDate], ['mrNote', row.note]]
+            .forEach(([id, value]) => { $(id).value = value || ''; });
+        updateExpiryBadge();
+        $('mrSaveBtn').innerHTML = '💾 บันทึกการแก้ไข';
+        $('mrResetBtn').textContent = 'ยกเลิกแก้ไข';
+        let banner = $('mrEditBanner');
+        if (!banner) {
+            banner = document.createElement('p');
+            banner.id = 'mrEditBanner';
+            banner.className = 'mr-read-status';
+            $('mrSaveBtn').closest('div').before(banner);
+        }
+        banner.hidden = false;
+        banner.textContent = `กำลังแก้ไขรายการรับเมื่อ ${row.timestamp} (${row.colorCode} Lot ${row.lot})`;
+        $('mrColorCode').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function saveEdit() {
+        const data = readForm();
+        if (!data.colorCode || !data.lot || !data.weight) {
+            toast('กรุณากรอก รหัสสี, Lot และน้ำหนัก', 'error');
+            return;
+        }
+        const btn = $('mrSaveBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ กำลังบันทึก...';
+        try {
+            const result = await call({
+                action: 'updateMaterialReceipt', receiptId: state.editing,
+                supplier: data.supplier, colorCode: data.colorCode, colorName: data.colorName,
+                lot: data.lot, boxNo: data.boxNo, netWeightKg: data.weight,
+                mfgDate: data.mfgDate, expiryDate: data.expiryDate, note: data.note
+            }, 'Update material receipt');
+            if (!result || result.status !== 'success') throw new Error((result && result.message) || 'แก้ไขไม่สำเร็จ');
+            toast(`แก้ไข ${data.colorCode} Lot ${data.lot} แล้ว`, 'success');
+            resetForm();
+            loadRecent();
+        } catch (error) {
+            toast('แก้ไขไม่สำเร็จ: ' + error.message, 'error');
+            btn.innerHTML = '💾 บันทึกการแก้ไข';
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function remove(receiptId) {
+        const row = state.recent.find(item => item.receiptId === receiptId);
+        if (!row || !confirm(`ลบรายการรับ ${row.colorCode} Lot ${row.lot}${row.boxNo ? ', Box ' + row.boxNo : ''} (${row.timestamp})?`)) return;
+        try {
+            const result = await call({ action: 'deleteMaterialReceipt', receiptId }, 'Delete material receipt');
+            if (!result || result.status !== 'success') throw new Error((result && result.message) || 'ลบไม่สำเร็จ');
+            if (state.editing === receiptId) resetForm();
+            toast(`ลบ ${row.colorCode} Lot ${row.lot} แล้ว`, 'success');
+            loadRecent();
+        } catch (error) {
+            toast('ลบไม่สำเร็จ: ' + error.message, 'error');
+        }
+    }
+
     async function save(force) {
+        if (state.editing) return saveEdit();
         const data = readForm();
         const missing = [['mrColorCode', data.colorCode], ['mrLot', data.lot], ['mrWeight', data.weight]].filter(([, v]) => !v).map(([id]) => id);
         FIELDS.forEach(id => $(id).classList.toggle('is-missing', missing.includes(id)));
@@ -300,7 +376,7 @@
             const result = await call({ action: 'getMaterialReceipts', limit: '200' }, 'Material receipts');
             state.recent = (result && Array.isArray(result.rows)) ? result.rows : [];
         } catch (error) {
-            body.innerHTML = '<tr><td colspan="7" class="mr-empty">โหลดรายการไม่ได้</td></tr>';
+            body.innerHTML = '<tr><td colspan="8" class="mr-empty">โหลดรายการไม่ได้</td></tr>';
             return;
         }
         state.known.clear();
@@ -321,8 +397,9 @@
                 <td>${esc(row.expiryDate || '-')}${status ? `<br><small class="is-${status.level}">${esc(status.text)}</small>` : ''}</td>
                 <td>${esc(row.supplier)}</td>
                 <td>${esc(row.receivedBy)}</td>
+                <td>${row.editable ? `<span style="display:inline-flex; gap:0.35rem;"><button type="button" class="btn-secondary-custom" data-mr-edit="${esc(row.receiptId)}" title="แก้ไข">✏️</button><button type="button" class="btn-secondary-custom" data-mr-delete="${esc(row.receiptId)}" title="ลบ">🗑</button></span>` : '<small title="แก้ไข/ลบได้เฉพาะวันผลิตเดียวกัน">-</small>'}</td>
             </tr>`;
-        }).join('') : '<tr><td colspan="7" class="mr-empty">ยังไม่มีการรับ Mat</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="mr-empty">ยังไม่มีการรับ Mat</td></tr>';
         $('mrTodayCount').textContent = state.recent.filter(row => String(row.timestamp || '').startsWith(isoDate(new Date()))).length;
     }
 
@@ -339,6 +416,12 @@
         $('mrSaveBtn').addEventListener('click', () => save(false));
         $('mrResetBtn').addEventListener('click', resetForm);
         $('mrRefreshBtn').addEventListener('click', loadRecent);
+        $('mrRecentBody').addEventListener('click', event => {
+            const edit = event.target.closest('[data-mr-edit]');
+            const del = event.target.closest('[data-mr-delete]');
+            if (edit) startEditing(edit.dataset.mrEdit);
+            if (del) remove(del.dataset.mrDelete);
+        });
         FIELDS.forEach(id => $(id).addEventListener('input', () => $(id).classList.remove('is-auto', 'is-missing')));
         if (!$('mrWeight').value) $('mrWeight').value = '20';
     }
