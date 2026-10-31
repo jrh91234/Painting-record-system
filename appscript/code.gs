@@ -294,6 +294,7 @@ function readReworkReports_(ss, requestedDate, suffix) {
     productGroup: String(qcCell_(r, headers, DAILY_REPORT_PRODUCT_GROUP_HEADER, 21) || ""), partCategory: String(qcCell_(r, headers, DAILY_REPORT_PART_CATEGORY_HEADER, 22) || ""), colorCode: String(qcCell_(r, headers, DAILY_REPORT_COLOR_CODE_HEADER, 23) || ""),
     dust: Number(qcCell_(r, headers, DAILY_REPORT_DUST_HEADER, 24)) || 0, oil: Number(qcCell_(r, headers, DAILY_REPORT_OIL_HEADER, 25)) || 0, rust: Number(qcCell_(r, headers, DAILY_REPORT_RUST_HEADER, 26)) || 0
   }));
+  markProductionRows_(data, values, headers, recent.firstRow, (suffix || QC_PENDING_SUFFIX) === QC_PENDING_SUFFIX);
   const filter = String(requestedDate || "").trim();
   return filter ? data.filter(r => String(r.date || "").substring(0, 10) === filter) : data;
 }
@@ -419,6 +420,7 @@ function readScreenReports_(ss, requestedDate, suffix, sheetName) {
     dust: Number(qcCell_(r, headers, DAILY_REPORT_DUST_HEADER, 24)) || 0, oil: Number(qcCell_(r, headers, DAILY_REPORT_OIL_HEADER, 25)) || 0, rust: Number(qcCell_(r, headers, DAILY_REPORT_RUST_HEADER, 26)) || 0,
     defectParts: String(qcCell_(r, headers, PRE_ASSY_DEFECT_PARTS_HEADER, -1) || "")
   }));
+  markProductionRows_(data, values, headers, recent.firstRow, !!sheetName || (suffix || QC_PENDING_SUFFIX) === QC_PENDING_SUFFIX);
   const filter = String(requestedDate || "").trim();
   return filter ? data.filter(r => String(r.date || "").substring(0, 10) === filter) : data;
 }
@@ -2196,6 +2198,100 @@ function changeMaterialReceipt_(ss, payload, action) {
   }
 }
 
+// ---------- Editing production records (งานใหม่ / REWORK / SCREEN / Pre-assy) ----------
+// Same rule as Mat receipts: a record still waiting for QC (the _Pending
+// sheet; Pre-assy has no QC step) can be edited or deleted during the
+// production day it was entered in (Timestamp, 08:00 - 08:00). Admins may
+// delete any record, pending or reviewed, from any day.
+const PRODUCTION_RECORD_NUMBERS_ = {
+  prodQty: ["ProdQty", 11], dent: ["Dent", 12], colorDrop: ["ColorDrop", 13], thinPaint: ["ThinPaint", 14],
+  thickPaint: ["ThickPaint", 15], waterStain: ["WaterStain", 16], otherDefect: ["OtherDefect", 17],
+  dust: [DAILY_REPORT_DUST_HEADER, 24], oil: [DAILY_REPORT_OIL_HEADER, 25], rust: [DAILY_REPORT_RUST_HEADER, 26]
+};
+const PRODUCTION_DEFECT_KEYS_ = ["dent", "colorDrop", "thinPaint", "thickPaint", "waterStain", "otherDefect", "dust", "oil", "rust"];
+
+function productionRecordSheetName_(kind, scope) {
+  const suffix = scope === "reviewed" ? QC_REVIEWED_SUFFIX : QC_PENDING_SUFFIX;
+  if (kind === "NEW") return "outputdiary" + suffix;
+  if (kind === "REWORK") return REWORK_SHEET_NAME + suffix;
+  if (kind === "SCREEN") return SCREEN_SHEET_NAME + suffix;
+  if (kind === "PREASSY") return PRE_ASSY_SHEET_NAME;
+  return "";
+}
+
+// Give each record read from a sheet its row number and whether it can still
+// be edited, so the page can offer edit / delete.
+function markProductionRows_(data, values, headers, firstRow, canEdit) {
+  const now = new Date();
+  data.forEach((record, i) => {
+    record.row = firstRow + i;
+    record.editable = !!canEdit && materialReceiptEditable_(qcCell_(values[i], headers, "Timestamp", 0), now);
+  });
+  return data;
+}
+
+function changeProductionRecord_(ss, params, action) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const p = params || {};
+    const kind = String(p.kind || "").toUpperCase();
+    const scope = kind === "PREASSY" ? "pending" : (String(p.scope || "").toLowerCase() === "reviewed" ? "reviewed" : "pending");
+    const sheet = ss.getSheetByName(productionRecordSheetName_(kind, scope));
+    const rowNumber = Number(p.row) || 0;
+    if (!sheet || rowNumber < 2 || rowNumber > sheet.getLastRow()) return { status: "error", message: "ไม่พบรายการนี้ (อาจถูกลบหรือส่ง QC ไปแล้ว) กรุณารีเฟรช" };
+    const width = Math.min(REPORT_READ_MAX_COLUMNS, Math.max(1, sheet.getLastColumn()));
+    const headers = sheet.getRange(1, 1, 1, width).getDisplayValues()[0].map(h => String(h).trim());
+    const values = sheet.getRange(rowNumber, 1, 1, width).getValues()[0];
+    const same = (a, b) => String(a == null ? "" : a).trim() === String(b == null ? "" : b).trim();
+    // Rows move when others are deleted or sent to QC: the row must still be this record.
+    if (!same(qcCell_(values, headers, DAILY_REPORT_ID_HEADER, 19), p.submissionId) || !same(qcCell_(values, headers, "Model", 9), p.model)) {
+      return { status: "error", message: "รายการในชีตเปลี่ยนไปแล้ว กรุณารีเฟรชแล้วลองใหม่" };
+    }
+    const inDay = scope === "pending" && materialReceiptEditable_(qcCell_(values, headers, "Timestamp", 0));
+
+    if (action === "delete") {
+      if (!inDay && !isUserAdmin_(ss, p.actorEmployeeId)) {
+        return { status: "error", message: "ลบได้เฉพาะรายการที่ยังไม่ส่ง QC ในวันผลิตเดียวกัน (08:00 - 08:00) · Admin ลบได้ทุกวัน" };
+      }
+      sheet.deleteRow(rowNumber);
+      SpreadsheetApp.flush();
+      return { status: "success", deleted: true };
+    }
+
+    if (!inDay) return { status: "error", message: "แก้ไขได้เฉพาะรายการที่ยังไม่ส่ง QC ในวันผลิตเดียวกัน (08:00 - 08:00)" };
+    const setCell = (name, fallback, value) => {
+      const c = qcHeaderColumn_(headers, name, fallback);
+      if (c >= 0) sheet.getRange(rowNumber, c + 1).setValue(value);
+    };
+    const number = key => {
+      if (!(key in p)) return Number(qcCell_(values, headers, PRODUCTION_RECORD_NUMBERS_[key][0], PRODUCTION_RECORD_NUMBERS_[key][1])) || 0;
+      const n = Number(p[key]);
+      return n >= 0 ? n : 0;
+    };
+    if (String(p.timeSlot || "").trim()) setCell("TimeSlot", 10, String(p.timeSlot).trim());
+    const next = {};
+    Object.keys(PRODUCTION_RECORD_NUMBERS_).forEach(key => { next[key] = number(key); });
+    if (kind === "PREASSY" && "defectParts" in p) {
+      // "CODE x2, CODE x1": the rejects are the sum of the parts.
+      const parts = String(p.defectParts || "").split(",").map(item => item.trim()).filter(Boolean)
+        .map(item => { const m = item.match(/^(.*?)\s*x\s*(\d+(?:\.\d+)?)$/i); return m ? { part: m[1].trim(), qty: Number(m[2]) } : null; })
+        .filter(item => item && item.part && item.qty > 0);
+      next.otherDefect = parts.reduce((sum, item) => sum + item.qty, 0);
+      setCell(PRE_ASSY_DEFECT_PARTS_HEADER, -1, parts.map(item => item.part + " x" + item.qty).join(", "));
+      if (next.otherDefect > 0) next.prodQty = 0;
+    }
+    Object.keys(next).forEach(key => setCell(PRODUCTION_RECORD_NUMBERS_[key][0], PRODUCTION_RECORD_NUMBERS_[key][1], next[key]));
+    setCell("TotalDefect", 18, PRODUCTION_DEFECT_KEYS_.reduce((sum, key) => sum + next[key], 0));
+    SpreadsheetApp.flush();
+    return { status: "success", updated: true };
+  } catch (error) {
+    return { status: "error", message: error && error.message ? error.message : "แก้ไขรายการไม่สำเร็จ" };
+  } finally {
+    try { lock.releaseLock(); } catch (releaseError) {}
+  }
+}
+
 function getMaterialReceipts_(ss, limit) {
   const sheet = ss.getSheetByName(MATERIAL_RECEIPT_SHEET_NAME_);
   if (!sheet || sheet.getLastRow() < 2) return [];
@@ -2872,6 +2968,10 @@ function doGetJson_(e) {
       const result = saveMaterialReceipt_(ss, e && e.parameter ? e.parameter : {});
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
+    if (action === "updateProductionRecord" || action === "deleteProductionRecord") {
+      const result = changeProductionRecord_(ss, e && e.parameter ? e.parameter : {}, action === "deleteProductionRecord" ? "delete" : "update");
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    }
     if (action === "updateMaterialReceipt" || action === "deleteMaterialReceipt") {
       const result = changeMaterialReceipt_(ss, e && e.parameter ? e.parameter : {}, action === "deleteMaterialReceipt" ? "delete" : "update");
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
@@ -3131,6 +3231,7 @@ function doGetJson_(e) {
         oil: Number(qcCell_(r, headers, DAILY_REPORT_OIL_HEADER, 25)) || 0,
         rust: Number(qcCell_(r, headers, DAILY_REPORT_RUST_HEADER, 26)) || 0
       }));
+      markProductionRows_(data, values, headers, recent.firstRow, qcReadSuffix_(e) === QC_PENDING_SUFFIX);
 
       const requestedDate = String((e && e.parameter && e.parameter.date) || "").trim();
       const filteredData = requestedDate

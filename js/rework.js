@@ -326,7 +326,7 @@ function renderReworkList() {
     const summary = document.getElementById("reworkTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
     if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${reworkEsc(row.date || "-")}</td><td>${reworkEsc(row.model || "-")}</td><td>${reworkEsc(row.timeSlot || "-")}</td><td>${reworkEsc(getDailyReportProductGroup(row))}</td><td title="${reworkEsc(getDailyReportPartName(row))}">${reworkEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${reworkDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeReworkRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    body.innerHTML = rows.map((row, index) => `<tr><td>${reworkEsc(row.date || "-")}</td><td>${reworkEsc(row.model || "-")}</td><td>${reworkEsc(row.timeSlot || "-")}</td><td>${reworkEsc(getDailyReportProductGroup(row))}</td><td title="${reworkEsc(getDailyReportPartName(row))}">${reworkEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${reworkDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeReworkRecord(${index})">ลบ</button>` : savedRecordActions("REWORK", row, "บันทึกแล้ว")}</td></tr>`).join("");
 }
 
 async function refreshReworkHistory() {
