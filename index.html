@@ -866,10 +866,14 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"></path><path d="M4 7.5 12 12l8-4.5M12 12v9"></path><path d="M8 5.25 16 10"></path></svg>
                     คลังอะไหล่
                 </a>
-                <a href="#" class="nav-link" data-permission="users.manage" onclick="switchTab('settings-tab', this)">
+                <a href="#" class="nav-link admin-menu-parent" data-permission="users.manage" onclick="toggleAdminMenu(event, this)" aria-expanded="false">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                    จัดการผู้ใช้งาน
+                    <span style="flex:1;">Admin</span><span class="checklist-menu-caret" aria-hidden="true">▾</span>
                 </a>
+                <div id="admin-submenu" class="sidebar-submenu" hidden>
+                    <a href="#" class="nav-link submenu-item" data-permission="users.manage" onclick="switchTab('settings-tab', this)"><span style="width:20px; text-align:center;">•</span>จัดการผู้ใช้งาน</a>
+                    <a href="#" class="nav-link submenu-item" data-permission="users.manage" onclick="openCycleTime(event, this)"><span style="width:20px; text-align:center;">•</span>Cycle time</a>
+                </div>
             </nav>
 
             <div class="sidebar-footer">
@@ -1968,6 +1972,11 @@
                 </section>
 
                 <!-- USER APPROVAL & ACCESS MANAGEMENT -->
+                <!-- TAB: CYCLE TIME (Admin, edits the Capacity sheet) -->
+                <section id="cycle-time-tab" class="tab-page" data-permission="users.manage" style="display: none;">
+                    <div id="cycleTimeRoot"></div>
+                </section>
+
                 <section id="settings-tab" class="tab-page" data-permission="users.manage" style="display: none;">
                     <div class="section-title-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                         <h1 class="page-title" style="margin: 0;">จัดการผู้ใช้งานและสิทธิ์</h1>
@@ -2151,6 +2160,10 @@
             <div class="mobile-nav-item" data-permission="users.manage" onclick="switchTab('settings-tab', this)">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                 <span>ผู้ใช้งาน</span>
+            </div>
+            <div class="mobile-nav-item" data-permission="users.manage" onclick="openCycleTime(event, this)">
+                <svg viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>
+                <span>Cycle time</span>
             </div>
         </div>
     </nav>
@@ -2498,7 +2511,7 @@
     <script src="js/chart-style.js?v=graphite-20261026"></script>
     <script src="js/spray-cursor.js?v=spray-tilt-20261026"></script>
     <script src="js/auth.js?v=mobile-login-20261027"></script>
-    <script src="js/app.js?v=timeslot-20261031"></script>
+    <script src="js/app.js?v=admin-menu-20261031"></script>
     <script src="js/logged-in-recorder.js?v=pre-assy-20261031"></script>
     <script src="js/material-receipt.js?v=mat-20261029"></script>
     <script src="js/spare-parts.js?v=1.0.1"></script><script src="js/maintenance.js?v=1.0.2"></script>
@@ -2511,7 +2524,8 @@
     <script src="js/qc-review.js?v=1.0.46"></script>
     <script src="js/events.js?v=89.5.0"></script>
     <script src="js/line-efficiency.js?v=screen-std-20261031"></script>
-    <script src="js/page-tabs.js?v=pre-assy-20261031"></script>
+    <script src="js/cycle-time.js?v=1.0.0"></script>
+    <script src="js/page-tabs.js?v=cycle-time-20261031"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
 </body>
 

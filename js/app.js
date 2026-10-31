@@ -259,6 +259,15 @@ function toggleProductionMenu(event, element) {
     if (element) element.setAttribute('aria-expanded', String(!isOpen));
 }
 
+function toggleAdminMenu(event, element) {
+    if (event) event.preventDefault();
+    const submenu = document.getElementById('admin-submenu');
+    if (!submenu) return;
+    const isOpen = !submenu.hidden;
+    submenu.hidden = isOpen;
+    if (element) element.setAttribute('aria-expanded', String(!isOpen));
+}
+
 function toggleMobileChecklistMenu(event, element) {
     if (event) {
         event.stopPropagation();
@@ -393,6 +402,12 @@ function switchTab(tabId, element) {
     }
     if (tabId === "daily-report-tab" || tabId === "rework-tab" || tabId === "screen-tab" || tabId === "pre-assy-tab") {
         document.querySelectorAll('.production-menu-parent, .mobile-production-trigger').forEach(el => el.classList.add("active"));
+    }
+    if (tabId === "settings-tab" || tabId === "cycle-time-tab") {
+        document.querySelectorAll('.admin-menu-parent').forEach(el => el.classList.add("active"));
+    }
+    if (tabId === "cycle-time-tab") {
+        document.querySelectorAll('[onclick*="openCycleTime"]').forEach(el => el.classList.add("active"));
     }
 
     // Scroll window to top smoothly
