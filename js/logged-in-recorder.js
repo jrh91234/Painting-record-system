@@ -4,7 +4,7 @@
    a save. Instead of patching each form, this watches the page and keeps every
    recorder field set to the current user's name and locked. */
 (function () {
-    const FIELD_IDS = ['recorderName', 'rwRecorder', 'scRecorder', 'eventRecorderSelect', 'rtvRecorder'];
+    const FIELD_IDS = ['recorderName', 'rwRecorder', 'scRecorder', 'paRecorder', 'eventRecorderSelect', 'rtvRecorder'];
     let scheduled = false;
 
     function currentName() {

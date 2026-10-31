@@ -14,6 +14,8 @@ const EQUIPMENT_CHECKLIST_SHEET_NAME = "EquipmentChecklist";
 const REWORK_SHEET_NAME = "REWORK";
 // Dedicated storage for the Screen checklist menu (created on first use).
 const SCREEN_SHEET_NAME = "SCREEN";
+// Dedicated storage for the Pre-assy production menu (created on first use).
+const PRE_ASSY_SHEET_NAME = "PRE_ASSY";
 const SPARE_PARTS_SHEET_NAME = "SpareParts";
 const SPARE_PARTS_TRANSACTIONS_SHEET_NAME = "SparePartsTransactions";
 const QC_PENDING_SUFFIX = "_Pending";
@@ -319,8 +321,8 @@ function ensureScreenReportSheet_(ss) {
   return sheet;
 }
 
-function appendScreenReport_(ss, payload) {
-  const sheet = ensureScreenReportSheet_(ss);
+function appendScreenReport_(ss, payload, targetSheet) {
+  const sheet = targetSheet || ensureScreenReportSheet_(ss);
   const submissionId = String(payload.submissionId || "").trim();
   const idColumn = ensureDailyReportIdColumn(sheet);
   if (hasDailyReportSubmission(sheet, submissionId, idColumn)) return { duplicate: true };
@@ -352,8 +354,37 @@ function appendScreenReport_(ss, payload) {
   return { duplicate: false, rows: records.length };
 }
 
-function readScreenReports_(ss, requestedDate, suffix) {
-  const sheet = ss.getSheetByName(SCREEN_SHEET_NAME + (suffix || QC_PENDING_SUFFIX));
+// Pre-assy has no QC review step: rows go straight to PRE_ASSY in the
+// SCREEN row shape, and the Capacity rows whose ProductGroup names Pre-assy
+// are offered only in that menu.
+function isPreAssyProductGroup_(name) {
+  return /PRE[\s_-]*ASS/i.test(String(name || ""));
+}
+
+function ensurePreAssyReportSheet_(ss) {
+  let sheet = ss.getSheetByName(PRE_ASSY_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(PRE_ASSY_SHEET_NAME);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(screenReportHeaders_());
+    sheet.setFrozenRows(1);
+  }
+  ensureDailyReportIdColumn(sheet);
+  ensureDailyReportColorColumn(sheet);
+  ensureDailyReportCatalogColumns(sheet);
+  return sheet;
+}
+
+function appendPreAssyReport_(ss, payload) {
+  return appendScreenReport_(ss, payload, ensurePreAssyReportSheet_(ss));
+}
+
+function readPreAssyReports_(ss, requestedDate) {
+  ensurePreAssyReportSheet_(ss);
+  return readScreenReports_(ss, requestedDate, "", PRE_ASSY_SHEET_NAME);
+}
+
+function readScreenReports_(ss, requestedDate, suffix, sheetName) {
+  const sheet = ss.getSheetByName(sheetName || (SCREEN_SHEET_NAME + (suffix || QC_PENDING_SUFFIX)));
   if (!sheet || sheet.getLastRow() <= 1) return [];
   const recent = readRecentDataRows_(sheet, REPORT_READ_MAX_ROWS);
   const values = recent.values;
@@ -1436,6 +1467,12 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "submitScreenReport", duplicate: !!result.duplicate, rows: result.rows || 0 })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Handle Pre-assy submissions in the separate PRE_ASSY sheet.
+    if (action === "submitPreAssyReport") {
+      const result = appendPreAssyReport_(ss, data || {});
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", action: "submitPreAssyReport", duplicate: !!result.duplicate, rows: result.rows || 0 })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Handle submitDailyReport action
     if (action === "submitDailyReport") {
       const TARGET_SHEET_NAME = "outputdiary" + QC_PENDING_SUFFIX;
@@ -2361,9 +2398,10 @@ function readCapacityCatalog_(ss) {
   // A group named like its sized groups without the size (the "NLC" row next
   // to "NLC 450", "NLC 600"...) holds parts shared by all sizes: list those
   // parts under each sized group and drop the shared group itself. "LC600"
-  // is not merged into "LC600 Visi-smart", which is not a size.
+  // is not merged into "LC600 Visi-smart", which is not a size, and the
+  // Pre-assy groups ("NLC 450 Pre-assy") keep only their own parts.
   order.slice().forEach(baseName => {
-    const members = order.filter(name => name.indexOf(baseName + " ") === 0 && /^\d/.test(name.slice(baseName.length + 1)));
+    const members = order.filter(name => name.indexOf(baseName + " ") === 0 && /^\d/.test(name.slice(baseName.length + 1)) && !isPreAssyProductGroup_(name));
     if (!members.length) return;
     const base = groups[baseName];
     members.forEach(name => {
@@ -2785,6 +2823,12 @@ function doGetJson_(e) {
       const suffix = qcReadSuffix_(e);
       if (suffix === QC_PENDING_SUFFIX) ensureReworkReportSheet_(ss);
       return ContentService.createTextOutput(JSON.stringify({ status: "success", data: readReworkReports_(ss, requestedDate, suffix) })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Handle Pre-assy history. Opening the menu creates PRE_ASSY on demand.
+    if (action === "getPreAssyReportData") {
+      const requestedDate = String((e && e.parameter && e.parameter.date) || "").trim();
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", data: readPreAssyReports_(ss, requestedDate) })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle SCREEN history. Opening the menu creates SCREEN on demand.
