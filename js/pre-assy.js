@@ -119,7 +119,7 @@ function preAssyFormMarkup() {
                     </button>
                 </div>
             </div>
-            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-color"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>กลุ่ม</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="preAssyListBody"><tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
+            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-group"><col class="rw-col-partname"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>ProductGroup</th><th>PartName</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="preAssyListBody"><tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
         </div>`;
 }
 
@@ -190,19 +190,19 @@ function renderPreAssyList() {
     const rows = drafts ? preAssyDraftRecords : preAssyHistoryRecords.slice(-5).reverse();
     const summary = document.getElementById("preAssyTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
-    if (!rows.length) { body.innerHTML = `<tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${preAssyEsc(row.date || "-")}</td><td>${preAssyEsc(row.model || "-")}</td><td>${preAssyEsc(row.timeSlot || "-")}</td><td>${preAssyEsc(row.productGroup || "-")}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${drafts ? `<button type="button" class="btn-danger" onclick="removePreAssyRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
+    body.innerHTML = rows.map((row, index) => `<tr><td>${preAssyEsc(row.date || "-")}</td><td>${preAssyEsc(row.model || "-")}</td><td>${preAssyEsc(row.timeSlot || "-")}</td><td>${preAssyEsc(getDailyReportProductGroup(row))}</td><td title="${preAssyEsc(getDailyReportPartName(row))}">${preAssyEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${drafts ? `<button type="button" class="btn-danger" onclick="removePreAssyRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
 }
 
 async function refreshPreAssyHistory() {
     const body = document.getElementById("preAssyListBody");
-    if (body && !preAssyDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดประวัติ Pre-assy...</td></tr>`;
+    if (body && !preAssyDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state">กำลังโหลดประวัติ Pre-assy...</td></tr>`;
     try {
         preAssyHistoryRecords = await fetchPreAssyReportDataFromAPI();
         renderPreAssyList();
     } catch (error) {
         console.error("Pre-assy history load failed", error);
-        if (body && !preAssyDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state error-text">โหลดประวัติ Pre-assy ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
+        if (body && !preAssyDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state error-text">โหลดประวัติ Pre-assy ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
     }
 }
 

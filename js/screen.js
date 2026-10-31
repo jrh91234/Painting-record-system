@@ -231,7 +231,7 @@ function screenFormMarkup() {
                     </button>
                 </div>
             </div>
-            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-color"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>สี</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="screenListBody"><tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
+            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-group"><col class="rw-col-partname"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>ProductGroup</th><th>PartName</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="screenListBody"><tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
         </div>`;
 }
 
@@ -338,20 +338,20 @@ function renderScreenList() {
         : sortScreenHistoryLatestFirst(screenHistoryRecords).slice(0, 5);
     const summary = document.getElementById("screenTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
-    if (!rows.length) { body.innerHTML = `<tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${screenEsc(row.date || "-")}</td><td>${screenEsc(row.model || "-")}</td><td>${screenEsc(row.timeSlot || "-")}</td><td>${screenEsc(row.color || "ไม่ระบุ")}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${screenDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeScreenRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
+    body.innerHTML = rows.map((row, index) => `<tr><td>${screenEsc(row.date || "-")}</td><td>${screenEsc(row.model || "-")}</td><td>${screenEsc(row.timeSlot || "-")}</td><td>${screenEsc(getDailyReportProductGroup(row))}</td><td title="${screenEsc(getDailyReportPartName(row))}">${screenEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${screenDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeScreenRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
 }
 
 async function refreshScreenHistory() {
     const body = document.getElementById("screenListBody");
-    if (body && !screenDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดประวัติ SCREEN...</td></tr>`;
+    if (body && !screenDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state">กำลังโหลดประวัติ SCREEN...</td></tr>`;
     try {
         screenHistoryRecords = sortScreenHistoryLatestFirst(await fetchScreenReportDataFromAPI());
         screenDashboardRecordsCache = screenHistoryRecords.slice();
         renderScreenList();
     } catch (error) {
         console.error("SCREEN history load failed", error);
-        if (body && !screenDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state error-text">โหลดประวัติ SCREEN ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
+        if (body && !screenDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state error-text">โหลดประวัติ SCREEN ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
     }
 }
 

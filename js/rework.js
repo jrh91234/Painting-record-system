@@ -217,7 +217,7 @@ function reworkFormMarkup() {
                     </button>
                 </div>
             </div>
-            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-color"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>สี</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="reworkListBody"><tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
+            <div class="table-responsive rework-table-wrap"><table class="data-table rework-history-table"><colgroup><col class="rw-col-date"><col class="rw-col-model"><col class="rw-col-time"><col class="rw-col-group"><col class="rw-col-partname"><col class="rw-col-output"><col class="rw-col-defect"><col class="rw-col-action"></colgroup><thead><tr><th>วันที่</th><th>รุ่นงาน</th><th>ช่วงเวลา</th><th>ProductGroup</th><th>PartName</th><th>ยอดผลิต</th><th>ยอดเสีย</th><th>จัดการ</th></tr></thead><tbody id="reworkListBody"><tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr></tbody></table></div>
         </div>`;
 }
 
@@ -325,20 +325,20 @@ function renderReworkList() {
         : sortReworkHistoryLatestFirst(reworkHistoryRecords).slice(0, 20);
     const summary = document.getElementById("reworkTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
-    if (!rows.length) { body.innerHTML = `<tr><td colspan="7" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${reworkEsc(row.date || "-")}</td><td>${reworkEsc(row.model || "-")}</td><td>${reworkEsc(row.timeSlot || "-")}</td><td>${reworkEsc(row.color || "ไม่ระบุ")}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${reworkDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeReworkRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
+    body.innerHTML = rows.map((row, index) => `<tr><td>${reworkEsc(row.date || "-")}</td><td>${reworkEsc(row.model || "-")}</td><td>${reworkEsc(row.timeSlot || "-")}</td><td>${reworkEsc(getDailyReportProductGroup(row))}</td><td title="${reworkEsc(getDailyReportPartName(row))}">${reworkEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${reworkDraftRecords.length ? `<button type="button" class="btn-danger" onclick="removeReworkRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
 }
 
 async function refreshReworkHistory() {
     const body = document.getElementById("reworkListBody");
-    if (body && !reworkDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state">กำลังโหลดประวัติ REWORK...</td></tr>`;
+    if (body && !reworkDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state">กำลังโหลดประวัติ REWORK...</td></tr>`;
     try {
         reworkHistoryRecords = sortReworkHistoryLatestFirst(await fetchReworkReportDataFromAPI());
         reworkDashboardRecordsCache = reworkHistoryRecords.slice();
         renderReworkList();
     } catch (error) {
         console.error("REWORK history load failed", error);
-        if (body && !reworkDraftRecords.length) body.innerHTML = `<tr><td colspan="7" class="empty-state error-text">โหลดประวัติ REWORK ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
+        if (body && !reworkDraftRecords.length) body.innerHTML = `<tr><td colspan="8" class="empty-state error-text">โหลดประวัติ REWORK ไม่สำเร็จ กรุณากดรีเฟรชอีกครั้ง</td></tr>`;
     }
 }
 
