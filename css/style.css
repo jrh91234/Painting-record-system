@@ -933,7 +933,7 @@ button, input, textarea, select {
   #qc-history-tab .table-responsive {
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
   }
 
   #qc-history-tab .table-responsive > table.parameter-history-table,
@@ -3965,7 +3965,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
      cards. This keeps every input/select directly below its checklist item
      and removes horizontal scrolling on Android and iOS. */
   #parameter-checklist-tab .table-responsive {
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
     width: 100% !important;
   }
 
