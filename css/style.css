@@ -2608,16 +2608,23 @@ button, input, textarea, select {
     table-layout: fixed;
     border-collapse: collapse;
 }
-.rework-history-table .rw-col-date { width: 14%; }
-.rework-history-table .rw-col-model { width: 18%; }
-.rework-history-table .rw-col-time { width: 16%; }
-.rework-history-table .rw-col-color { width: 13%; }
-.rework-history-table .rw-col-output { width: 13%; }
-.rework-history-table .rw-col-defect { width: 13%; }
-.rework-history-table .rw-col-action { width: 13%; }
+.rework-history-table .rw-col-date { width: 12%; }
+.rework-history-table .rw-col-model { width: 14%; }
+.rework-history-table .rw-col-time { width: 14%; }
+.rework-history-table .rw-col-group { width: 14%; }
+.rework-history-table .rw-col-partname { width: 21%; }
+.rework-history-table .rw-col-output { width: 9%; }
+.rework-history-table .rw-col-defect { width: 8%; }
+.rework-history-table .rw-col-action { width: 8%; }
+/* ProductGroup and PartName are the long columns: wrap them instead of cutting them off. */
+.rework-history-table td:nth-child(4),
+.rework-history-table td:nth-child(5) {
+    white-space: normal;
+    overflow-wrap: break-word;
+}
 .rework-history-table th,
 .rework-history-table td {
-    padding: 0.85rem 0.7rem;
+    padding: 0.85rem 0.45rem;
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
@@ -2642,7 +2649,7 @@ button, input, textarea, select {
     .rework-form-actions, .rework-submit-actions { justify-content: stretch; }
     .rework-form-actions button, .rework-submit-actions button { width: 100%; }
     .rework-refresh-btn { width: 100%; }
-    .rework-history-table { min-width: 720px; }
+    .rework-history-table { min-width: 880px; }
 }
 
 .dashboard-date-range {
