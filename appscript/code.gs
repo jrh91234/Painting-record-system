@@ -2103,14 +2103,89 @@ function saveMaterialReceipt_(ss, payload) {
   }
 }
 
+// A receipt can be edited or deleted only during the production day it was
+// received in. The production day runs 08:00 to 08:00 the next morning (day
+// shift from 08:00, night shift and its OT until 08:00), in the script's
+// time zone (Asia/Bangkok).
+const PRODUCTION_DAY_START_HOUR_ = 8;
+
+function materialReceiptTime_(value) {
+  if (value instanceof Date) return value;
+  const m = String(value || "").trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4] || 0), Number(m[5] || 0)) : null;
+}
+
+function productionDayKey_(date) {
+  const shifted = new Date(date.getTime() - PRODUCTION_DAY_START_HOUR_ * 3600 * 1000);
+  return formatDateStr(shifted, false);
+}
+
+function materialReceiptEditable_(timestamp, now) {
+  const time = materialReceiptTime_(timestamp);
+  return !!time && productionDayKey_(time) === productionDayKey_(now || new Date());
+}
+
+function findMaterialReceiptRow_(sheet, receiptId) {
+  const id = String(receiptId || "").trim().toLowerCase();
+  if (!id || sheet.getLastRow() < 2) return null;
+  const ids = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (String(ids[i][0] || "").trim().toLowerCase() === id) return i + 2;
+  }
+  return null;
+}
+
+// action: "update" writes the edited fields; "delete" removes the row.
+function changeMaterialReceipt_(ss, payload, action) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const data = payload || {};
+    const sheet = ss.getSheetByName(MATERIAL_RECEIPT_SHEET_NAME_);
+    const rowNumber = sheet ? findMaterialReceiptRow_(sheet, data.receiptId) : null;
+    if (!rowNumber) return { status: "error", message: "ไม่พบรายการนี้ในชีต (อาจถูกลบไปแล้ว)" };
+    const timestamp = sheet.getRange(rowNumber, 1).getValue();
+    if (!materialReceiptEditable_(timestamp)) {
+      return { status: "error", message: "แก้ไข/ลบได้เฉพาะรายการในวันผลิตเดียวกัน (08:00 - 08:00 ของวันถัดไป)" };
+    }
+    if (action === "delete") {
+      sheet.deleteRow(rowNumber);
+      SpreadsheetApp.flush();
+      return { status: "success", deleted: true };
+    }
+    const colorCode = String(data.colorCode || "").trim();
+    const lot = String(data.lot || "").trim();
+    const weight = Number(data.netWeightKg);
+    if (!colorCode || !lot || !(weight > 0)) {
+      return { status: "error", message: "กรุณากรอก รหัสสี, Lot และน้ำหนัก" };
+    }
+    // Supplier (column D) through Note (column L); the timestamp, receipt id,
+    // receiver and photo stay as recorded.
+    sheet.getRange(rowNumber, 4, 1, 9).setValues([[
+      String(data.supplier || "").trim(), colorCode, String(data.colorName || "").trim(), lot,
+      String(data.boxNo || "").trim(), String(weight), String(data.mfgDate || "").trim(),
+      String(data.expiryDate || "").trim(), String(data.note || "").trim()
+    ]]);
+    SpreadsheetApp.flush();
+    return { status: "success", updated: true };
+  } catch (error) {
+    return { status: "error", message: error && error.message ? error.message : "แก้ไขการรับ Mat ไม่สำเร็จ" };
+  } finally {
+    try { lock.releaseLock(); } catch (releaseError) {}
+  }
+}
+
 function getMaterialReceipts_(ss, limit) {
   const sheet = ss.getSheetByName(MATERIAL_RECEIPT_SHEET_NAME_);
   if (!sheet || sheet.getLastRow() < 2) return [];
   const count = Math.min(Math.max(1, limit || 200), 2000, sheet.getLastRow() - 1);
   const start = sheet.getLastRow() - count + 1;
   const values = sheet.getRange(start, 1, count, MATERIAL_RECEIPT_HEADERS_.length).getValues();
+  const now = new Date();
   return values.reverse().map(row => ({
-    timestamp: materialReceiptCell_(row[0]), receiptId: materialReceiptCell_(row[1]),
+    timestamp: row[0] instanceof Date ? formatDateStr(row[0], true) : materialReceiptCell_(row[0]),
+    editable: !!String(row[1] || "").trim() && materialReceiptEditable_(row[0], now),
+    receiptId: materialReceiptCell_(row[1]),
     receivedBy: materialReceiptCell_(row[2]), supplier: materialReceiptCell_(row[3]),
     colorCode: materialReceiptCell_(row[4]), colorName: materialReceiptCell_(row[5]),
     lot: materialReceiptCell_(row[6]), boxNo: materialReceiptCell_(row[7]),
@@ -2774,6 +2849,10 @@ function doGetJson_(e) {
     }
     if (action === "saveMaterialReceipt") {
       const result = saveMaterialReceipt_(ss, e && e.parameter ? e.parameter : {});
+      return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (action === "updateMaterialReceipt" || action === "deleteMaterialReceipt") {
+      const result = changeMaterialReceipt_(ss, e && e.parameter ? e.parameter : {}, action === "deleteMaterialReceipt" ? "delete" : "update");
       return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
     }
     if (action === "getMaterialReceipts") {
