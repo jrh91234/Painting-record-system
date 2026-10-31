@@ -32,6 +32,7 @@
         'spare-parts-tab': 'คลังอะไหล่',
         'material-receipt-tab': 'รับ Mat',
         'settings-tab': 'จัดการผู้ใช้งาน',
+        'cycle-time-tab': 'Cycle time',
         'history-tab': 'ประวัติ'
     };
 
@@ -111,6 +112,8 @@
             window.openMaterialReceipt(null, null);
         } else if (tabId === 'line-eff-tab' && typeof window.openLineEfficiency === 'function') {
             window.openLineEfficiency(null, null);
+        } else if (tabId === 'cycle-time-tab' && typeof window.openCycleTime === 'function') {
+            window.openCycleTime(null, null);
         } else if (tabId === 'qc7-tools-tab' && typeof window.openQC7Tools === 'function') {
             window.openQC7Tools(null, null);
         } else {

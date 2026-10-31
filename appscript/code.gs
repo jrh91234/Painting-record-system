@@ -2441,6 +2441,82 @@ function readCapacityCatalog_(ss) {
   return { groups, order };
 }
 
+// Admin "Cycle time" page: every Capacity row with the columns it can edit.
+// A cell that holds a formula (StdSecPerPcs is usually worked out from
+// QtyPerJig, Pitch_m and LineSpeed_m_min) is reported as such and never
+// overwritten; the page edits the formula's inputs instead.
+const CYCLE_TIME_FIELDS_ = {
+  qtyPerJig: "QtyPerJig",
+  pitch: "Pitch_m",
+  lineSpeed: "LineSpeed_m_min",
+  stdSec: "StdSecPerPcs",
+  screenStdSec: "ScreenStdSecPerPcs"
+};
+
+function readCycleTimes_(ss) {
+  const sheet = ss.getSheetByName("Capacity");
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  const range = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn());
+  const values = range.getValues();
+  const formulas = range.getFormulas();
+  const headers = values[0].map(h => String(h).trim());
+  const col = name => headers.indexOf(name);
+  const rows = [];
+  for (let i = 1; i < values.length; i++) {
+    const code = col("PartCode") >= 0 ? String(values[i][col("PartCode")]).trim() : "";
+    if (!code) continue;
+    const row = {
+      row: i + 1,
+      partCode: code,
+      partName: col("PartName") >= 0 ? String(values[i][col("PartName")] || "") : "",
+      productGroup: col("ProductGroup") >= 0 ? String(values[i][col("ProductGroup")] || "") : "",
+      formulas: {}
+    };
+    Object.keys(CYCLE_TIME_FIELDS_).forEach(key => {
+      const c = col(CYCLE_TIME_FIELDS_[key]);
+      row[key] = c >= 0 && values[i][c] !== "" ? Number(values[i][c]) || 0 : "";
+      // A missing column is read-only too, except ScreenStdSecPerPcs, which
+      // the first save adds.
+      row.formulas[key] = c < 0 ? key !== "screenStdSec" : !!formulas[i][c];
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function updateCycleTime_(ss, params) {
+  const sheet = ss.getSheetByName("Capacity");
+  if (!sheet) return { status: "error", message: "ไม่พบชีต Capacity" };
+  const rowNumber = Number(params.row) || 0;
+  const partCode = String(params.partCode || "").trim();
+  if (rowNumber < 2 || rowNumber > sheet.getLastRow() || !partCode) return { status: "error", message: "ไม่พบแถวของพาร์ทนี้" };
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const codeCol = headers.indexOf("PartCode");
+  // The row must still hold the same part: rows can move while the page is open.
+  if (codeCol < 0 || String(sheet.getRange(rowNumber, codeCol + 1).getValue()).trim() !== partCode) {
+    return { status: "error", message: "แถวในชีตเปลี่ยนไป กรุณารีเฟรชหน้าแล้วแก้ใหม่" };
+  }
+  Object.keys(CYCLE_TIME_FIELDS_).forEach(key => {
+    if (!(key in params)) return;
+    const raw = String(params[key]).trim();
+    const value = raw === "" ? "" : Number(raw);
+    if (raw !== "" && !(value >= 0)) return;
+    let c = headers.indexOf(CYCLE_TIME_FIELDS_[key]);
+    if (c < 0) {
+      if (key !== "screenStdSec") return;
+      c = headers.length;
+      sheet.getRange(1, c + 1).setValue(CYCLE_TIME_FIELDS_[key]);
+      headers.push(CYCLE_TIME_FIELDS_[key]);
+    }
+    const cell = sheet.getRange(rowNumber, c + 1);
+    if (cell.getFormula()) return;
+    cell.setValue(value);
+  });
+  SpreadsheetApp.flush();
+  const updated = readCycleTimes_(ss).filter(r => r.row === rowNumber)[0];
+  return { status: "success", row: updated || null };
+}
+
 // "➕ เพิ่มรายการ" in the production form: add the part as a Capacity row.
 // Its standard time is left for the sheet's owner to fill in; %Eff treats a
 // part without one as unmatched. A category with no part yet stays in the
@@ -3026,6 +3102,20 @@ function doGetJson_(e) {
         type: String(r.Type || "Normal")
       }));
       return ContentService.createTextOutput(JSON.stringify({ status: "success", capacity, slots })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "getCycleTimes") {
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", rows: readCycleTimes_(ss) })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "updateCycleTime") {
+      const lock = LockService.getScriptLock();
+      lock.waitLock(10000);
+      try {
+        return ContentService.createTextOutput(JSON.stringify(updateCycleTime_(ss, (e && e.parameter) || {}))).setMimeType(ContentService.MimeType.JSON);
+      } finally {
+        lock.releaseLock();
+      }
     }
 
     if (action === "getPartModels") {
