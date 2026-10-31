@@ -820,6 +820,7 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
                 <td style="padding: 0.95rem 1.1rem; font-size: 0.85rem; font-weight: 700; color: #38bdf8; white-space: nowrap;">${escapeDailyReportHtml(draftDateLabel)}</td>
                 <td style="padding: 0.95rem 1.1rem; font-size: 0.92rem; font-weight: 700; color: #f8fafc;">${escapeDailyReportHtml(r.model || '-')}</td>
                 <td style="padding: 0.95rem 1.1rem;"><span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem;">${escapeDailyReportHtml(r.timeSlot || '-')}</span></td>
+                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportProductGroup(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; font-weight: 800; color: #34d399; text-align: center; font-size: 1.05rem; text-shadow: 0 0 10px rgba(52, 211, 153, 0.25);">${Number(r.prodQty) || 0}</td>
                 <td style="padding: 0.95rem 1.1rem; text-align: center;"><span style="${r.totalDefect > 0 ? 'background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4);' : 'background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2);'} padding: 0.2rem 0.65rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">${r.totalDefect}</span></td>
@@ -832,7 +833,7 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
     // 2. Otherwise display every saved record from the Google Sheets backend.
     const savedRecords = getSavedDailyReportRecords();
     if (savedRecords.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 2rem;">ยังไม่มีประวัติการบันทึก</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #94a3b8; padding: 2rem;">ยังไม่มีประวัติการบันทึก</td></tr>`;
         return;
     }
 
@@ -845,6 +846,7 @@ function renderDailyReportList(targetBodyId = 'dailyReportListBody') {
             <td style="padding: 0.95rem 1.1rem; font-size: 0.85rem; font-weight: 700; color: #94a3b8; white-space: nowrap;">${formatDailyReportDate(r.date, r.timestamp)}</td>
             <td style="padding: 0.95rem 1.1rem; font-size: 0.92rem; font-weight: 700; color: #f8fafc;">${escapeDailyReportHtml(r.model || r.Model || '-')}</td>
             <td style="padding: 0.95rem 1.1rem;"><span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 700; font-size: 0.82rem;">${escapeDailyReportHtml(r.timeSlot || r.TimeSlot || '-')}</span></td>
+                <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportProductGroup(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; text-align: center;">${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
                 <td style="padding: 0.95rem 1.1rem; font-weight: 800; color: #34d399; text-align: center; font-size: 1.05rem; text-shadow: 0 0 10px rgba(52, 211, 153, 0.25);">${Number(r.prodQty || r.ProdQty || r.prod_qty || r.qty) || 0}</td>
             <td style="padding: 0.95rem 1.1rem; text-align: center;"><span style="${getDailyReportDefectTotal(r) > 0 ? 'background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4);' : 'background: rgba(148, 163, 184, 0.12); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.2);'} padding: 0.2rem 0.65rem; border-radius: 12px; font-weight: 800; font-size: 0.85rem;">${getDailyReportDefectTotal(r)}</span></td>
@@ -949,7 +951,7 @@ async function openDailyReportHistory() {
     if (!modal || !tbody) return;
 
     modal.classList.add("active");
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b; padding: 2rem;">กำลังโหลดข้อมูล...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 2rem;">กำลังโหลดข้อมูล...</td></tr>`;
 
     // Use the records already loaded for the five-row preview immediately.
     // A fresh Apps Script request can occasionally take several seconds, so it
@@ -965,7 +967,7 @@ async function openDailyReportHistory() {
     const records = getSavedDailyReportRecords();
 
     if (records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b; padding: 2rem;">ยังไม่มีประวัติการบันทึก</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 2rem;">ยังไม่มีประวัติการบันทึก</td></tr>`;
         return;
     }
 
@@ -974,6 +976,7 @@ async function openDailyReportHistory() {
             <td style="font-weight: 700; white-space: nowrap;">${formatDailyReportDate(r.date || r.Date, r.timestamp || r.Timestamp)}</td>
             <td style="font-weight: 600;">${escapeDailyReportHtml(r.model || r.Model || '-')}</td>
             <td><span class="badge" style="background:#e2e8f0; color:#475569;">${escapeDailyReportHtml(r.timeSlot || r.TimeSlot || '-')}</span></td>
+            <td>${escapeDailyReportHtml(getDailyReportProductGroup(r))}</td>
             <td>${escapeDailyReportHtml(getDailyReportPartName(r))}</td>
             <td>${escapeDailyReportHtml(r.shift || r.Shift || '-')}</td>
             <td style="font-weight: 700; color: #10b981;">${Number(r.prodQty || r.ProdQty || r.prod_qty || r.qty) || 0}</td>
