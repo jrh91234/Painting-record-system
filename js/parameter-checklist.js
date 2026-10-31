@@ -248,7 +248,7 @@ function renderQCChecklistDetailRows(rows) {
         const item = [row.process, row.checkItem].filter(Boolean).join(" — ") || "-";
         const value = row.actualValue || row.status || "-";
         const status = String(row.status || "-").toUpperCase();
-        const statusColor = status === "NG" ? "#fb7185" : status === "OK" ? "#34d399" : "#fbbf24";
+        const statusColor = status === "NG" ? "#e11d48" : status === "OK" ? "#059669" : "#d97706";
         return `<tr>
             <td>${parameterChecklistEscape(row.itemNo || "-")}</td>
             <td>${parameterChecklistEscape(item)}</td>

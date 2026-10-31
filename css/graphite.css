@@ -487,3 +487,76 @@ html[data-theme] .user-summary-grid span {
   .user-chip .logout-btn-label { display: none; }
   .user-chip .logout-btn { padding: 0.35rem 0.45rem; }
 }
+
+/* ---------- QC detail rows (ดูรายละเอียด) ----------
+   style.css paints them dark navy; follow the theme surfaces instead so the
+   expanded detail is not a black block in the light theme. */
+html[data-theme] .qc-history-detail-row > td {
+  background: var(--kz-surface-soft) !important;
+}
+
+html[data-theme] .qc-history-detail-table {
+  background: var(--kz-surface) !important;
+  border-color: var(--kz-line) !important;
+}
+
+html[data-theme] .qc-history-detail-table th {
+  background: var(--kz-surface-muted) !important;
+  color: var(--kz-text-soft) !important;
+}
+
+html[data-theme] .qc-history-detail-table td,
+html[data-theme] .qc-daily-detail-table td {
+  border-bottom-color: var(--kz-line) !important;
+}
+
+/* Cells that color their own text (OK / NG results) keep that color. */
+html[data-theme] .qc-history-detail-table td:not([style*="color"]),
+html[data-theme] .qc-daily-detail-table td:not([style*="color"]) {
+  color: var(--kz-text) !important;
+}
+
+html[data-theme] .qc-daily-detail-section {
+  background: var(--kz-surface) !important;
+  border-color: var(--kz-line) !important;
+}
+
+html[data-theme] .qc-daily-detail-section h5 {
+  color: var(--kz-text) !important;
+  border-bottom-color: var(--kz-line) !important;
+}
+
+html[data-theme] .qc-daily-detail-section h5::before {
+  background: var(--kz-muted) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .qc-daily-detail-field {
+  background: var(--kz-surface-soft) !important;
+  border-color: var(--kz-line) !important;
+}
+
+html[data-theme] .qc-daily-detail-label,
+html[data-theme] .qc-daily-detail-value.zero-defect {
+  color: var(--kz-muted) !important;
+}
+
+html[data-theme] .qc-daily-detail-value {
+  color: var(--kz-text) !important;
+}
+
+html[data-theme] .qc-daily-detail-value.has-defect,
+html[data-theme] .qc-daily-detail-field-total .qc-daily-detail-label,
+html[data-theme] .qc-daily-detail-field-total .qc-daily-detail-value {
+  color: #e11d48 !important;
+}
+
+html[data-theme] .qc-daily-detail-field-total {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: rgba(225, 29, 72, 0.3) !important;
+}
+
+/* The theme's table rule greys every cell; keep the OK / NG result colors. */
+html[data-theme] .qc-history-detail-table td[style*="#059669"] { color: #059669 !important; }
+html[data-theme] .qc-history-detail-table td[style*="#e11d48"] { color: #e11d48 !important; }
+html[data-theme] .qc-history-detail-table td[style*="#d97706"] { color: #d97706 !important; }
