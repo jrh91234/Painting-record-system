@@ -2125,6 +2125,26 @@ function materialReceiptEditable_(timestamp, now) {
   return !!time && productionDayKey_(time) === productionDayKey_(now || new Date());
 }
 
+// Admins (users.manage, or a full-access role) may delete a receipt from any
+// day. The employee id is looked up in the Users sheet; the account must be Active.
+function isUserAdmin_(ss, employeeId) {
+  const empId = String(employeeId || "").trim();
+  if (!empId) return false;
+  // The built-in super admin the web app always lets in (see auth.js).
+  if (empId === "69112") return true;
+  const sheet = getOrCreateUsersSheet(ss);
+  const lastRow = Math.min(sheet.getLastRow(), 5000);
+  if (lastRow < 2) return false;
+  const values = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (!sameEmpId_(values[i][0], empId)) continue;
+    if (String(values[i][5] || "").trim() !== "Active") return false;
+    const role = String(values[i][4] || "");
+    return isFullAccessRole_(role) || parsePermissions(values[i][8], role).indexOf("users.manage") >= 0;
+  }
+  return false;
+}
+
 function findMaterialReceiptRow_(sheet, receiptId) {
   const id = String(receiptId || "").trim().toLowerCase();
   if (!id || sheet.getLastRow() < 2) return null;
@@ -2145,8 +2165,9 @@ function changeMaterialReceipt_(ss, payload, action) {
     const rowNumber = sheet ? findMaterialReceiptRow_(sheet, data.receiptId) : null;
     if (!rowNumber) return { status: "error", message: "ไม่พบรายการนี้ในชีต (อาจถูกลบไปแล้ว)" };
     const timestamp = sheet.getRange(rowNumber, 1).getValue();
-    if (!materialReceiptEditable_(timestamp)) {
-      return { status: "error", message: "แก้ไข/ลบได้เฉพาะรายการในวันผลิตเดียวกัน (08:00 - 08:00 ของวันถัดไป)" };
+    const adminDelete = action === "delete" && isUserAdmin_(ss, data.actorEmployeeId);
+    if (!adminDelete && !materialReceiptEditable_(timestamp)) {
+      return { status: "error", message: "แก้ไข/ลบได้เฉพาะรายการในวันผลิตเดียวกัน (08:00 - 08:00 ของวันถัดไป) · Admin ลบได้ทุกวัน" };
     }
     if (action === "delete") {
       sheet.deleteRow(rowNumber);
