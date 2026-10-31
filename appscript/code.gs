@@ -2987,6 +2987,14 @@ function doGetJson_(e) {
     if (action === "getLineCapacity") {
       const capacitySheet = ss.getSheetByName("Capacity");
       const slotSheet = ss.getSheetByName("LineTimeSlots");
+      // The screen line paints the same parts at its own cycle time, kept in
+      // its own Capacity column; add the column the first time so it can be filled in.
+      if (capacitySheet && capacitySheet.getLastColumn() > 0) {
+        const capacityHeaders = capacitySheet.getRange(1, 1, 1, capacitySheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+        if (capacityHeaders.indexOf("ScreenStdSecPerPcs") < 0) {
+          capacitySheet.getRange(1, capacitySheet.getLastColumn() + 1).setValue("ScreenStdSecPerPcs");
+        }
+      }
       const readRows = sheet => {
         if (!sheet || sheet.getLastRow() < 2) return [];
         const values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
@@ -3007,6 +3015,7 @@ function doGetJson_(e) {
         pitch: Number(r.Pitch_m) || 0,
         lineSpeed: Number(r.LineSpeed_m_min) || 0,
         stdSec: Number(r.StdSecPerPcs) || 0,
+        screenStdSec: Number(r.ScreenStdSecPerPcs) || 0,
         // Codes the web app records for this part when they differ from the
         // part number in the capacity file (comma separated).
         appCodes: String(r.AppCodes || "").split(",").map(c => c.trim()).filter(Boolean)
