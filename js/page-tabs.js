@@ -22,6 +22,7 @@
         'daily-report-tab': 'บันทึกการผลิต',
         'rework-tab': 'REWORK',
         'screen-tab': 'SCREEN',
+        'pre-assy-tab': 'Pre-assy',
         'rtv-tab': 'RTV',
         'maintenance-plan-tab': 'แผนบำรุงรักษา',
         'parameter-checklist-tab:full': 'ตรวจเช็กพารามิเตอร์',

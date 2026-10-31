@@ -391,7 +391,7 @@ function switchTab(tabId, element) {
     if (tabId === "parameter-checklist-tab" || tabId === "equipment-checklist-tab") {
         document.querySelectorAll('[data-mobile-checklist="true"]').forEach(el => el.classList.add("active"));
     }
-    if (tabId === "daily-report-tab" || tabId === "rework-tab" || tabId === "screen-tab") {
+    if (tabId === "daily-report-tab" || tabId === "rework-tab" || tabId === "screen-tab" || tabId === "pre-assy-tab") {
         document.querySelectorAll('.production-menu-parent, .mobile-production-trigger').forEach(el => el.classList.add("active"));
     }
 
@@ -415,6 +415,9 @@ function switchTab(tabId, element) {
     } else if (tabId === "screen-tab") {
         if (typeof initScreenForm === 'function') initScreenForm();
         if (typeof refreshScreenHistory === 'function') refreshScreenHistory();
+    } else if (tabId === "pre-assy-tab") {
+        if (typeof initPreAssyForm === 'function') initPreAssyForm();
+        if (typeof refreshPreAssyHistory === 'function') refreshPreAssyHistory();
     } else if (tabId === "parameter-checklist-tab") {
         if (typeof initParameterChecklist === 'function') {
             initParameterChecklist();

@@ -182,13 +182,44 @@ function removeMistypedCatalogEntries(catalog) {
     return catalog;
 }
 
+// Pre-assy parts (Capacity ProductGroup "NLC 450 Pre-assy", "PRE ASSY BOX
+// LC600"...) are recorded only in the Pre-assy menu, so they are kept out of
+// the catalog every other form reads.
+const PAINTING_PREASSY_CATALOG_CACHE = "PAINTING_PREASSY_CATALOG_CACHE";
+let PAINTING_PREASSY_GROUPS = {};
+let PAINTING_PREASSY_GROUP_ORDER = [];
+
+function isPreAssyProductGroup(name) {
+    return /PRE[\s_-]*ASS/i.test(String(name || ""));
+}
+
+try {
+    const cachedPreAssy = JSON.parse(localStorage.getItem(PAINTING_PREASSY_CATALOG_CACHE) || "null");
+    if (cachedPreAssy && cachedPreAssy.groups && Array.isArray(cachedPreAssy.order)) {
+        PAINTING_PREASSY_GROUPS = cachedPreAssy.groups;
+        PAINTING_PREASSY_GROUP_ORDER = cachedPreAssy.order;
+    }
+} catch (_) {}
+
 // The catalog and its group order always change together; REWORK and SCREEN
 // read both.
 function setProductCatalog(groups, order) {
-    PAINTING_MODEL_GROUPS = groups;
-    PAINTING_PRODUCT_GROUP_ORDER = Array.isArray(order) && order.length
+    const allOrder = Array.isArray(order) && order.length
         ? order.filter(name => groups[name]).concat(Object.keys(groups).filter(name => !order.includes(name)))
         : Object.keys(groups);
+    const preAssyOrder = allOrder.filter(isPreAssyProductGroup);
+    if (preAssyOrder.length) {
+        PAINTING_PREASSY_GROUPS = {};
+        preAssyOrder.forEach(name => { PAINTING_PREASSY_GROUPS[name] = groups[name]; });
+        PAINTING_PREASSY_GROUP_ORDER = preAssyOrder;
+        try {
+            localStorage.setItem(PAINTING_PREASSY_CATALOG_CACHE, JSON.stringify({ groups: PAINTING_PREASSY_GROUPS, order: preAssyOrder }));
+        } catch (_) {}
+    }
+    PAINTING_MODEL_GROUPS = {};
+    allOrder.filter(name => !isPreAssyProductGroup(name)).forEach(name => { PAINTING_MODEL_GROUPS[name] = groups[name]; });
+    PAINTING_PRODUCT_GROUP_ORDER = allOrder.filter(name => !isPreAssyProductGroup(name));
+    if (typeof window.renderPreAssyProductGroups === "function") window.renderPreAssyProductGroups();
 }
 
 // Screen can be opened without mounting the daily-report form. Load the

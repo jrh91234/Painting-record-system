@@ -482,6 +482,31 @@ async function sendScreenReportToAPI(payload) {
     }
 }
 
+// Pre-assy writes to the dedicated PRE_ASSY sheet (no QC review step).
+async function sendPreAssyReportToAPI(payload) {
+    const baseUrl = getApiUrl();
+    const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'action=submitPreAssyReport';
+    try {
+        activeSyncRequests++;
+        updateSyncUI();
+        const response = await fetch(url, {
+            method: "POST",
+            cache: "no-cache",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(payload)
+        });
+        const result = await requireJsonResponse(response, "Submit Pre-assy report");
+        if (!result || result.status !== "success" || result.action !== "submitPreAssyReport") {
+            throw new Error("Submit Pre-assy report: backend did not confirm the save");
+        }
+        localStorage.removeItem("PAINTING_PREASSY_CACHE");
+        return result;
+    } finally {
+        activeSyncRequests = Math.max(0, activeSyncRequests - 1);
+        updateSyncUI();
+    }
+}
+
 function getRealSheetData() {
     const realData = [
         { rowIndex: 2, date: "2026-07-25 17:00", rust: 29, dent: 0, weld: 0, chemical: 8, oil: 0, note: "", timestamp: "2026-07-25 17:00" },
@@ -676,6 +701,32 @@ async function fetchScreenReportDataFromAPI(dateFilter = "", options = {}) {
             }
         } catch (error) {
             console.warn("Failed to fetch SCREEN history from cloud, checking cache:", error);
+        }
+    }
+    try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached !== null) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) return parsed;
+        }
+    } catch (_) {}
+    return [];
+}
+
+async function fetchPreAssyReportDataFromAPI(dateFilter = "") {
+    const baseUrl = getApiUrl();
+    const requestedDate = String(dateFilter || "").trim();
+    const cacheKey = requestedDate ? `PAINTING_PREASSY_CACHE_${requestedDate}` : "PAINTING_PREASSY_CACHE";
+    if (baseUrl) {
+        const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'action=getPreAssyReportData' + (requestedDate ? `&date=${encodeURIComponent(requestedDate)}` : '');
+        try {
+            const json = await fetchAppsScriptJsonWithRetry(url, "Load Pre-assy history", { attempts: 2, timeoutMs: 15000 });
+            if (json && json.status === "success" && Array.isArray(json.data)) {
+                localStorage.setItem(cacheKey, JSON.stringify(json.data));
+                return json.data;
+            }
+        } catch (error) {
+            console.warn("Failed to fetch Pre-assy history from cloud, checking cache:", error);
         }
     }
     try {
