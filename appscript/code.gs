@@ -16,6 +16,8 @@ const REWORK_SHEET_NAME = "REWORK";
 const SCREEN_SHEET_NAME = "SCREEN";
 // Dedicated storage for the Pre-assy production menu (created on first use).
 const PRE_ASSY_SHEET_NAME = "PRE_ASSY";
+// Which component parts a Pre-assy reject came from, e.g. "BRU93581 x2, BRU53746 x1".
+const PRE_ASSY_DEFECT_PARTS_HEADER = "DefectParts";
 const SPARE_PARTS_SHEET_NAME = "SpareParts";
 const SPARE_PARTS_TRANSACTIONS_SHEET_NAME = "SparePartsTransactions";
 const QC_PENDING_SUFFIX = "_Pending";
@@ -321,7 +323,9 @@ function ensureScreenReportSheet_(ss) {
   return sheet;
 }
 
-function appendScreenReport_(ss, payload, targetSheet) {
+// extraColumns maps a header that is not in the SCREEN row shape to a
+// function reading its value from the record.
+function appendScreenReport_(ss, payload, targetSheet, extraColumns) {
   const sheet = targetSheet || ensureScreenReportSheet_(ss);
   const submissionId = String(payload.submissionId || "").trim();
   const idColumn = ensureDailyReportIdColumn(sheet);
@@ -338,8 +342,11 @@ function appendScreenReport_(ss, payload, targetSheet) {
   const ovenEtc = (Number(dt.oven) || 0) + (Number(dt.gun) || 0) + (Number(dt.power) || 0) + (Number(dt.motor) || 0) + (Number(dt.other) || 0);
   const dtNote = String(dt.note || "");
   const records = Array.isArray(payload.records) ? payload.records : [];
+  const headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0].map(h => String(h).trim());
+  const extras = Object.keys(extraColumns || {}).map(header => ({ column: headers.indexOf(header), value: extraColumns[header] }))
+    .filter(extra => extra.column >= 0);
   records.forEach(r => {
-    sheet.appendRow([
+    const row = [
       now, dateVal, shiftVal, recorderVal, checkerVal,
       burner, wash, ovenEtc, dtNote,
       String(r.model || ""), String(r.timeSlot || ""), Number(r.prodQty) || 0,
@@ -348,7 +355,12 @@ function appendScreenReport_(ss, payload, targetSheet) {
       Number(r.totalDefect) || 0, submissionId, String(r.color || ""),
       String(r.productGroup || ""), String(r.partCategory || ""), String(r.colorCode || ""),
       Number(r.dust) || 0, Number(r.oil) || 0, Number(r.rust) || 0
-    ]);
+    ];
+    extras.forEach(extra => {
+      while (row.length < extra.column) row.push("");
+      row[extra.column] = extra.value(r);
+    });
+    sheet.appendRow(row);
   });
   SpreadsheetApp.flush();
   return { duplicate: false, rows: records.length };
@@ -371,11 +383,17 @@ function ensurePreAssyReportSheet_(ss) {
   ensureDailyReportIdColumn(sheet);
   ensureDailyReportColorColumn(sheet);
   ensureDailyReportCatalogColumns(sheet);
+  const headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0].map(h => String(h).trim());
+  if (headers.indexOf(PRE_ASSY_DEFECT_PARTS_HEADER) < 0) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue(PRE_ASSY_DEFECT_PARTS_HEADER);
+  }
   return sheet;
 }
 
 function appendPreAssyReport_(ss, payload) {
-  return appendScreenReport_(ss, payload, ensurePreAssyReportSheet_(ss));
+  return appendScreenReport_(ss, payload, ensurePreAssyReportSheet_(ss), {
+    [PRE_ASSY_DEFECT_PARTS_HEADER]: r => String(r.defectParts || "")
+  });
 }
 
 function readPreAssyReports_(ss, requestedDate) {
@@ -398,7 +416,8 @@ function readScreenReports_(ss, requestedDate, suffix, sheetName) {
     thickPaint: Number(qcCell_(r, headers, "ThickPaint", 15)) || 0, waterStain: Number(qcCell_(r, headers, "WaterStain", 16)) || 0, otherDefect: Number(qcCell_(r, headers, "OtherDefect", 17)) || 0,
     totalDefect: Number(qcCell_(r, headers, "TotalDefect", 18)) || 0, submissionId: String(qcCell_(r, headers, DAILY_REPORT_ID_HEADER, 19) || ""), color: String(qcCell_(r, headers, DAILY_REPORT_COLOR_HEADER, 20) || ""),
     productGroup: String(qcCell_(r, headers, DAILY_REPORT_PRODUCT_GROUP_HEADER, 21) || ""), partCategory: String(qcCell_(r, headers, DAILY_REPORT_PART_CATEGORY_HEADER, 22) || ""), colorCode: String(qcCell_(r, headers, DAILY_REPORT_COLOR_CODE_HEADER, 23) || ""),
-    dust: Number(qcCell_(r, headers, DAILY_REPORT_DUST_HEADER, 24)) || 0, oil: Number(qcCell_(r, headers, DAILY_REPORT_OIL_HEADER, 25)) || 0, rust: Number(qcCell_(r, headers, DAILY_REPORT_RUST_HEADER, 26)) || 0
+    dust: Number(qcCell_(r, headers, DAILY_REPORT_DUST_HEADER, 24)) || 0, oil: Number(qcCell_(r, headers, DAILY_REPORT_OIL_HEADER, 25)) || 0, rust: Number(qcCell_(r, headers, DAILY_REPORT_RUST_HEADER, 26)) || 0,
+    defectParts: String(qcCell_(r, headers, PRE_ASSY_DEFECT_PARTS_HEADER, -1) || "")
   }));
   const filter = String(requestedDate || "").trim();
   return filter ? data.filter(r => String(r.date || "").substring(0, 10) === filter) : data;
