@@ -25,6 +25,17 @@
         return typeof getApiUrl === 'function' ? getApiUrl() : '';
     }
 
+    // Admins can delete receipts from any day; Apps Script checks the role too.
+    function isAdmin() {
+        const auth = window.PaintingAuth;
+        return !!(auth && typeof auth.hasPermission === 'function' && auth.hasPermission('users.manage'));
+    }
+
+    function currentEmployeeId() {
+        const user = window.PaintingAuth && window.PaintingAuth.currentUser;
+        return user ? String(user.employeeId || '').trim() : '';
+    }
+
     function currentUserName() {
         const user = window.PaintingAuth && window.PaintingAuth.currentUser;
         return user ? String(user.displayName || user.employeeId || '').trim() : '';
@@ -313,7 +324,7 @@
         const row = state.recent.find(item => item.receiptId === receiptId);
         if (!row || !confirm(`ลบรายการรับ ${row.colorCode} Lot ${row.lot}${row.boxNo ? ', Box ' + row.boxNo : ''} (${row.timestamp})?`)) return;
         try {
-            const result = await call({ action: 'deleteMaterialReceipt', receiptId }, 'Delete material receipt');
+            const result = await call({ action: 'deleteMaterialReceipt', receiptId, actorEmployeeId: currentEmployeeId() }, 'Delete material receipt');
             if (!result || result.status !== 'success') throw new Error((result && result.message) || 'ลบไม่สำเร็จ');
             if (state.editing === receiptId) resetForm();
             toast(`ลบ ${row.colorCode} Lot ${row.lot} แล้ว`, 'success');
@@ -370,6 +381,15 @@
         }
     }
 
+    function actionButtons(row) {
+        const canDelete = row.receiptId && (row.editable || isAdmin());
+        if (!row.editable && !canDelete) return '<small title="แก้ไข/ลบได้เฉพาะวันผลิตเดียวกัน">-</small>';
+        return `<span style="display:inline-flex; gap:0.35rem;">`
+            + (row.editable ? `<button type="button" class="btn-secondary-custom" data-mr-edit="${esc(row.receiptId)}" title="แก้ไข">✏️</button>` : '')
+            + (canDelete ? `<button type="button" class="btn-secondary-custom" data-mr-delete="${esc(row.receiptId)}" title="${row.editable ? 'ลบ' : 'ลบ (Admin)'}">🗑</button>` : '')
+            + '</span>';
+    }
+
     async function loadRecent() {
         const body = $('mrRecentBody');
         try {
@@ -397,7 +417,7 @@
                 <td>${esc(row.expiryDate || '-')}${status ? `<br><small class="is-${status.level}">${esc(status.text)}</small>` : ''}</td>
                 <td>${esc(row.supplier)}</td>
                 <td>${esc(row.receivedBy)}</td>
-                <td>${row.editable ? `<span style="display:inline-flex; gap:0.35rem;"><button type="button" class="btn-secondary-custom" data-mr-edit="${esc(row.receiptId)}" title="แก้ไข">✏️</button><button type="button" class="btn-secondary-custom" data-mr-delete="${esc(row.receiptId)}" title="ลบ">🗑</button></span>` : '<small title="แก้ไข/ลบได้เฉพาะวันผลิตเดียวกัน">-</small>'}</td>
+                <td>${actionButtons(row)}</td>
             </tr>`;
         }).join('') : '<tr><td colspan="8" class="mr-empty">ยังไม่มีการรับ Mat</td></tr>';
         $('mrTodayCount').textContent = state.recent.filter(row => String(row.timestamp || '').startsWith(isoDate(new Date()))).length;
