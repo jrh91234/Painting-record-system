@@ -70,13 +70,13 @@ function renderPreAssyModels() {
 }
 
 // The parts a Pre-assy is built from: the Capacity group it is named after
-// ("NLC 600 Pre-assy" -> "NLC 600", "PRE ASSY BOX LC600" -> "LC600" and
+// ("NLC 600 Pre-assy" -> "NLC 600", "PRE ASSY BOX LC600" -> "LC600", not
 // "LC600 Visi-smart"), or every other group when no name matches.
 function preAssyComponentParts(group) {
     const base = String(group || "").replace(/PRE[\s_-]*ASS\w*/ig, "").replace(/\bBOX\b/ig, "").replace(/\s+/g, " ").trim().toUpperCase();
     const groups = (typeof PAINTING_MODEL_GROUPS !== "undefined" && PAINTING_MODEL_GROUPS) || {};
     const names = Object.keys(groups);
-    const matched = base ? names.filter(name => name.toUpperCase() === base || name.toUpperCase().startsWith(base + " ")) : [];
+    const matched = base ? names.filter(name => name.toUpperCase() === base) : [];
     const parts = [];
     (matched.length ? matched : names).forEach(name => {
         Object.values(groups[name]?.categories || {}).flat().forEach(item => {
