@@ -560,3 +560,46 @@ html[data-theme] .qc-daily-detail-field-total {
 html[data-theme] .qc-history-detail-table td[style*="#059669"] { color: #059669 !important; }
 html[data-theme] .qc-history-detail-table td[style*="#e11d48"] { color: #e11d48 !important; }
 html[data-theme] .qc-history-detail-table td[style*="#d97706"] { color: #d97706 !important; }
+
+/* ---------- Horizontal scrolling for wide cards ----------
+   A card whose content is wider than the screen scrolls sideways instead of
+   cutting the content off (js/overflow-scroll.js turns the scroll on where a
+   card clips a table). Keep the scrollbar visible so it is clear there is
+   more to the right; overlay scrollbars on phones/Mac otherwise hide it. */
+.table-responsive,
+.rework-table-wrap,
+.qc-history-detail-wrap,
+.is-x-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--kz-muted, #6a6d74) 70%, transparent) transparent;
+}
+
+.table-responsive::-webkit-scrollbar,
+.rework-table-wrap::-webkit-scrollbar,
+.qc-history-detail-wrap::-webkit-scrollbar,
+.is-x-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.rework-table-wrap::-webkit-scrollbar-thumb,
+.qc-history-detail-wrap::-webkit-scrollbar-thumb,
+.is-x-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--kz-muted, #6a6d74) 60%, transparent);
+  border-radius: 999px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.rework-table-wrap::-webkit-scrollbar-track,
+.qc-history-detail-wrap::-webkit-scrollbar-track,
+.is-x-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Set by js/overflow-scroll.js on a card that clips a wide table; beats the
+   card's own overflow: hidden (some are inline styles). */
+.is-x-scroll {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
