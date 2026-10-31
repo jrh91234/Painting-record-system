@@ -434,6 +434,14 @@ function getCurrentTimeSlot() {
     return closestSlot;
 }
 
+// REWORK, SCREEN and Pre-assy build their own time select; each time one of
+// them is opened, move it to the current slot like the daily form does.
+function selectCurrentTimeSlot(selectId) {
+    const select = document.getElementById(selectId);
+    const slot = getCurrentTimeSlot();
+    if (select && slot && Array.from(select.options).some(option => option.value === slot)) select.value = slot;
+}
+
 let currentTargetStaffType = "recorder";
 
 // The cloud Recorders sheet is the source of truth. Do not seed this with mock names.
