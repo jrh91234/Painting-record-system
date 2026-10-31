@@ -69,6 +69,72 @@ function renderPreAssyModels() {
     if (modelSelect && !modelSelect.value && parts.length === 1) modelSelect.value = parts[0].value;
 }
 
+// The parts a Pre-assy is built from: the Capacity group it is named after
+// ("NLC 600 Pre-assy" -> "NLC 600", "PRE ASSY BOX LC600" -> "LC600" and
+// "LC600 Visi-smart"), or every other group when no name matches.
+function preAssyComponentParts(group) {
+    const base = String(group || "").replace(/PRE[\s_-]*ASS\w*/ig, "").replace(/\bBOX\b/ig, "").replace(/\s+/g, " ").trim().toUpperCase();
+    const groups = (typeof PAINTING_MODEL_GROUPS !== "undefined" && PAINTING_MODEL_GROUPS) || {};
+    const names = Object.keys(groups);
+    const matched = base ? names.filter(name => name.toUpperCase() === base || name.toUpperCase().startsWith(base + " ")) : [];
+    const parts = [];
+    (matched.length ? matched : names).forEach(name => {
+        Object.values(groups[name]?.categories || {}).flat().forEach(item => {
+            if (item && item.value && !parts.some(part => part.value === item.value)) parts.push(item);
+        });
+    });
+    return parts;
+}
+
+function preAssyDefectRowMarkup() {
+    const group = document.getElementById("paProductGroup")?.value || "";
+    const options = preAssyComponentParts(group).map(item => `<option value="${preAssyEsc(item.value)}">${preAssyEsc(item.label || item.value)}</option>`).join("");
+    return `<div class="pa-defect-row" style="display:grid; grid-template-columns:minmax(0,3fr) minmax(0,1fr) auto; gap:1rem; align-items:end;">
+        <div class="form-group"><label>พาร์ทที่เสีย</label><select class="form-control pa-defect-part"><option value="">-- เลือกพาร์ทที่เสีย --</option>${options}</select></div>
+        <div class="form-group"><label>จำนวนเสีย (ชิ้น)</label><input class="form-control pa-defect-qty" type="number" min="0" placeholder="0"></div>
+        <div class="form-group"><button type="button" class="btn-danger" onclick="removePreAssyDefectRow(this)">ลบ</button></div>
+    </div>`;
+}
+
+function addPreAssyDefectRow() {
+    const list = document.getElementById("paDefectList");
+    if (!list) return;
+    list.insertAdjacentHTML("beforeend", preAssyDefectRowMarkup());
+    updatePreAssyDefectTotal();
+}
+
+function removePreAssyDefectRow(button) {
+    button?.closest(".pa-defect-row")?.remove();
+    updatePreAssyDefectTotal();
+}
+
+function preAssyDefectBreakdown() {
+    return Array.from(document.querySelectorAll("#paDefectList .pa-defect-row")).map(row => ({
+        part: row.querySelector(".pa-defect-part")?.value || "",
+        qty: Math.max(0, Number(row.querySelector(".pa-defect-qty")?.value) || 0)
+    }));
+}
+
+// A record is either good output or rejects: while any reject is entered the
+// good-output box is cleared and locked.
+function updatePreAssyDefectTotal() {
+    const total = preAssyDefectBreakdown().reduce((sum, item) => sum + item.qty, 0);
+    const totalInput = document.getElementById("paDefect");
+    if (totalInput) totalInput.value = total ? String(total) : "";
+    const prodQty = document.getElementById("paProdQty");
+    if (prodQty) {
+        if (total > 0) prodQty.value = "";
+        prodQty.disabled = total > 0;
+        prodQty.placeholder = total > 0 ? "ล็อก: มีการลงของเสีย" : "0";
+    }
+}
+
+function resetPreAssyDefects() {
+    const list = document.getElementById("paDefectList");
+    if (list) list.innerHTML = "";
+    updatePreAssyDefectTotal();
+}
+
 function preAssyFormMarkup() {
     const sharedSlots = (typeof PAINTING_TIMESLOTS !== "undefined" && PAINTING_TIMESLOTS) || window.PAINTING_TIMESLOTS;
     const slots = Array.isArray(sharedSlots) && sharedSlots.length
@@ -100,8 +166,11 @@ function preAssyFormMarkup() {
             <div class="dr-grid-3">
                 <div class="form-group"><label for="paTime">ช่วงเวลา</label><select id="paTime" class="form-control">${slots.map(slot => `<option value="${preAssyEsc(slot)}">${preAssyEsc(slot)}</option>`).join("")}</select></div>
                 <div class="form-group"><label for="paProdQty">ยอดผลิต (ชิ้น)</label><input id="paProdQty" class="form-control" type="number" min="0" placeholder="0"></div>
-                <div class="form-group"><label for="paDefect">ของเสีย (ชิ้น)</label><input id="paDefect" class="form-control" type="number" min="0" placeholder="0"></div>
+                <div class="form-group"><label for="paDefect">ของเสีย (ชิ้น)</label><input id="paDefect" class="form-control" type="number" placeholder="0" readonly title="รวมจากพาร์ทที่เสียด้านล่าง"></div>
             </div>
+            <h3 class="dr-subtitle">ของเสีย แยกตามพาร์ท (ลงของเสียแล้วจะลงยอดผลิตในรายการเดียวกันไม่ได้)</h3>
+            <div id="paDefectList"></div>
+            <div class="rework-form-actions" style="justify-content:flex-start;"><button type="button" class="btn-secondary" onclick="addPreAssyDefectRow()">➕ เพิ่มพาร์ทที่เสีย</button></div>
             <div class="rework-form-actions">
                 <button type="button" class="btn-secondary" onclick="addPreAssyRecord()">➕ เพิ่มรายการ</button>
                 <button id="preAssySubmitButton" type="button" class="btn-primary" onclick="submitPreAssyReport()">💾 บันทึกข้อมูล Pre-assy</button>
@@ -135,7 +204,12 @@ function initPreAssyForm() {
             const saved = JSON.parse(localStorage.getItem(PREASSY_DRAFT_KEY) || "[]");
             if (Array.isArray(saved)) preAssyDraftRecords = saved;
         } catch (_) { preAssyDraftRecords = []; }
-        document.getElementById("paProductGroup")?.addEventListener("change", renderPreAssyModels);
+        document.getElementById("paProductGroup")?.addEventListener("change", () => {
+            renderPreAssyModels();
+            resetPreAssyDefects();
+        });
+        document.getElementById("paDefectList")?.addEventListener("input", updatePreAssyDefectTotal);
+        document.getElementById("paDefectList")?.addEventListener("change", updatePreAssyDefectTotal);
         root.querySelectorAll('input[type="number"]').forEach(input => {
             input.addEventListener("focus", () => { if (input.value === "0") input.value = ""; });
         });
@@ -157,13 +231,27 @@ function addPreAssyRecord() {
     // Kept in the record for the sheet's PartCategory column.
     const partCategory = Object.entries(preAssyCatalog().groups[productGroup]?.categories || {})
         .find(([, models]) => (models || []).some(item => String(item.value ?? item) === model))?.[0] || "";
+    const breakdown = preAssyDefectBreakdown().filter(item => item.part || item.qty > 0);
+    if (breakdown.some(item => !item.part || item.qty <= 0)) {
+        showToast?.("กรุณาเลือกพาร์ทที่เสียและระบุจำนวนให้ครบทุกแถว", "error");
+        return false;
+    }
+    // The same part entered on two rows is counted once with both quantities.
+    const merged = [];
+    breakdown.forEach(item => {
+        const existing = merged.find(entry => entry.part === item.part);
+        if (existing) existing.qty += item.qty;
+        else merged.push({ ...item });
+    });
+    const totalDefect = merged.reduce((sum, item) => sum + item.qty, 0);
     const record = {
         productGroup, partCategory, model, color: "", colorCode: "",
         timeSlot: document.getElementById("paTime")?.value || "",
-        prodQty: preAssyNum("paProdQty"),
-        otherDefect: preAssyNum("paDefect")
+        prodQty: totalDefect > 0 ? 0 : preAssyNum("paProdQty"),
+        otherDefect: totalDefect,
+        totalDefect,
+        defectParts: merged.map(item => `${item.part} x${item.qty}`).join(", ")
     };
-    record.totalDefect = record.otherDefect;
     if (record.prodQty <= 0 && record.totalDefect <= 0) {
         showToast?.("กรุณาระบุยอดผลิตหรือยอดเสียอย่างน้อยหนึ่งรายการ", "error");
         return false;
@@ -172,7 +260,9 @@ function addPreAssyRecord() {
     preAssyDraftRecords.push(record);
     localStorage.setItem(PREASSY_DRAFT_KEY, JSON.stringify(preAssyDraftRecords));
     renderPreAssyList();
-    ["paProdQty", "paDefect"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    const prodQty = document.getElementById("paProdQty");
+    if (prodQty) prodQty.value = "";
+    resetPreAssyDefects();
     showToast?.("เพิ่มรายการ Pre-assy แล้ว", "success");
     return true;
 }
@@ -191,7 +281,7 @@ function renderPreAssyList() {
     const summary = document.getElementById("preAssyTotalSummary");
     if (summary) summary.textContent = `${rows.length} รายการ`;
     if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty-state">ยังไม่มีรายการ</td></tr>`; return; }
-    body.innerHTML = rows.map((row, index) => `<tr><td>${preAssyEsc(row.date || "-")}</td><td>${preAssyEsc(row.model || "-")}</td><td>${preAssyEsc(row.timeSlot || "-")}</td><td>${preAssyEsc(getDailyReportProductGroup(row))}</td><td title="${preAssyEsc(getDailyReportPartName(row))}">${preAssyEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td>${Number(row.totalDefect) || 0}</td><td>${drafts ? `<button type="button" class="btn-danger" onclick="removePreAssyRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
+    body.innerHTML = rows.map((row, index) => `<tr><td>${preAssyEsc(row.date || "-")}</td><td>${preAssyEsc(row.model || "-")}</td><td>${preAssyEsc(row.timeSlot || "-")}</td><td>${preAssyEsc(getDailyReportProductGroup(row))}</td><td title="${preAssyEsc(getDailyReportPartName(row))}">${preAssyEsc(getDailyReportPartName(row))}</td><td>${Number(row.prodQty) || 0}</td><td title="${preAssyEsc(row.defectParts || "")}">${Number(row.totalDefect) || 0}${row.defectParts ? `<div style="font-size:.75rem;opacity:.75;white-space:normal;">${preAssyEsc(row.defectParts)}</div>` : ""}</td><td>${drafts ? `<button type="button" class="btn-danger" onclick="removePreAssyRecord(${index})">ลบ</button>` : "บันทึกแล้ว"}</td></tr>`).join("");
 }
 
 async function refreshPreAssyHistory() {
@@ -208,7 +298,7 @@ async function refreshPreAssyHistory() {
 
 async function submitPreAssyReport() {
     // A filled-in row that was not added yet is saved with the others.
-    const pendingQty = preAssyNum("paProdQty") > 0 || preAssyNum("paDefect") > 0;
+    const pendingQty = preAssyNum("paProdQty") > 0 || preAssyDefectBreakdown().some(item => item.part || item.qty > 0);
     if ((!preAssyDraftRecords.length || pendingQty) && !addPreAssyRecord()) return;
     const payload = {
         action: "submitPreAssyReport", submissionId: `pa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -238,5 +328,7 @@ window.initPreAssyForm = initPreAssyForm;
 window.renderPreAssyProductGroups = renderPreAssyProductGroups;
 window.addPreAssyRecord = addPreAssyRecord;
 window.removePreAssyRecord = removePreAssyRecord;
+window.addPreAssyDefectRow = addPreAssyDefectRow;
+window.removePreAssyDefectRow = removePreAssyDefectRow;
 window.refreshPreAssyHistory = refreshPreAssyHistory;
 window.submitPreAssyReport = submitPreAssyReport;
