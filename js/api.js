@@ -1491,3 +1491,40 @@ async function upsertUserAPI(userData) {
     }
 }
 
+// Fetch powder coating staff attendance from JR Organize Google Sheet
+async function fetchPowderCoatingAttendanceAPI(options = {}) {
+    const baseUrl = getApiUrl();
+    if (!baseUrl) return { status: 'error', message: 'API URL not configured', data: [] };
+
+    const query = new URLSearchParams({ action: 'getPowderCoatingAttendance' });
+    if (options.date) query.set('date', String(options.date).trim());
+    if (options.startDate) query.set('startDate', String(options.startDate).trim());
+    if (options.endDate) query.set('endDate', String(options.endDate).trim());
+    if (options.spreadsheetId) query.set('spreadsheetId', String(options.spreadsheetId).trim());
+    if (options.gid) query.set('gid', String(options.gid).trim());
+
+    const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + query.toString();
+    const cacheKey = `PAINTING_POWDER_ATTENDANCE_${options.date || options.startDate || 'all'}`;
+
+    try {
+        const result = await fetchAppsScriptJsonWithRetry(url, 'Get powder coating attendance', options.retryOptions || { attempts: 2, timeoutMs: 15000 });
+        if (result && result.status === 'success' && Array.isArray(result.data)) {
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify(result.data));
+            } catch (e) {}
+            return result;
+        }
+        return result || { status: 'error', data: [] };
+    } catch (error) {
+        console.warn('Failed to fetch powder coating attendance:', error);
+        try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                return { status: 'success', data: JSON.parse(cached), fromCache: true };
+            }
+        } catch (e) {}
+        return { status: 'error', message: error.message || 'Network error', data: [] };
+    }
+}
+
+

@@ -3359,6 +3359,22 @@ function doGetJson_(e) {
       return ContentService.createTextOutput(JSON.stringify({ status: "success", capacity, slots })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Pull Powder Coating Attendance from JR Organize spreadsheet (gid: 886429179)
+    if (action === "getPowderCoatingAttendance") {
+      const sourceSpreadsheetId = String((e && e.parameter && e.parameter.spreadsheetId) || "1LxRYOtg0LL6_VSuNsaNuNuBUHal_T4eOYgy4tOrHNfE").trim();
+      const sheetGid = String((e && e.parameter && e.parameter.gid) || "886429179").trim();
+      const dateFilter = String((e && e.parameter && e.parameter.date) || "").trim();
+      const startDate = String((e && e.parameter && e.parameter.startDate) || "").trim();
+      const endDate = String((e && e.parameter && e.parameter.endDate) || "").trim();
+
+      const attendanceResult = readPowderCoatingAttendance_(sourceSpreadsheetId, sheetGid, {
+        dateFilter: dateFilter,
+        startDate: startDate,
+        endDate: endDate
+      });
+      return ContentService.createTextOutput(JSON.stringify(attendanceResult)).setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (action === "getCycleTimes") {
       return ContentService.createTextOutput(JSON.stringify({ status: "success", rows: readCycleTimes_(ss) })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -3719,4 +3735,164 @@ function getOrCreateEventsSheet(ss) {
     evtSheet.getRange(1, lastColumn + 1).setValue("Quantity");
   }
   return evtSheet;
+}
+
+/**
+ * Reads powder coating staff check-in / attendance records from JR Organize Google Sheet.
+ * Target Spreadsheet: 1LxRYOtg0LL6_VSuNsaNuNuBUHal_T4eOYgy4tOrHNfE
+ * Target Sheet GID: 886429179
+ */
+function readPowderCoatingAttendance_(spreadsheetId, gid, options) {
+  options = options || {};
+  try {
+    const targetSs = SpreadsheetApp.openById(spreadsheetId);
+    if (!targetSs) {
+      return { status: "error", message: "Cannot open spreadsheet: " + spreadsheetId, data: [] };
+    }
+
+    let sheet = null;
+    const sheets = targetSs.getSheets();
+    if (gid) {
+      for (let i = 0; i < sheets.length; i++) {
+        if (String(sheets[i].getSheetId()) === String(gid)) {
+          sheet = sheets[i];
+          break;
+        }
+      }
+    }
+
+    if (!sheet) {
+      for (let i = 0; i < sheets.length; i++) {
+        const name = sheets[i].getName().toLowerCase();
+        if (name.includes("powder") || name.includes("coating") || name.includes("พ่นสี") || name.includes("签到") || name.includes("attendance")) {
+          sheet = sheets[i];
+          break;
+        }
+      }
+    }
+
+    if (!sheet) {
+      sheet = sheets[0];
+    }
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return {
+        status: "success",
+        sheetName: sheet ? sheet.getName() : "",
+        sheetId: sheet ? sheet.getSheetId() : "",
+        data: [],
+        totalHeadcount: 0
+      };
+    }
+
+    const lastRow = Math.min(sheet.getLastRow(), 5000);
+    const lastCol = Math.max(1, Math.min(sheet.getLastColumn(), 50));
+    const values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    if (!values || values.length <= 1) {
+      return { status: "success", sheetName: sheet.getName(), data: [], totalHeadcount: 0 };
+    }
+
+    const rawHeaders = values[0].map(h => String(h || "").trim());
+    const lowerHeaders = rawHeaders.map(h => h.toLowerCase());
+
+    const findCol = names => {
+      for (let k = 0; k < names.length; k++) {
+        const n = names[k].toLowerCase();
+        const idx = lowerHeaders.findIndex(h => h === n || h.indexOf(n) >= 0);
+        if (idx >= 0) return idx;
+      }
+      return -1;
+    };
+
+    const colMap = {
+      date: findCol(["date", "วันที่", "日期", "timestamp", "time"]),
+      employeeId: findCol(["employeeid", "employee id", "empid", "id", "รหัสพนักงาน", "รหัส", "工号"]),
+      name: findCol(["name", "displayname", "staff", "ชื่อ", "ชื่อ-สกุล", "ชื่อพนักงาน", "姓名", "员工"]),
+      dept: findCol(["department", "dept", "แผนก", "ฝ่าย", "ส่วนงาน", "部门", "岗位", "position"]),
+      shift: findCol(["shift", "กะ", "班次", "กะทำงาน"]),
+      checkIn: findCol(["checkin", "check in", "timein", "in", "เวลาเข้า", "เข้างาน", "上班时间", "签到时间", "เวลาเข้างาน"]),
+      checkOut: findCol(["checkout", "check out", "timeout", "out", "เวลาออก", "ออกงาน", "下班时间", "签退时间", "เวลาเลิกงาน"]),
+      status: findCol(["status", "สถานะ", "การมาทำงาน", "出勤状态", "状态"]),
+      hours: findCol(["hours", "working hours", "work hours", "ชั่วโมง", "ชั่วโมงทำงาน", "工时"]),
+      ot: findCol(["ot", "overtime", "โอที", "加班", "ชั่วโมง ot"])
+    };
+
+    const dataRows = values.slice(1);
+    const result = [];
+    const dateFilter = options.dateFilter ? String(options.dateFilter).trim() : "";
+    const startDate = options.startDate ? String(options.startDate).trim() : "";
+    const endDate = options.endDate ? String(options.endDate).trim() : "";
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const row = dataRows[i];
+      if (!row.some(val => String(val || "").trim() !== "")) continue;
+
+      const rowDateVal = colMap.date >= 0 ? row[colMap.date] : "";
+      const rowDateStr = rowDateVal instanceof Date ? formatDateStr(rowDateVal, false) : String(rowDateVal || "").trim();
+      const rowEmpId = colMap.employeeId >= 0 ? String(row[colMap.employeeId] || "").trim() : "";
+      const rowName = colMap.name >= 0 ? String(row[colMap.name] || "").trim() : "";
+      const rowDept = colMap.dept >= 0 ? String(row[colMap.dept] || "").trim() : "";
+      const rowShift = colMap.shift >= 0 ? String(row[colMap.shift] || "").trim() : "Day";
+      const rowCheckIn = colMap.checkIn >= 0 ? (row[colMap.checkIn] instanceof Date ? formatDateStr(row[colMap.checkIn], true) : String(row[colMap.checkIn] || "").trim()) : "";
+      const rowCheckOut = colMap.checkOut >= 0 ? (row[colMap.checkOut] instanceof Date ? formatDateStr(row[colMap.checkOut], true) : String(row[colMap.checkOut] || "").trim()) : "";
+      const rowStatus = colMap.status >= 0 ? String(row[colMap.status] || "").trim() : "ปกติ";
+      const rowHours = colMap.hours >= 0 ? (Number(row[colMap.hours]) || 0) : 0;
+      const rowOt = colMap.ot >= 0 ? (Number(row[colMap.ot]) || 0) : 0;
+
+      // Filter: match powder coating department if column exists
+      const isPowderDept = !rowDept || /powder|coating|พ่นสี/i.test(rowDept);
+      if (colMap.dept >= 0 && rowDept && !isPowderDept) {
+        continue;
+      }
+
+      // Date filtering
+      if (dateFilter && rowDateStr) {
+        const dKey = toIsoDateStr_(rowDateStr);
+        const fKey = toIsoDateStr_(dateFilter);
+        if (dKey && fKey && dKey !== fKey) continue;
+      } else if ((startDate || endDate) && rowDateStr) {
+        const dKey = toIsoDateStr_(rowDateStr);
+        if (startDate && dKey < toIsoDateStr_(startDate)) continue;
+        if (endDate && dKey > toIsoDateStr_(endDate)) continue;
+      }
+
+      result.push({
+        date: rowDateStr,
+        employeeId: rowEmpId,
+        name: rowName || rowEmpId,
+        department: rowDept || "Powder Coating",
+        shift: rowShift,
+        checkIn: rowCheckIn,
+        checkOut: rowCheckOut,
+        status: rowStatus,
+        hours: rowHours,
+        ot: rowOt
+      });
+    }
+
+    return {
+      status: "success",
+      sheetName: sheet.getName(),
+      sheetId: sheet.getSheetId(),
+      spreadsheetId: spreadsheetId,
+      totalHeadcount: result.length,
+      data: result
+    };
+  } catch (err) {
+    return {
+      status: "error",
+      message: "Failed to read JR Organize attendance: " + (err && err.message ? err.message : String(err)),
+      data: []
+    };
+  }
+}
+
+function toIsoDateStr_(val) {
+  if (!val) return "";
+  const s = String(val).trim();
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return m[1] + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if (m) return m[3] + "-" + m[2].padStart(2, "0") + "-" + m[1].padStart(2, "0");
+  return s;
 }

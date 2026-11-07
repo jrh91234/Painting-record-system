@@ -1284,6 +1284,62 @@
                         <div class="line-eff-pane line-eff-pane-bottom"><canvas id="lineEffChart" aria-label="กราฟ %Eff รายวัน"></canvas></div>
                     </div>
 
+                    <!-- Powder Coating Attendance from JR Organize -->
+                    <div class="line-eff-attendance-card" id="lineEffAttendanceCard">
+                        <div class="line-eff-attendance-head">
+                            <h3 class="line-eff-attendance-title">
+                                <span>👥 การเข้างานพนักงาน Powder Coating (JR Organize)</span>
+                                <span class="badge" id="lineEffAttendanceBadge" style="font-size:0.75rem; background:rgba(142,108,255,0.2); color:#c084fc; border:1px solid rgba(142,108,255,0.3); padding:0.2rem 0.6rem; border-radius:999px;">- คน</span>
+                            </h3>
+                            <div class="line-eff-attendance-meta">
+                                <span id="lineEffAttendanceStatus" style="font-size:0.8rem; color:#94a3b8;">กำลังโหลดข้อมูล...</span>
+                                <a href="https://docs.google.com/spreadsheets/d/1LxRYOtg0LL6_VSuNsaNuNuBUHal_T4eOYgy4tOrHNfE/edit?gid=886429179#gid=886429179" target="_blank" rel="noopener noreferrer" class="line-eff-sheet-link">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                    เปิดชีต JR Organize
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="line-eff-attendance-kpis">
+                            <div class="attendance-kpi-item">
+                                <div class="attendance-kpi-label">👤 พนักงานเข้างานรวม</div>
+                                <div class="attendance-kpi-val" id="attKpiTotal">- <small>คน</small></div>
+                            </div>
+                            <div class="attendance-kpi-item">
+                                <div class="attendance-kpi-label">☀️ กะเช้า (Day Shift)</div>
+                                <div class="attendance-kpi-val" id="attKpiDay">- <small>คน</small></div>
+                            </div>
+                            <div class="attendance-kpi-item">
+                                <div class="attendance-kpi-label">🌙 กะดึก (Night Shift)</div>
+                                <div class="attendance-kpi-val" id="attKpiNight">- <small>คน</small></div>
+                            </div>
+                            <div class="attendance-kpi-item">
+                                <div class="attendance-kpi-label">⏱ ชั่วโมงทำงานรวม</div>
+                                <div class="attendance-kpi-val" id="attKpiHours">- <small>ชม.</small></div>
+                            </div>
+                        </div>
+
+                        <div class="attendance-table-wrap">
+                            <table class="attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่</th>
+                                        <th>รหัสพนักงาน</th>
+                                        <th>ชื่อ-นามสกุล</th>
+                                        <th>แผนก/ตำแหน่ง</th>
+                                        <th>กะ</th>
+                                        <th>เวลาเข้างาน</th>
+                                        <th>เวลาออกงาน</th>
+                                        <th>สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lineEffAttendanceTableBody">
+                                    <tr><td colspan="8" style="text-align:center; padding:1.2rem; color:#94a3b8;">กำลังเชื่อมต่อข้อมูลจาก Google Sheets JR Organize...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div class="table-card line-eff-table-card">
                         <h3 class="line-eff-card-title">รายละเอียดรายวัน <small>กดที่แถวเพื่อดูชิ้นงาน</small></h3>
                         <div class="table-responsive">

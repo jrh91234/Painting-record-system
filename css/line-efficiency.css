@@ -371,3 +371,146 @@
     height: 180px;
   }
 }
+
+/* Powder Coating Attendance Card (JR Organize) */
+.line-eff-attendance-card {
+  margin-top: 1.25rem;
+  background: var(--kz-surface);
+  border: 1px solid var(--kz-line, rgba(255, 255, 255, 0.08));
+  border-radius: var(--kz-radius-lg, 20px);
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.line-eff-attendance-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.line-eff-attendance-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--kz-text);
+  margin: 0;
+}
+
+.line-eff-attendance-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.line-eff-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 999px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.line-eff-sheet-link:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+}
+
+.line-eff-attendance-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.attendance-kpi-item {
+  padding: 0.75rem 1rem;
+  border-radius: var(--kz-radius-md, 14px);
+  background: var(--kz-surface-muted, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--kz-line, rgba(255, 255, 255, 0.06));
+}
+
+.attendance-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--kz-muted);
+  margin-bottom: 0.25rem;
+}
+
+.attendance-kpi-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--kz-text);
+}
+
+.attendance-kpi-val small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--kz-muted);
+  margin-left: 0.25rem;
+}
+
+.attendance-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--kz-radius-md, 14px);
+  border: 1px solid var(--kz-line, rgba(255, 255, 255, 0.06));
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--kz-line, rgba(255, 255, 255, 0.06));
+}
+
+.attendance-table th {
+  background: var(--kz-surface-muted, rgba(255, 255, 255, 0.03));
+  color: var(--kz-text-soft);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.attendance-shift-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.attendance-shift-day {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.attendance-shift-night {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+@media (max-width: 768px) {
+  .line-eff-attendance-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+

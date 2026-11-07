@@ -20,7 +20,7 @@
         screen: ['SCREEN'],
         preassy: ['PREASSY']
     };
-    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', line: 'paint', expanded: new Set() };
+    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', line: 'paint', expanded: new Set(), attendance: [], attendanceLoading: false, attendanceError: null };
     const CACHE_KEYS = [
         ['PAINTING_OUTPUTDIARY_CACHE_REVIEWED', 'NEW'],
         ['PAINTING_OUTPUTDIARY_CACHE_PENDING', 'NEW'],
@@ -587,6 +587,104 @@
             <div class="line-eff-chips">${unmatched.map(item => `<span class="line-eff-chip">${escapeHtml(item.raw || item.code || '(ว่าง)')} · ${item.qty.toLocaleString()} ชิ้น</span>`).join('')}</div>`;
     }
 
+    function renderAttendance() {
+        const badge = document.getElementById('lineEffAttendanceBadge');
+        const statusEl = document.getElementById('lineEffAttendanceStatus');
+        const totalEl = document.getElementById('attKpiTotal');
+        const dayEl = document.getElementById('attKpiDay');
+        const nightEl = document.getElementById('attKpiNight');
+        const hoursEl = document.getElementById('attKpiHours');
+        const tbody = document.getElementById('lineEffAttendanceTableBody');
+
+        if (!tbody) return;
+
+        if (state.attendanceLoading) {
+            if (statusEl) statusEl.textContent = 'กำลังโหลดข้อมูลจาก Google Sheets...';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.2rem; color:#94a3b8;">กำลังเชื่อมต่อข้อมูลจาก Google Sheets JR Organize...</td></tr>';
+            return;
+        }
+
+        if (state.attendanceError) {
+            if (statusEl) statusEl.textContent = '⚠ ' + state.attendanceError;
+            if (badge) badge.textContent = 'เชื่อมต่อไม่ได้';
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.2rem; color:#ef4444;">
+                ⚠ ${escapeHtml(state.attendanceError)}<br>
+                <small style="color:#94a3b8;">กรุณาตรวจสอบว่า Google Apps Script ได้รับสิทธิ์เข้าถึงชีต JR Organize หรือกดปุ่มเปิดชีตด้านบน</small>
+            </td></tr>`;
+            return;
+        }
+
+        const list = state.attendance || [];
+        const filtered = list.filter(item => {
+            const dKey = toDateKey(item.date);
+            if (!dKey) return true;
+            if (state.from && dKey < state.from) return false;
+            if (state.to && dKey > state.to) return false;
+            return true;
+        });
+
+        const dayShiftCount = filtered.filter(item => /day|เช้า|ปกติ/i.test(item.shift)).length;
+        const nightShiftCount = filtered.filter(item => /night|ดึก|ค่ำ/i.test(item.shift)).length;
+        const totalHours = filtered.reduce((acc, item) => acc + (Number(item.hours) || 8), 0);
+
+        if (badge) badge.textContent = `${filtered.length} คน`;
+        if (statusEl) statusEl.textContent = `อัปเดตล่าสุด: ${filtered.length} รายการ`;
+        if (totalEl) totalEl.innerHTML = `${filtered.length} <small>คน</small>`;
+        if (dayEl) dayEl.innerHTML = `${dayShiftCount} <small>คน</small>`;
+        if (nightEl) nightEl.innerHTML = `${nightShiftCount} <small>คน</small>`;
+        if (hoursEl) hoursEl.innerHTML = `${totalHours} <small>ชม.</small>`;
+
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.2rem; color:#94a3b8;">ไม่พบข้อมูลการเข้างานของพนักงาน Powder Coating ในช่วงเวลานี้</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(item => {
+            const isNight = /night|ดึก|ค่ำ/i.test(item.shift);
+            const shiftClass = isNight ? 'attendance-shift-night' : 'attendance-shift-day';
+            const shiftLabel = isNight ? '🌙 Night' : '☀️ Day';
+
+            return `<tr>
+                <td><strong>${escapeHtml(item.date || '-')}</strong></td>
+                <td><code>${escapeHtml(item.employeeId || '-')}</code></td>
+                <td><strong>${escapeHtml(item.name || '-')}</strong></td>
+                <td><span style="color:#38bdf8;">${escapeHtml(item.department || 'Powder Coating')}</span></td>
+                <td><span class="attendance-shift-tag ${shiftClass}">${shiftLabel}</span></td>
+                <td>${escapeHtml(item.checkIn || '-')}</td>
+                <td>${escapeHtml(item.checkOut || '-')}</td>
+                <td><span style="color:#10b981;">${escapeHtml(item.status || 'มาทำงาน')}</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function loadAttendance() {
+        state.attendanceLoading = true;
+        renderAttendance();
+        try {
+            if (typeof fetchPowderCoatingAttendanceAPI === 'function') {
+                const res = await fetchPowderCoatingAttendanceAPI({
+                    startDate: state.from,
+                    endDate: state.to
+                });
+                if (res && res.status === 'success' && Array.isArray(res.data)) {
+                    state.attendance = res.data;
+                    state.attendanceError = null;
+                } else if (Array.isArray(res)) {
+                    state.attendance = res;
+                    state.attendanceError = null;
+                } else if (res && res.message) {
+                    state.attendanceError = res.message;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not load powder coating attendance:', e);
+            state.attendanceError = e.message || 'เชื่อมต่อข้อมูลการเข้างานไม่ได้';
+        } finally {
+            state.attendanceLoading = false;
+            renderAttendance();
+        }
+    }
+
     function render() {
         if (!state.config) return;
         const { days, unmatched } = compute();
@@ -594,6 +692,7 @@
         renderChart(days);
         renderTable(days);
         renderUnmatched(unmatched);
+        renderAttendance();
         const source = document.getElementById('lineEffSource');
         if (source) {
             source.textContent = state.config.source === 'sheet'
@@ -642,6 +741,7 @@
         if (preset !== 'custom') Object.assign(state, rangeFor(preset));
         syncRangeControls();
         render();
+        loadAttendance();
     }
 
     let rangeChosen = false;
@@ -679,6 +779,7 @@
                 if (rows.length) state.rows = rows;
                 chooseInitialRange();
                 render();
+                loadAttendance();
                 if (status) status.textContent = state.rows.length ? '' : 'ยังไม่มีข้อมูลการผลิต';
             } catch (error) {
                 console.error(error);
