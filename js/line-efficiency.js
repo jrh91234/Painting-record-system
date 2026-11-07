@@ -362,17 +362,10 @@
         return tile.getContext('2d').createPattern(tile, 'repeat');
     }
 
-    // Custom colors for specific part codes.
-    const PART_CUSTOM_COLORS = {
-        'BRU53737': '#eab308' // 黄色 (Yellow / Amber)
-    };
-
     // Every part gets its own color. Hues step by the golden angle and the
     // lightness alternates, so parts next to each other in the ranking (and so
     // usually in the same bar) never look alike.
-    function partColor(i, code) {
-        const key = String(code || '').trim().toUpperCase();
-        if (PART_CUSTOM_COLORS[key]) return PART_CUSTOM_COLORS[key];
+    function partColor(i) {
         const hue = Math.round((i * 137.508 + 220) % 360);
         const lightness = [50, 36, 64][i % 3];
         return `hsl(${hue}, 24%, ${lightness}%)`;
@@ -387,7 +380,7 @@
         }));
         const series = Array.from(totals.values())
             .sort((a, b) => b.qty - a.qty)
-            .map((part, i) => ({ ...part, key: part.code, color: partColor(i, part.code) }));
+            .map((part, i) => ({ ...part, key: part.code, color: partColor(i) }));
         return { series, keyOf: code => code };
     }
 
