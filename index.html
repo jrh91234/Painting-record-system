@@ -906,7 +906,7 @@
                             <line x1="16" y1="17" x2="8" y2="17"></line>
                             <polyline points="10 9 9 9 8 9"></polyline>
                         </svg>
-                        <span class="btn-pdf-label">📄 แปลงเป็น PDF</span>
+                        <span class="btn-pdf-label">📄 PDF</span>
                     </button>
                     <button type="button" class="theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดมืด" title="เปลี่ยนเป็นโหมดมืด">
                         <span class="theme-toggle-icon theme-icon-sun" aria-hidden="true">☀</span>
@@ -2631,15 +2631,26 @@
                     </label>
                 </div>
 
-                <div class="pdf-modal-actions">
-                    <button type="button" class="btn-pdf-primary" id="btnPdfDownloadSubmit" onclick="PaintingPdfExport.exportPdf('download')">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        <span>ดาวน์โหลดไฟล์ PDF ทันที (.pdf)</span>
+                <div class="pdf-info-row" style="background: rgba(56, 189, 248, 0.08); padding: 0.5rem 0.75rem; border-radius: 8px; margin-top: 0.35rem;">
+                    <span class="pdf-info-label" style="color: #38bdf8; font-weight: 700;">📁 ตำแหน่งบันทึก (Save Path):</span>
+                    <span class="pdf-info-value" style="color: #38bdf8;">Downloads หรือเลือกโฟลเดอร์ได้ตามต้องการ</span>
+                </div>
+
+                <div class="pdf-modal-actions" style="display: flex; flex-direction: column; gap: 0.65rem;">
+                    <button type="button" class="btn-pdf-primary" id="btnPdfDownloadSubmit" onclick="PaintingPdfExport.exportPdf('saveAs')" style="width: 100%;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        <span>💾 บันทึกเป็น PDF (เลือกโฟลเดอร์ได้ / Save As...)</span>
                     </button>
-                    <button type="button" class="btn-pdf-secondary" onclick="PaintingPdfExport.exportPdf('print')" title="พิมพ์ผ่านเบราว์เซอร์หรือบันทึกเป็น PDF ของระบบ">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                        <span>พิมพ์ / Save as PDF</span>
-                    </button>
+                    <div style="display: flex; gap: 0.65rem;">
+                        <button type="button" class="btn-pdf-secondary" onclick="PaintingPdfExport.exportPdf('download')" style="flex: 1;" title="บันทึกลงในโฟลเดอร์ Downloads โดยตรง">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>📥 ลงโฟลเดอร์ Downloads</span>
+                        </button>
+                        <button type="button" class="btn-pdf-secondary" onclick="PaintingPdfExport.exportPdf('print')" style="flex: 1;" title="พิมพ์ผ่านเบราว์เซอร์หรือบันทึกเป็น PDF ของระบบ">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                            <span>🖨️ พิมพ์ / Print</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

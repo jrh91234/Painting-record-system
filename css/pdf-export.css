@@ -8,8 +8,9 @@
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
+    height: 38px;
     min-height: 38px;
-    padding: 0.42rem 0.85rem;
+    padding: 0 0.85rem;
     border: 1px solid rgba(239, 68, 68, 0.45);
     border-radius: 12px;
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(185, 28, 28, 0.25));
@@ -22,6 +23,13 @@
     box-shadow: 0 4px 14px rgba(220, 38, 38, 0.18);
     user-select: none;
     -webkit-user-select: none;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box;
+}
+
+.btn-export-pdf .btn-pdf-label {
+    white-space: nowrap !important;
 }
 
 .btn-export-pdf:hover {

@@ -110,7 +110,7 @@
                 btn.innerHTML = `<span class="pdf-spinner" aria-hidden="true"></span> <span>กำลังสร้างไฟล์ PDF...</span>`;
             } else {
                 btn.disabled = false;
-                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>ดาวน์โหลดไฟล์ PDF ทันที (.pdf)</span>`;
+                btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg><span>💾 บันทึกเป็น PDF (เลือกโฟลเดอร์ได้ / Save As...)</span>`;
             }
         },
 
@@ -517,17 +517,58 @@
 
             const sheetElement = container.querySelector('.pdf-sheet') || container;
 
+            // Generate blob
             window.html2pdf()
                 .set(opt)
                 .from(sheetElement)
-                .save()
-                .then(() => {
+                .outputPdf('blob')
+                .then(async (pdfBlob) => {
+                    // 1. If mode === 'saveAs' and showSaveFilePicker exists, let user choose save location
+                    if (mode === 'saveAs' && window.showSaveFilePicker) {
+                        try {
+                            const handle = await window.showSaveFilePicker({
+                                suggestedName: filename,
+                                types: [{
+                                    description: 'PDF Document (*.pdf)',
+                                    accept: { 'application/pdf': ['.pdf'] }
+                                }]
+                            });
+                            const writable = await handle.createWritable();
+                            await writable.write(pdfBlob);
+                            await writable.close();
+
+                            this.setButtonLoading(false);
+                            this.closeModal();
+                            if (typeof window.showToast === 'function') {
+                                window.showToast('✅ บันทึกไฟล์ PDF ไปยังโฟลเดอร์ที่เลือกเรียบร้อยแล้ว!', 'success');
+                            }
+                            container.innerHTML = '';
+                            return;
+                        } catch (err) {
+                            if (err.name === 'AbortError') {
+                                // User cancelled the picker dialog
+                                this.setButtonLoading(false);
+                                return;
+                            }
+                            // Fall through to auto-download if any unexpected error
+                        }
+                    }
+
+                    // 2. Direct download into standard Downloads folder
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
                     this.setButtonLoading(false);
                     this.closeModal();
                     if (typeof window.showToast === 'function') {
-                        window.showToast('✅ แปลงเป็นไฟล์ PDF สำเร็จและดาวน์โหลดเรียบร้อยแล้ว!', 'success');
+                        window.showToast('✅ บันทึกไฟล์ PDF ลงในโฟลเดอร์ Downloads แล้ว!', 'success');
                     }
-                    // Clean container
                     container.innerHTML = '';
                 })
                 .catch(err => {
