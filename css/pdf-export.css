@@ -1,0 +1,779 @@
+/* ==========================================================================
+   Painting Quality Inspection System - PDF Export Styles
+   ========================================================================== */
+
+/* 1. Top Header PDF Export Button */
+.btn-export-pdf {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 38px;
+    padding: 0.42rem 0.85rem;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(185, 28, 28, 0.25));
+    color: #fca5a5;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.18);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-export-pdf:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.28), rgba(220, 38, 38, 0.4));
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.32);
+}
+
+.btn-export-pdf:active {
+    transform: translateY(0);
+}
+
+.btn-export-pdf svg {
+    flex-shrink: 0;
+    color: #ef4444;
+    transition: transform 0.2s ease;
+}
+
+.btn-export-pdf:hover svg {
+    color: #ffffff;
+    transform: scale(1.08);
+}
+
+/* Light Theme Header Button */
+[data-theme="light"] .btn-export-pdf {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #b91c1c;
+    border-color: #fca5a5;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="light"] .btn-export-pdf:hover {
+    background: linear-gradient(135deg, #fca5a5, #f87171);
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+[data-theme="light"] .btn-export-pdf svg {
+    color: #dc2626;
+}
+
+[data-theme="light"] .btn-export-pdf:hover svg {
+    color: #ffffff;
+}
+
+/* 2. Section Title Bar PDF Action Button */
+.btn-pdf-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 0.55rem 1.15rem;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.btn-pdf-action:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45);
+}
+
+.btn-pdf-action:active {
+    transform: translateY(0);
+}
+
+.btn-pdf-action svg {
+    flex-shrink: 0;
+}
+
+/* 3. PDF Export Modal */
+.pdf-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(3, 7, 18, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.pdf-modal-backdrop.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.pdf-modal-dialog {
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(56, 189, 248, 0.15);
+    color: #f8fafc;
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+}
+
+.pdf-modal-backdrop.active .pdf-modal-dialog {
+    transform: scale(1);
+}
+
+[data-theme="light"] .pdf-modal-dialog {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+    box-shadow: 0 25px 60px rgba(15, 35, 60, 0.2);
+}
+
+.pdf-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(56, 189, 248, 0.05));
+}
+
+[data-theme="light"] .pdf-modal-header {
+    border-bottom-color: #e2e8f0;
+    background: linear-gradient(135deg, #fef2f2, #f0f9ff);
+}
+
+.pdf-modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.pdf-modal-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+.pdf-modal-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.pdf-modal-subtitle {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 0.2rem;
+}
+
+[data-theme="light"] .pdf-modal-subtitle {
+    color: #64748b;
+}
+
+.pdf-modal-close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.pdf-modal-close:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .pdf-modal-close:hover {
+    color: #0f172a;
+    background: #f1f5f9;
+}
+
+.pdf-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Info Summary Card inside Modal */
+.pdf-info-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+}
+
+[data-theme="light"] .pdf-info-card {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.pdf-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0;
+    font-size: 0.88rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.pdf-info-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+[data-theme="light"] .pdf-info-row {
+    border-bottom-color: #e2e8f0;
+}
+
+.pdf-info-label {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+[data-theme="light"] .pdf-info-label {
+    color: #64748b;
+}
+
+.pdf-info-value {
+    color: #f8fafc;
+    font-weight: 700;
+}
+
+[data-theme="light"] .pdf-info-value {
+    color: #0f172a;
+}
+
+.pdf-badge-highlight {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+
+[data-theme="light"] .pdf-badge-highlight {
+    background: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+/* Modal Options */
+.pdf-options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.pdf-option-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pdf-option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+[data-theme="light"] .pdf-option-item {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.pdf-option-item:hover {
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="light"] .pdf-option-item:hover {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.pdf-option-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0284c7;
+    cursor: pointer;
+}
+
+.pdf-option-text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+[data-theme="light"] .pdf-option-text {
+    color: #334155;
+}
+
+.pdf-option-desc {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 0.15rem;
+}
+
+/* Modal Action Buttons */
+.pdf-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-pdf-primary {
+    flex: 1;
+    min-width: 200px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.85rem 1.5rem;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-pdf-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5);
+}
+
+.btn-pdf-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-pdf-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.85rem 1.25rem;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+[data-theme="light"] .btn-pdf-secondary {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+
+.btn-pdf-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+[data-theme="light"] .btn-pdf-secondary:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Spinner */
+.pdf-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: pdf-spin 0.8s linear infinite;
+}
+
+@keyframes pdf-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 4. Dedicated Printable Template Container (Hidden offscreen until rendered) */
+#pdfHiddenContainer {
+    position: fixed;
+    top: -99999px;
+    left: -99999px;
+    width: 800px;
+    background: #ffffff;
+    color: #0f172a;
+    font-family: 'Sarabun', 'Plus Jakarta Sans', sans-serif;
+    z-index: -1000;
+}
+
+.pdf-sheet {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 24px 28px;
+    box-sizing: border-box;
+    font-family: 'Sarabun', 'Plus Jakarta Sans', sans-serif;
+    line-height: 1.45;
+}
+
+/* Official Header in PDF Sheet */
+.pdf-sheet-header {
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pdf-sheet-brand-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pdf-sheet-logo {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #0284c7, #1e3a8a);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.pdf-sheet-titles h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.3px;
+}
+
+.pdf-sheet-titles h2 {
+    margin: 2px 0 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #0284c7;
+}
+
+.pdf-sheet-titles p {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.pdf-sheet-meta-box {
+    text-align: right;
+    font-size: 11px;
+    color: #475569;
+    border-left: 2px solid #e2e8f0;
+    padding-left: 14px;
+}
+
+.pdf-sheet-meta-box b {
+    color: #0f172a;
+}
+
+/* Section Box */
+.pdf-sheet-section {
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pdf-sheet-section-title {
+    background: #f1f5f9;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #1e293b;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.pdf-sheet-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 10px 14px;
+    font-size: 12px;
+}
+
+.pdf-sheet-grid-item-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.pdf-sheet-grid-item-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 2px;
+}
+
+/* PDF Table */
+.pdf-sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.pdf-sheet-table th {
+    background: #f8fafc;
+    color: #334155;
+    padding: 6px 8px;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    text-align: center;
+    font-size: 10.5px;
+}
+
+.pdf-sheet-table td {
+    padding: 5px 8px;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+.pdf-sheet-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.pdf-sheet-table tfoot td {
+    background: #f1f5f9;
+    font-weight: 800;
+    border-top: 2px solid #0284c7;
+}
+
+/* Defect Pills Grid inside PDF */
+.pdf-defect-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 8px 12px;
+    background: #fafafa;
+}
+
+.pdf-defect-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 6px;
+    text-align: center;
+    background: #ffffff;
+}
+
+.pdf-defect-name {
+    font-size: 10px;
+    color: #64748b;
+}
+
+.pdf-defect-qty {
+    font-size: 13px;
+    font-weight: 800;
+    color: #dc2626;
+    margin-top: 1px;
+}
+
+.pdf-defect-qty.zero {
+    color: #94a3b8;
+}
+
+/* Sign-off Box */
+.pdf-sign-box {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.pdf-sign-card {
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 12px 16px;
+    background: #fafafa;
+}
+
+.pdf-sign-line {
+    border-bottom: 1px solid #94a3b8;
+    height: 36px;
+    margin-bottom: 6px;
+}
+
+.pdf-sign-label {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Responsive adjustment for Mobile screens */
+@media (max-width: 768px) {
+    .btn-export-pdf {
+        min-width: 38px;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 10px;
+    }
+    .btn-export-pdf .btn-pdf-label {
+        display: none;
+    }
+    .btn-pdf-action span {
+        font-size: 0.82rem;
+    }
+    .pdf-modal-dialog {
+        max-width: 95%;
+        margin: auto;
+    }
+}
+
+/* 5. Clean Print Stylesheet for Browser Print / Save as PDF */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm 10mm 10mm 10mm;
+    }
+
+    /* Hide Navigation, sidebars, header controls, tabs, buttons */
+    .app-sidebar,
+    .app-header,
+    .page-tabs-bar,
+    .header-search,
+    .header-actions,
+    .sidebar-footer,
+    .btn-export-pdf,
+    .btn-export-pdf-page,
+    .btn-pdf-action,
+    .btn-primary-custom,
+    .btn-secondary-custom,
+    .btn-add-staff,
+    .pdf-modal-backdrop,
+    .toast-container,
+    .theme-toggle,
+    .user-chip,
+    .status-badge,
+    button[type="button"],
+    button[type="submit"] {
+        display: none !important;
+    }
+
+    body,
+    .app-container,
+    .main-wrapper,
+    .content-body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+    }
+
+    .tab-page.active {
+        display: block !important;
+    }
+
+    .dr-card,
+    .kpi-card,
+    .chart-card,
+    .spare-parts-card {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-bottom: 12px !important;
+        padding: 12px !important;
+    }
+
+    .dr-section-title,
+    .page-title {
+        color: #0f172a !important;
+    }
+
+    .data-table {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .data-table th {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .data-table td {
+        color: #0f172a !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    input, select, textarea {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+}

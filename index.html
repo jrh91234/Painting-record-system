@@ -695,6 +695,7 @@
     <link rel="stylesheet" href="css/line-efficiency.css?v=graphite-20261026">
     <link rel="stylesheet" href="css/graphite.css?v=x-scroll-20261031">
     <link rel="stylesheet" href="css/material-receipt.css?v=mat-20261027">
+    <link rel="stylesheet" href="css/pdf-export.css?v=1.0.0">
 
     <!-- Chart.js CDN & Zoom Plugin -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -897,6 +898,16 @@
                 </div>
 
                 <div class="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button type="button" class="btn-export-pdf" id="globalPdfExportBtn" onclick="PaintingPdfExport.openModal()" title="แปลงเป็นไฟล์ PDF (Export to PDF)" aria-label="แปลงเป็นไฟล์ PDF">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span class="btn-pdf-label">📄 แปลงเป็น PDF</span>
+                    </button>
                     <button type="button" class="theme-toggle" data-theme-toggle aria-label="เปลี่ยนเป็นโหมดมืด" title="เปลี่ยนเป็นโหมดมืด">
                         <span class="theme-toggle-icon theme-icon-sun" aria-hidden="true">☀</span>
                         <span class="theme-toggle-icon theme-icon-moon" aria-hidden="true">☾</span>
@@ -938,6 +949,10 @@
                             </div>
                             <button type="button" id="btnResetDashboardFilter" onclick="resetDashboardDateFilter()" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 0 20px; height: 42px; font-weight: 700; cursor: pointer; white-space: nowrap; font-size: 0.9rem; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); transition: all 0.2s ease;">
                                 ดูข้อมูลทั้งหมด
+                            </button>
+                            <button type="button" class="btn-pdf-action" onclick="PaintingPdfExport.openModal('dashboard-tab')" style="height: 42px; border-radius: 12px;" title="แปลงภาพรวมแดชบอร์ดเป็นไฟล์ PDF">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                                <span>📄 แปลงเป็น PDF</span>
                             </button>
                         </div>
                     </div>
@@ -1781,6 +1796,10 @@
                 <section id="daily-report-tab" class="tab-page" data-permission="daily_report.read" style="display: none;">
                     <div class="section-title-bar" style="display: flex; justify-content: space-between; align-items: center; flex-direction: row;">
                         <h1 class="page-title" style="font-size: 1.15rem; margin: 0;">📝 บันทึกงานใหม่</h1>
+                        <button type="button" class="btn-pdf-action" onclick="PaintingPdfExport.openModal('daily-report-tab')" title="แปลงรายงานประจำวันเป็นไฟล์ PDF">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                            <span>📄 แปลงเป็น PDF</span>
+                        </button>
                     </div>
 
                     <!-- Section 1: ข้อมูลกะทำงาน (1 แถว 3 ช่อง เต็มความกว้าง) -->
@@ -2557,6 +2576,78 @@
         </div>
     </div>
 
+        <!-- PDF Export Modal -->
+    <div class="pdf-modal-backdrop" id="pdfExportModal" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+        <div class="pdf-modal-dialog">
+            <div class="pdf-modal-header">
+                <div class="pdf-modal-title-group">
+                    <div class="pdf-modal-icon-badge" aria-hidden="true">📄</div>
+                    <div>
+                        <h3 class="pdf-modal-title" id="pdfModalTitle">แปลงเป็นไฟล์ PDF (Export to PDF)</h3>
+                        <div class="pdf-modal-subtitle">Painting Quality Inspection System</div>
+                    </div>
+                </div>
+                <button type="button" class="pdf-modal-close" onclick="PaintingPdfExport.closeModal()" aria-label="ปิดหน้าต่าง">✕</button>
+            </div>
+            <div class="pdf-modal-body">
+                <div class="pdf-info-card">
+                    <div class="pdf-info-row">
+                        <span class="pdf-info-label">หัวข้อรายงาน:</span>
+                        <span class="pdf-info-value" id="pdfReportName">-</span>
+                    </div>
+                    <div class="pdf-info-row">
+                        <span class="pdf-info-label">วันที่ผลิต (Date):</span>
+                        <span class="pdf-info-value" id="pdfReportDate">-</span>
+                    </div>
+                    <div class="pdf-info-row">
+                        <span class="pdf-info-label">กะทำงาน (Shift):</span>
+                        <span class="pdf-info-value" id="pdfReportShift">-</span>
+                    </div>
+                    <div class="pdf-info-row">
+                        <span class="pdf-info-label">ผู้บันทึกข้อมูล:</span>
+                        <span class="pdf-info-value" id="pdfReportRecorder">-</span>
+                    </div>
+                    <div class="pdf-info-row">
+                        <span class="pdf-info-label">จำนวนข้อมูล:</span>
+                        <span class="pdf-info-value"><span class="pdf-badge-highlight" id="pdfReportCount">-</span></span>
+                    </div>
+                </div>
+
+                <div class="pdf-options-group">
+                    <div class="pdf-option-label">การจัดรูปแบบเอกสาร (Document Format)</div>
+                    <label class="pdf-option-item">
+                        <input type="checkbox" id="pdfOptCleanWhite" checked disabled>
+                        <div>
+                            <div class="pdf-option-text">โทนสีสว่างสำหรับพิมพ์ (Clean White Sheet)</div>
+                            <div class="pdf-option-desc">ปรับพื้นหลังขาว ตัวอักษรคมชัด ประหยัดหมึกพิมพ์และอ่านง่าย</div>
+                        </div>
+                    </label>
+                    <label class="pdf-option-item">
+                        <input type="checkbox" id="pdfOptSignBox" checked disabled>
+                        <div>
+                            <div class="pdf-option-text">รวมช่องลงชื่อผู้บันทึกและผู้ตรวจสอบ (Approval Sign-off)</div>
+                            <div class="pdf-option-desc">แนบช่องลายมือชื่อสำหรับผู้ปฏิบัติงานและหัวหน้างาน QC</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="pdf-modal-actions">
+                    <button type="button" class="btn-pdf-primary" id="btnPdfDownloadSubmit" onclick="PaintingPdfExport.exportPdf('download')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>ดาวน์โหลดไฟล์ PDF ทันที (.pdf)</span>
+                    </button>
+                    <button type="button" class="btn-pdf-secondary" onclick="PaintingPdfExport.exportPdf('print')" title="พิมพ์ผ่านเบราว์เซอร์หรือบันทึกเป็น PDF ของระบบ">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        <span>พิมพ์ / Save as PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Rendering Container for PDF engine -->
+    <div id="pdfHiddenContainer" aria-hidden="true"></div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -2585,6 +2676,8 @@
     <script src="js/page-tabs.js?v=cycle-time-20261031"></script>
     <script src="js/overflow-scroll.js?v=1.0.0"></script>
     <script src="js/text-contrast.js?v=contrast-20261026"></script>
+    <script src="js/html2pdf.bundle.min.js"></script>
+    <script src="js/pdf-export.js?v=1.0.0"></script>
 </body>
 
 </html>
