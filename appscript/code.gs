@@ -1307,6 +1307,15 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({ isBootstrap: rows <= 1 })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === "getSpreadsheetInfo") {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        id: ss.getId(),
+        name: ss.getName(),
+        url: ss.getUrl()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Handle login
     if (action === "login") {
       let uSheet = getOrCreateUsersSheet(ss);
@@ -2857,6 +2866,15 @@ function doGetJson_(e) {
       let uSheet = getOrCreateUsersSheet(ss);
       const rows = uSheet.getLastRow();
       return ContentService.createTextOutput(JSON.stringify({ isBootstrap: rows <= 1 })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "getSpreadsheetInfo") {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        id: ss.getId(),
+        name: ss.getName(),
+        url: ss.getUrl()
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     // Handle login
