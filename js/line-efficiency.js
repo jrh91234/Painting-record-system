@@ -8,9 +8,8 @@
    midnight. Each run of Normal/Break slots starts a shift and the OT slots
    after it belong to that shift (day: 08-17 less lunch 12-13 = 480 min + OT
    17.30-20, night: 20-05 less 00-01 = 480 min + OT 05.30-08; the 10-minute
-   tea breaks are not deducted). A shift counts only on days it has a production record; its
-   normal time counts in full and its OT up to the last OT slot with a
-   record. No one has to log stop times. */
+   tea breaks are not deducted). A shift counts only on days it has a production record, and
+   then counts its full working time: normal slots plus all of its OT. No one has to log stop times. */
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
@@ -290,13 +289,16 @@
         days.forEach(entry => {
             let normalMinutes = 0;
             let otMinutes = 0;
+            // Available time is the shift's full working time: its normal
+            // slots plus all of its OT (day 08.00-17.00 + 17.30-20.00, night
+            // 20.00-05.00 + 05.30-08.00), whether or not a record was logged
+            // in an OT slot.
             entry.shifts.forEach((lastOt, index) => {
                 const shift = slots.shifts[index];
                 if (!shift) return;
                 normalMinutes += shift.normalMinutes;
-                otMinutes += shift.ot.slice(0, lastOt + 1).reduce((sum, slot) => sum + slot.minutes, 0);
+                otMinutes += shift.ot.reduce((sum, slot) => sum + slot.minutes, 0);
             });
-            entry.extra.forEach(minutes => { otMinutes += minutes; });
             entry.available = normalMinutes + otMinutes;
             entry.otMinutes = otMinutes;
             entry.shiftCount = entry.shifts.size;
