@@ -179,7 +179,13 @@
         parsed.forEach(slot => {
             const relStart = rel(slot.start);
             const length = slot.end === null ? 60 : (((slot.end - slot.start) % 1440 + 1440) % 1440 || 60);
-            const entry = { ...slot, relStart, relEnd: relStart + length, minutes: Number(slot.minutes) || 0 };
+            // A Normal slot counts its full length: the 10-minute tea breaks
+            // are working time, even where the sheet still lists 50 minutes.
+            // Break slots stay at the sheet's 0 and OT slots keep the sheet's
+            // minutes (17.00-18.00 holds 30 because OT starts at 17.30).
+            const isBreak = String(slot.type).trim().toLowerCase() === 'break';
+            const minutes = !slot.isOT && !isBreak ? length : Number(slot.minutes) || 0;
+            const entry = { ...slot, relStart, relEnd: relStart + length, minutes };
             if (!current || (!entry.isOT && current.lastWasOT)) {
                 current = { index: shifts.length, normalMinutes: 0, ot: [], slots: [], lastWasOT: false };
                 shifts.push(current);
@@ -212,7 +218,8 @@
     // The form's Day/Night choice decides the shift when it is recorded; the
     // time slot only decides how far into OT it went. A Day record in a slot
     // that now belongs to the night shift (older data used 20.00-21.00 as day
-    // OT) counts as day OT: all day OT slots plus that slot's own minutes.
+    // OT) counts as all of the day OT; day OT ends at 20.00, so the slot's own
+    // minutes are not added.
     function markShiftTime(entry, slots, row) {
         const slot = slots.locate(row.timeSlot);
         const label = String(row.shift || '').trim().toLowerCase();
@@ -225,7 +232,6 @@
             lastOt = slot.isOT ? slot.otIndex : -1;
         } else if (slot && shift && slot.shift > shiftIndex) {
             lastOt = shift.ot.length - 1;
-            entry.extra.set(slot.timeSlot, slot.minutes);
         }
         entry.shifts.set(shiftIndex, Math.max(entry.shifts.has(shiftIndex) ? entry.shifts.get(shiftIndex) : -1, lastOt));
     }
@@ -305,7 +311,7 @@
             const cap = capacity.get(code);
             // SCREEN runs the same parts at its own cycle time (ScreenStdSecPerPcs).
             const stdSec = cap ? (row.workType === 'SCREEN' ? cap.screenStdSec : cap.stdSec) : 0;
-            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), extra: new Map(), parts: new Map(), unmatchedQty: 0 });
+            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), parts: new Map(), unmatchedQty: 0 });
             const entry = days.get(day);
             markShiftTime(entry, slots, row);
 
@@ -353,7 +359,6 @@
                 const fromAttendance = otFromAttendance.get(entry.day + '|' + index) || 0;
                 otMinutes += Math.max(fromRecords, fromAttendance);
             });
-            entry.extra.forEach(minutes => { otMinutes += minutes; });
             entry.available = normalMinutes + otMinutes;
             entry.otMinutes = otMinutes;
             entry.shiftCount = entry.shifts.size;
