@@ -512,6 +512,16 @@
                 kzKeepBorder: true, kzKeepColors: true, borderColor: '#a4505a', borderWidth: 1
             });
         });
+        // Target: the pieces the day's mix would reach at TARGET %Eff in the
+        // day's available time (qty × TARGET / %Eff). Days without standard
+        // times have no target.
+        const target = days.map(day => (day.earned > 0 && day.available > 0)
+            ? Math.round(day.qty * TARGET / 100 * day.available / day.earned) : null);
+        datasets.push({
+            type: 'line', order: 0, stack: 'target', label: `เป้า ${TARGET}%`, data: target, yAxisID: 'y',
+            borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderDash: [6, 6], borderWidth: 2,
+            pointRadius: 0, pointHoverRadius: 4, stepped: 'middle', spanGaps: false, kzTarget: true, kzKeepColors: true
+        });
         datasets.push({
             type: 'line', order: 1, label: 'NG rate (%)', data: ngRate, yAxisID: 'y1',
             borderColor: '#a4505a', backgroundColor: '#a4505a', borderWidth: 2, pointRadius: 3, tension: 0
@@ -533,10 +543,16 @@
                         callbacks: {
                             label: item => item.dataset.yAxisID === 'y1'
                                 ? ` NG rate: ${item.raw.toFixed(2)}%`
-                                : ` ${item.dataset.label}: ${Number(item.raw).toLocaleString()} ชิ้น`,
+                                : item.dataset.kzTarget
+                                    ? ` เป้า ${TARGET}%: ${Number(item.raw).toLocaleString()} ชิ้น`
+                                    : ` ${item.dataset.label}: ${Number(item.raw).toLocaleString()} ชิ้น`,
                             footer: items => {
                                 const day = days[items[0].dataIndex];
-                                return day ? [`FG ${(day.qty - day.defects).toLocaleString()} · NG ${day.defects.toLocaleString()} · รวม ${day.qty.toLocaleString()} ชิ้น`] : [];
+                                if (!day) return [];
+                                const lines = [`FG ${(day.qty - day.defects).toLocaleString()} · NG ${day.defects.toLocaleString()} · รวม ${day.qty.toLocaleString()} ชิ้น`];
+                                const goal = target[items[0].dataIndex];
+                                if (goal) lines.push(`เป้า ${TARGET}% = ${goal.toLocaleString()} ชิ้น · ${day.qty >= goal ? 'ถึงเป้า' : `ขาด ${(goal - day.qty).toLocaleString()} ชิ้น`}`);
+                                return lines;
                             }
                         }
                     }
@@ -558,6 +574,7 @@
         const parts = series.map(item => `<span class="line-eff-legend-item" title="${escapeHtml(item.name || '')} · ${item.qty.toLocaleString()} ชิ้น"><i style="background:${item.color}"></i>${escapeHtml(item.code)}</span>`).join('');
         box.innerHTML = `<div class="line-eff-legend-keys"><span class="line-eff-legend-key"><i class="is-fg"></i>FG งานดี (ทึบ)</span>`
             + (hasNg ? `<span class="line-eff-legend-key"><i class="is-ng"></i>NG (ลายเฉียงแดง ด้านบน)</span>` : '')
+            + `<span class="line-eff-legend-key"><i class="is-target"></i>เป้า ${TARGET}% (ชิ้น)</span>`
             + `<span class="line-eff-legend-key"><i class="is-rate"></i>NG rate (%)</span>`
             + `<span class="line-eff-legend-count">${series.length} พาร์ท · เรียงตามยอดผลิต</span></div>`
             + `<div class="line-eff-legend-parts">${parts}</div>`;

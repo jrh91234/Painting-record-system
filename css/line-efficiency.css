@@ -214,6 +214,12 @@
   background: repeating-linear-gradient(-45deg, #a4505a 0 2px, color-mix(in srgb, var(--kz-blue, #4d7cfe) 35%, transparent) 2px 5px);
   outline: 1px solid #a4505a;
 }
+.line-eff-legend-key i.is-target {
+  width: 16px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed #8b5cf6;
+}
 .line-eff-legend-key i.is-rate {
   height: 3px;
   border-radius: 2px;
