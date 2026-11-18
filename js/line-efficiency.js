@@ -21,15 +21,16 @@
         screen: ['SCREEN'],
         preassy: ['PREASSY']
     };
-    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', line: 'paint', expanded: new Set(), attendance: [], attendanceLoading: false, attendanceError: null };
-    const CACHE_KEYS = [
-        ['PAINTING_OUTPUTDIARY_CACHE_REVIEWED', 'NEW'],
-        ['PAINTING_OUTPUTDIARY_CACHE_PENDING', 'NEW'],
-        ['PAINTING_REWORK_CACHE_REVIEWED', 'REWORK'],
-        ['PAINTING_REWORK_CACHE_PENDING', 'REWORK'],
-        ['PAINTING_SCREEN_CACHE_REVIEWED', 'SCREEN'],
-        ['PAINTING_SCREEN_CACHE_PENDING', 'SCREEN'],
-        ['PAINTING_PREASSY_CACHE', 'PREASSY']
+    const state = { config: null, rows: [], chart: null, prodChart: null, from: '', to: '', preset: '30d', line: 'paint', expanded: new Set(), attendance: [], attendanceLoading: false, attendanceError: null, loading: false };
+    // Each production source: the cache the app keeps for it and how to fetch it.
+    const SOURCES = [
+        { cache: 'PAINTING_OUTPUTDIARY_CACHE_REVIEWED', workType: 'NEW', fn: 'fetchDailyReportDataFromAPI', args: ['', { scope: 'reviewed' }] },
+        { cache: 'PAINTING_OUTPUTDIARY_CACHE_PENDING', workType: 'NEW', fn: 'fetchDailyReportDataFromAPI', args: ['', { scope: 'pending' }] },
+        { cache: 'PAINTING_REWORK_CACHE_REVIEWED', workType: 'REWORK', fn: 'fetchReworkReportDataFromAPI', args: ['', { scope: 'reviewed' }] },
+        { cache: 'PAINTING_REWORK_CACHE_PENDING', workType: 'REWORK', fn: 'fetchReworkReportDataFromAPI', args: ['', { scope: 'pending' }] },
+        { cache: 'PAINTING_SCREEN_CACHE_REVIEWED', workType: 'SCREEN', fn: 'fetchScreenReportDataFromAPI', args: ['', { scope: 'reviewed' }] },
+        { cache: 'PAINTING_SCREEN_CACHE_PENDING', workType: 'SCREEN', fn: 'fetchScreenReportDataFromAPI', args: ['', { scope: 'pending' }] },
+        { cache: 'PAINTING_PREASSY_CACHE', workType: 'PREASSY', fn: 'fetchPreAssyReportDataFromAPI', args: [''] }
     ];
 
     function escapeHtml(value) {
@@ -120,39 +121,43 @@
         return Object.values(byType).flatMap(dedupe);
     }
 
-    // Production data the app already cached from earlier visits.
-    function readCachedRows() {
-        const tagged = [];
-        CACHE_KEYS.forEach(([key, workType]) => {
-            try {
-                const rows = JSON.parse(localStorage.getItem(key) || '[]');
-                if (Array.isArray(rows)) rows.forEach(row => tagged.push({ ...row, workType }));
-            } catch (error) {
-                // Ignore unreadable cache entries.
-            }
-        });
-        return combine(tagged);
+    function tag(rows, workType) {
+        return Array.isArray(rows) ? rows.map(row => ({ ...row, workType })) : [];
     }
 
-    async function loadRows() {
-        const sources = [];
-        if (typeof fetchDailyReportDataFromAPI === 'function') {
-            sources.push(fetchDailyReportDataFromAPI('', { scope: 'reviewed' }).then(rows => rows.map(r => ({ ...r, workType: 'NEW' }))));
-            sources.push(fetchDailyReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'NEW' }))));
+    function cachedSource(source) {
+        try {
+            return tag(JSON.parse(localStorage.getItem(source.cache) || '[]'), source.workType);
+        } catch (error) {
+            return []; // Ignore unreadable cache entries.
         }
-        if (typeof fetchReworkReportDataFromAPI === 'function') {
-            sources.push(fetchReworkReportDataFromAPI('', { scope: 'reviewed' }).then(rows => rows.map(r => ({ ...r, workType: 'REWORK' }))));
-            sources.push(fetchReworkReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'REWORK' }))));
-        }
-        if (typeof fetchScreenReportDataFromAPI === 'function') {
-            sources.push(fetchScreenReportDataFromAPI('', { scope: 'reviewed' }).then(rows => rows.map(r => ({ ...r, workType: 'SCREEN' }))));
-            sources.push(fetchScreenReportDataFromAPI('', { scope: 'pending' }).then(rows => rows.map(r => ({ ...r, workType: 'SCREEN' }))));
-        }
-        if (typeof fetchPreAssyReportDataFromAPI === 'function') {
-            sources.push(fetchPreAssyReportDataFromAPI('').then(rows => rows.map(r => ({ ...r, workType: 'PREASSY' }))));
-        }
-        const results = await Promise.allSettled(sources);
-        return combine(results.flatMap(result => (result.status === 'fulfilled' && Array.isArray(result.value)) ? result.value : []));
+    }
+
+    // Production data the app already cached from earlier visits.
+    function readCachedRows() {
+        return combine(SOURCES.flatMap(cachedSource));
+    }
+
+    // Apps Script reads run one at a time, so the seven sources can take a
+    // while. Start from the cache and swap in each source as it arrives
+    // (onProgress), so the page fills in instead of waiting for all of them.
+    async function loadRows(onProgress) {
+        const parts = SOURCES.map(cachedSource);
+        let fetched = 0;
+        await Promise.all(SOURCES.map(async (source, i) => {
+            const fetcher = window[source.fn];
+            if (typeof fetcher !== 'function') return;
+            try {
+                const rows = await fetcher(...source.args);
+                if (!Array.isArray(rows)) return;
+                parts[i] = tag(rows, source.workType);
+                fetched += 1;
+                if (onProgress) onProgress(combine(parts.flat()));
+            } catch (error) {
+                console.warn('Line %Eff: could not load ' + source.cache, error);
+            }
+        }));
+        return fetched ? combine(parts.flat()) : [];
     }
 
     function slotEndMinutes(slot) {
@@ -550,7 +555,9 @@
         const body = document.getElementById('lineEffTableBody');
         if (!body) return;
         if (!days.length) {
-            body.innerHTML = '<tr><td colspan="7" class="line-eff-empty">ไม่มีข้อมูลการผลิตในช่วงวันที่เลือก</td></tr>';
+            body.innerHTML = state.loading
+                ? '<tr><td colspan="7" class="line-eff-empty">กำลังโหลดข้อมูลการผลิต... ยอดจะขึ้นเองเมื่อโหลดเสร็จ</td></tr>'
+                : '<tr><td colspan="7" class="line-eff-empty">ไม่มีข้อมูลการผลิตในช่วงวันที่เลือก</td></tr>';
             return;
         }
         body.innerHTML = days.slice().reverse().map(day => {
@@ -658,15 +665,21 @@
         }).join('');
     }
 
+    let attendanceRequest = 0;
     async function loadAttendance() {
+        const request = ++attendanceRequest;
         state.attendanceLoading = true;
         renderAttendance();
         try {
             if (typeof fetchPowderCoatingAttendanceAPI === 'function') {
+                // skipQueue: changing the date range must not hold up the
+                // production reads queued behind it.
                 const res = await fetchPowderCoatingAttendanceAPI({
                     startDate: state.from,
-                    endDate: state.to
+                    endDate: state.to,
+                    retryOptions: { attempts: 1, timeoutMs: 15000, skipQueue: true }
                 });
+                if (request !== attendanceRequest) return; // a newer range was picked
                 if (res && res.status === 'success' && Array.isArray(res.data)) {
                     state.attendance = res.data;
                     state.attendanceError = null;
@@ -678,11 +691,14 @@
                 }
             }
         } catch (e) {
+            if (request !== attendanceRequest) return;
             console.warn('Could not load powder coating attendance:', e);
             state.attendanceError = e.message || 'เชื่อมต่อข้อมูลการเข้างานไม่ได้';
         } finally {
-            state.attendanceLoading = false;
-            renderAttendance();
+            if (request === attendanceRequest) {
+                state.attendanceLoading = false;
+                renderAttendance();
+            }
         }
     }
 
@@ -738,6 +754,9 @@
     }
 
     function applyPreset(preset) {
+        // The user's own choice wins over the first-visit default, even when
+        // the data is still loading.
+        rangeChosen = true;
         state.preset = preset;
         if (preset !== 'custom') Object.assign(state, rangeFor(preset));
         syncRangeControls();
@@ -745,7 +764,6 @@
         loadAttendance();
     }
 
-    let rangeChosen = false;
     // First visit: last 30 days, or everything when the last 30 days are empty.
     function chooseInitialRange() {
         if (rangeChosen || !state.rows.length) return;
@@ -760,6 +778,7 @@
         syncRangeControls();
     }
 
+    let rangeChosen = false;
     let loading = null;
     async function load(force) {
         if (loading && !force) return loading;
@@ -774,10 +793,23 @@
                     render();
                 }
                 if (status) status.textContent = state.rows.length ? 'กำลังอัปเดตข้อมูลล่าสุด...' : 'กำลังโหลดข้อมูล...';
+                state.loading = true;
+                render();
 
-                const [sheetConfig, rows] = await Promise.all([loadSheetConfig(), loadRows()]);
-                if (sheetConfig) state.config = sheetConfig;
+                const configTask = loadSheetConfig().then(sheetConfig => {
+                    if (sheetConfig) {
+                        state.config = sheetConfig;
+                        render();
+                    }
+                });
+                const rows = await loadRows(partial => {
+                    state.rows = partial;
+                    chooseInitialRange();
+                    render();
+                });
+                await configTask;
                 if (rows.length) state.rows = rows;
+                state.loading = false;
                 chooseInitialRange();
                 render();
                 loadAttendance();
@@ -786,6 +818,10 @@
                 console.error(error);
                 if (status) status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณากดรีเฟรช';
             } finally {
+                if (state.loading) {
+                    state.loading = false;
+                    render();
+                }
                 loading = null;
             }
         })();
