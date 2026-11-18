@@ -779,7 +779,7 @@
   },
   {
    "timeSlot": "15.00 - 16.00",
-   "minutes": 50,
+   "minutes": 60,
    "type": "Normal"
   },
   {
@@ -814,7 +814,7 @@
   },
   {
    "timeSlot": "22.00 - 23.00",
-   "minutes": 50,
+   "minutes": 60,
    "type": "Normal"
   },
   {
@@ -834,7 +834,7 @@
   },
   {
    "timeSlot": "02.00 - 03.00",
-   "minutes": 50,
+   "minutes": 60,
    "type": "Normal"
   },
   {

@@ -6,8 +6,9 @@
    Available time comes from the time slots in the LineTimeSlots sheet, read
    in sheet order as one timeline from the first slot (08.00) through
    midnight. Each run of Normal/Break slots starts a shift and the OT slots
-   after it belong to that shift (day: 08-17 + OT 17-20, night: 20-05 + OT
-   05-08). A shift counts only on days it has a production record; its
+   after it belong to that shift (day: 08-17 less lunch 12-13 = 480 min + OT
+   17.30-20, night: 20-05 less 00-01 = 480 min + OT 05.30-08; the 10-minute
+   tea breaks are not deducted). A shift counts only on days it has a production record; its
    normal time counts in full and its OT up to the last OT slot with a
    record. No one has to log stop times. */
 (function () {
