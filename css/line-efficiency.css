@@ -214,6 +214,12 @@
   background: repeating-linear-gradient(-45deg, #a4505a 0 2px, color-mix(in srgb, var(--kz-blue, #4d7cfe) 35%, transparent) 2px 5px);
   outline: 1px solid #a4505a;
 }
+.line-eff-legend-key i.is-target {
+  width: 16px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed #8b5cf6;
+}
 .line-eff-legend-key i.is-rate {
   height: 3px;
   border-radius: 2px;
@@ -289,6 +295,38 @@
 .line-eff-detail > td {
   padding: 0.4rem 0.8rem 1rem !important;
   background: var(--kz-surface-soft);
+}
+
+.line-eff-calc {
+  margin: 0.2rem 0 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--kz-line);
+  border-radius: 10px;
+  background: var(--kz-surface, transparent);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.line-eff-calc-title {
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.line-eff-calc ol,
+.line-eff-calc ul {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.line-eff-calc ol { list-style: decimal; }
+.line-eff-calc ol > li { margin-bottom: 0.25rem; }
+.line-eff-calc ul {
+  margin: 0.2rem 0;
+  list-style: disc;
+}
+
+.line-eff-calc small {
+  color: var(--kz-muted);
 }
 
 .line-eff-parts {
