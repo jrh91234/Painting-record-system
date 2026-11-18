@@ -8,8 +8,10 @@
    midnight. Each run of Normal/Break slots starts a shift and the OT slots
    after it belong to that shift (day: 08-17 less lunch 12-13 = 480 min + OT
    17.30-20, night: 20-05 less 00-01 = 480 min + OT 05.30-08; the 10-minute
-   tea breaks are not deducted). A shift counts only on days it has a production record, and
-   then counts its full working time: normal slots plus all of its OT. No one has to log stop times. */
+   tea breaks are not deducted). A shift counts only on days it has a production record; its
+   normal time counts in full and its OT as far as it was worked: up to the
+   last OT slot with a production record, or up to the latest Powder Coating
+   check-out in the attendance sheet, whichever is later. No one has to log stop times. */
 (function () {
     const TARGET = 80;
     const FALLBACK_URL = 'data/line-capacity.json';
@@ -203,7 +205,7 @@
                 || all.filter(slot => slot.relStart <= r).pop()
                 || all[0];
         };
-        return { shifts, locate };
+        return { shifts, locate, rel };
     }
 
     // Remember which shifts ran that day and the last OT slot used in each.
@@ -226,6 +228,55 @@
             entry.extra.set(slot.timeSlot, slot.minutes);
         }
         entry.shifts.set(shiftIndex, Math.max(entry.shifts.has(shiftIndex) ? entry.shifts.get(shiftIndex) : -1, lastOt));
+    }
+
+    // Minutes after midnight of the last clock time in a value such as
+    // "19:45" or "2026-11-17 19:45"; null when there is none.
+    function clockMinutes(value) {
+        const times = String(value || '').match(/\d{1,2}[.:]\d{2}/g);
+        return times ? slotStartMinutes(times[times.length - 1]) : null;
+    }
+
+    // OT the staff worked, from the JR Organize attendance sheet: for each day
+    // and shift, the minutes of the shift's OT slots before the latest
+    // check-out of a Powder Coating employee. Each OT slot's work starts at its
+    // end minus its minutes (17.00-18.00 holding 30 min starts at 17.30).
+    function attendanceOt(slots) {
+        const result = new Map();
+        (state.attendance || []).forEach(item => {
+            const day = toDateKey(item.date);
+            const out = clockMinutes(item.checkOut);
+            if (!day || out === null) return;
+            const label = String(item.shift || '').trim().toLowerCase();
+            let shiftIndex = /night|ดึก|ค่ำ/.test(label) ? 1 : /day|เช้า|ปกติ/.test(label) ? 0 : null;
+            if (shiftIndex === null) {
+                // No shift name: the shift whose start is closest to check-in
+                // (staff clock in a little before 08.00 or 20.00).
+                const checkIn = clockMinutes(item.checkIn);
+                shiftIndex = 0;
+                if (checkIn !== null) {
+                    const inRel = slots.rel(checkIn);
+                    let best = Infinity;
+                    slots.shifts.forEach(shift => {
+                        const start = shift.slots[0].relStart;
+                        const gap = Math.min(Math.abs(inRel - start), 1440 - Math.abs(inRel - start));
+                        if (gap < best) { best = gap; shiftIndex = shift.index; }
+                    });
+                }
+            }
+            const shift = slots.shifts[Math.min(shiftIndex, slots.shifts.length - 1)];
+            if (!shift || !shift.ot.length) return;
+            // Check-out on the shift's own timeline (a night check-out at 06.40
+            // falls after the 05.30 OT start, not before the 20.00 shift start).
+            const outRel = slots.rel(out);
+            const minutes = shift.ot.reduce((sum, slot) => {
+                const start = slot.relEnd - slot.minutes;
+                return sum + Math.max(0, Math.min(slot.relEnd, outRel) - start);
+            }, 0);
+            const key = day + '|' + shift.index;
+            result.set(key, Math.max(result.get(key) || 0, minutes));
+        });
+        return result;
     }
 
     function compute() {
@@ -286,19 +337,23 @@
             entry.parts.set(partKey, part);
         });
 
+        const otFromAttendance = attendanceOt(slots);
         days.forEach(entry => {
             let normalMinutes = 0;
             let otMinutes = 0;
-            // Available time is the shift's full working time: its normal
-            // slots plus all of its OT (day 08.00-17.00 + 17.30-20.00, night
-            // 20.00-05.00 + 05.30-08.00), whether or not a record was logged
-            // in an OT slot.
+            // Available time: the shift's normal time in full, plus the OT it
+            // actually ran. OT is detected two ways and the larger one counts:
+            // production logged in an OT slot (up to the last such slot), and
+            // the latest Powder Coating check-out in the attendance sheet.
             entry.shifts.forEach((lastOt, index) => {
                 const shift = slots.shifts[index];
                 if (!shift) return;
                 normalMinutes += shift.normalMinutes;
-                otMinutes += shift.ot.reduce((sum, slot) => sum + slot.minutes, 0);
+                const fromRecords = shift.ot.slice(0, lastOt + 1).reduce((sum, slot) => sum + slot.minutes, 0);
+                const fromAttendance = otFromAttendance.get(entry.day + '|' + index) || 0;
+                otMinutes += Math.max(fromRecords, fromAttendance);
             });
+            entry.extra.forEach(minutes => { otMinutes += minutes; });
             entry.available = normalMinutes + otMinutes;
             entry.otMinutes = otMinutes;
             entry.shiftCount = entry.shifts.size;
@@ -699,7 +754,8 @@
         } finally {
             if (request === attendanceRequest) {
                 state.attendanceLoading = false;
-                renderAttendance();
+                // Check-out times decide the OT in available time, so redraw all.
+                if (state.config) render(); else renderAttendance();
             }
         }
     }
