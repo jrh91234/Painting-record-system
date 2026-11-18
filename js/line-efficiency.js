@@ -234,6 +234,12 @@
             lastOt = shift.ot.length - 1;
         }
         entry.shifts.set(shiftIndex, Math.max(entry.shifts.has(shiftIndex) ? entry.shifts.get(shiftIndex) : -1, lastOt));
+        // For the calculation breakdown: how many records put the day in this
+        // shift, and whether by the form's Day/Night choice or by time slot.
+        const info = entry.shiftInfo.get(shiftIndex) || { records: 0, byName: 0, bySlot: 0 };
+        info.records += 1;
+        if (named !== null) info.byName += 1; else info.bySlot += 1;
+        entry.shiftInfo.set(shiftIndex, info);
     }
 
     // Minutes after midnight of the last clock time in a value such as
@@ -280,9 +286,70 @@
                 return sum + Math.max(0, Math.min(slot.relEnd, outRel) - start);
             }, 0);
             const key = day + '|' + shift.index;
-            result.set(key, Math.max(result.get(key) || 0, minutes));
+            const best = result.get(key);
+            if (!best || out !== null && slots.rel(out) > best.outRel) {
+                result.set(key, { minutes, outRel, out: String(item.checkOut).match(/\d{1,2}[.:]\d{2}/g).pop(), people: (best ? best.people : 0) + 1 });
+            } else {
+                best.people += 1;
+            }
         });
         return result;
+    }
+
+    // "08.00 - 17.00" from a run of slots ("08.00 - 09.00" ... "16.00 - 17.00").
+    function shiftRange(list) {
+        if (!list.length) return '';
+        const first = String(list[0].timeSlot).split('-')[0].trim();
+        const last = String(list[list.length - 1].timeSlot).split('-').pop().trim();
+        return `${first} - ${last}`;
+    }
+
+    // OT work starts at the first OT slot's end minus its minutes
+    // (17.00-18.00 holding 30 min → 17.30).
+    function otRange(list) {
+        if (!list.length) return '';
+        const end = slotEndMinutes(list[0].timeSlot);
+        if (end === null) return shiftRange(list);
+        const start = ((end - list[0].minutes) % 1440 + 1440) % 1440;
+        const clock = `${String(Math.floor(start / 60)).padStart(2, '0')}.${String(start % 60).padStart(2, '0')}`;
+        return `${clock} - ${String(list[list.length - 1].timeSlot).split('-').pop().trim()}`;
+    }
+
+    const SHIFT_NAMES = ['กะเช้า', 'กะดึก'];
+
+    // The step-by-step working behind a day's figures, shown when its row is opened.
+    function renderCalc(day) {
+        const n = value => Math.round(value).toLocaleString();
+        const shifts = day.calc.map(item => {
+            const name = SHIFT_NAMES[item.index] || `กะ ${item.index + 1}`;
+            const why = item.info.byName && item.info.bySlot ? 'จากกะที่เลือกในฟอร์มและช่วงเวลาที่ลงยอด'
+                : item.info.byName ? 'จากกะที่เลือกในฟอร์ม (Day/Night)' : 'จากช่วงเวลาที่ลงยอด';
+            const otParts = [];
+            otParts.push(item.recordSlot ? `ลงยอดถึงช่วง ${escapeHtml(item.recordSlot)} = ${n(item.fromRecords)} น.` : 'ไม่มีการลงยอดในช่วง OT');
+            otParts.push(item.attendance
+                ? `สแกนออกล่าสุด ${escapeHtml(item.attendance.out)} (${item.attendance.people} คน) = ${n(item.fromAttendance)} น.`
+                : 'ไม่มีเวลาสแกนออก');
+            return `<li><b>${name}</b> <small>(${item.info.records} รายการ · ${why})</small><br>
+                เวลาปกติ ${escapeHtml(item.range)}${item.breakMinutes ? ` หักพัก ${n(item.breakMinutes)} น.` : ''} = <b>${n(item.normal)} น.</b><br>
+                OT ${escapeHtml(item.otRange)}: ${otParts.join(' · ')} → ใช้ค่าที่มากกว่า = <b>${n(item.ot)} น.</b></li>`;
+        }).join('');
+        const terms = day.calc.map(item => item.ot ? `${n(item.normal)} + ${n(item.ot)}` : n(item.normal)).join(' + ');
+        const parts = Array.from(day.parts.values());
+        const earnedTerms = parts.length <= 4
+            ? parts.map(part => `${part.qty.toLocaleString()} × ${part.stdSec.toFixed(2)} ÷ 60`).join(' + ') + ' = '
+            : `Σ ยอดผลิต × เวลามาตรฐาน ÷ 60 (${parts.length} รายการ ดูตารางด้านล่าง) = `;
+        return `<div class="line-eff-calc">
+            <div class="line-eff-calc-title">วิธีคำนวณของวันนี้</div>
+            <ol>
+                <li><b>เวลาที่มี</b>
+                    <ul>${shifts}</ul>
+                    รวม ${terms} = <b>${n(day.available)} น. (${fmtMin(day.available)})</b></li>
+                <li><b>เวลาที่ทำได้</b> = ${earnedTerms}<b>${n(day.earned)} น. (${fmtMin(day.earned)})</b>${day.unmatchedQty ? ` <small>· ไม่นับ ${day.unmatchedQty.toLocaleString()} ชิ้นที่ยังไม่มีค่ามาตรฐาน</small>` : ''}</li>
+                <li><b>%Eff</b> = ${n(day.earned)} ÷ ${n(day.available)} × 100 = <b>${fmtPct(day.eff)}</b></li>
+                <li><b>%Eff งานดี</b> = ${n(day.earnedGood)} ÷ ${n(day.available)} × 100 = <b>${fmtPct(day.effGood)}</b> <small>(หักของเสีย ${day.defects.toLocaleString()} ชิ้น)</small></li>
+                <li><b>เวลาที่หายไป</b> = ${n(day.available)} − ${n(day.earned)} = <b>${fmtMin(day.lost)}</b>${day.earned > day.available ? ' <small>(ทำได้เกินเวลาที่มี จึงเป็น 0)</small>' : ''}</li>
+            </ol>
+        </div>`;
     }
 
     function compute() {
@@ -311,7 +378,7 @@
             const cap = capacity.get(code);
             // SCREEN runs the same parts at its own cycle time (ScreenStdSecPerPcs).
             const stdSec = cap ? (row.workType === 'SCREEN' ? cap.screenStdSec : cap.stdSec) : 0;
-            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), parts: new Map(), unmatchedQty: 0 });
+            if (!days.has(day)) days.set(day, { day, earned: 0, earnedGood: 0, earnedRework: 0, qty: 0, reworkQty: 0, defects: 0, shifts: new Map(), shiftInfo: new Map(), parts: new Map(), unmatchedQty: 0 });
             const entry = days.get(day);
             markShiftTime(entry, slots, row);
 
@@ -345,6 +412,7 @@
 
         const otFromAttendance = attendanceOt(slots);
         days.forEach(entry => {
+            const calc = [];
             let normalMinutes = 0;
             let otMinutes = 0;
             // Available time: the shift's normal time in full, plus the OT it
@@ -356,9 +424,26 @@
                 if (!shift) return;
                 normalMinutes += shift.normalMinutes;
                 const fromRecords = shift.ot.slice(0, lastOt + 1).reduce((sum, slot) => sum + slot.minutes, 0);
-                const fromAttendance = otFromAttendance.get(entry.day + '|' + index) || 0;
-                otMinutes += Math.max(fromRecords, fromAttendance);
+                const att = otFromAttendance.get(entry.day + '|' + index);
+                const fromAttendance = att ? att.minutes : 0;
+                const ot = Math.max(fromRecords, fromAttendance);
+                otMinutes += ot;
+                const normalSlots = shift.slots.filter(slot => !slot.isOT);
+                calc.push({
+                    index,
+                    range: shiftRange(normalSlots),
+                    otRange: otRange(shift.ot),
+                    breakMinutes: normalSlots.reduce((sum, slot) => sum + (slot.relEnd - slot.relStart) - slot.minutes, 0),
+                    normal: shift.normalMinutes,
+                    fromRecords,
+                    recordSlot: lastOt >= 0 ? shift.ot[lastOt].timeSlot : '',
+                    fromAttendance,
+                    attendance: att || null,
+                    ot,
+                    info: entry.shiftInfo.get(index) || { records: 0, byName: 0, bySlot: 0 }
+                });
             });
+            entry.calc = calc.sort((a, b) => a.index - b.index);
             entry.available = normalMinutes + otMinutes;
             entry.otMinutes = otMinutes;
             entry.shiftCount = entry.shifts.size;
@@ -643,8 +728,9 @@
             const open = state.expanded.has(day.day);
             const parts = Array.from(day.parts.values()).sort((a, b) => b.earned - a.earned);
             const detail = open ? `<tr class="line-eff-detail"><td colspan="7">
+                ${renderCalc(day)}
                 <table class="line-eff-parts"><thead><tr><th>ชิ้นงาน</th><th>ประเภท</th><th>ยอดผลิต</th><th>ชิ้น/ราว</th><th>เวลามาตรฐาน</th><th>เวลาที่ทำได้</th></tr></thead><tbody>
-                ${parts.map(part => `<tr><td><strong>${escapeHtml(part.code)}</strong><br><small>${escapeHtml(part.name)}</small></td><td>${({ REWORK: 'REWORK', SCREEN: 'SCREEN', PREASSY: 'Pre-assy' })[part.workType] || 'งานใหม่'}</td><td>${part.qty.toLocaleString()}${part.defects ? ` <small>(เสีย ${part.defects})</small>` : ''}</td><td>${part.qtyPerJig}</td><td>${part.stdSec.toFixed(2)} วินาที</td><td>${fmtMin(part.earned)}</td></tr>`).join('')}
+                ${parts.map(part => `<tr><td><strong>${escapeHtml(part.code)}</strong><br><small>${escapeHtml(part.name)}</small></td><td>${({ REWORK: 'REWORK', SCREEN: 'SCREEN', PREASSY: 'Pre-assy' })[part.workType] || 'งานใหม่'}</td><td>${part.qty.toLocaleString()}${part.defects ? ` <small>(เสีย ${part.defects})</small>` : ''}</td><td>${part.qtyPerJig}</td><td>${part.stdSec.toFixed(2)} วินาที</td><td>${fmtMin(part.earned)}<br><small>${part.qty.toLocaleString()} × ${part.stdSec.toFixed(2)} ÷ 60 = ${part.earned.toFixed(1)} น.</small></td></tr>`).join('')}
                 ${day.unmatchedQty ? `<tr><td colspan="6" class="line-eff-note">⚠ มีงาน ${day.unmatchedQty.toLocaleString()} ชิ้นที่ยังไม่มีค่ามาตรฐาน จึงยังไม่ถูกนับ</td></tr>` : ''}
                 </tbody></table></td></tr>` : '';
             return `<tr class="line-eff-row" data-day="${day.day}" tabindex="0" aria-expanded="${open}">

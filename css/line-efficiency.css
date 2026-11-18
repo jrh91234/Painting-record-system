@@ -297,6 +297,38 @@
   background: var(--kz-surface-soft);
 }
 
+.line-eff-calc {
+  margin: 0.2rem 0 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--kz-line);
+  border-radius: 10px;
+  background: var(--kz-surface, transparent);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.line-eff-calc-title {
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.line-eff-calc ol,
+.line-eff-calc ul {
+  margin: 0;
+  padding-left: 1.3rem;
+}
+
+.line-eff-calc ol { list-style: decimal; }
+.line-eff-calc ol > li { margin-bottom: 0.25rem; }
+.line-eff-calc ul {
+  margin: 0.2rem 0;
+  list-style: disc;
+}
+
+.line-eff-calc small {
+  color: var(--kz-muted);
+}
+
 .line-eff-parts {
   width: 100%;
   border-collapse: collapse;
